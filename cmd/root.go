@@ -3,6 +3,7 @@ package cmd
 import (
 	"fmt"
 	"os"
+	"strings"
 
 	"github.com/fatih/color"
 	"github.com/spf13/cobra"
@@ -15,24 +16,55 @@ var (
 	jsonOut   bool
 )
 
+// generateHeader creates a nice header box with proper Unicode box drawing
+func generateHeader() string {
+	lines := []string{
+		"🚀 linctl",
+		"Linear CLI - Built with ❤️",
+	}
+	
+	// Find the longest line
+	maxLen := 0
+	for _, line := range lines {
+		if len(line) > maxLen {
+			maxLen = len(line)
+		}
+	}
+	
+	// Add padding
+	width := maxLen + 8
+	
+	// Build the box
+	var result strings.Builder
+	
+	// Top border
+	result.WriteString("┌")
+	result.WriteString(strings.Repeat("─", width))
+	result.WriteString("┐\n")
+	
+	// Content lines
+	for _, line := range lines {
+		padding := (width - len(line)) / 2
+		result.WriteString("│")
+		result.WriteString(strings.Repeat(" ", padding))
+		result.WriteString(line)
+		result.WriteString(strings.Repeat(" ", width - padding - len(line)))
+		result.WriteString("│\n")
+	}
+	
+	// Bottom border
+	result.WriteString("└")
+	result.WriteString(strings.Repeat("─", width))
+	result.WriteString("┘")
+	
+	return result.String()
+}
+
 // rootCmd represents the base command when called without any subcommands
 var rootCmd = &cobra.Command{
 	Use:   "linctl",
 	Short: "A comprehensive Linear CLI tool",
-	Long: color.New(color.FgCyan).Sprint(`
-┌─────────────────────────────────────────┐
-│              🚀 linctl                   │
-│      Linear CLI - Built with ❤️         │
-└─────────────────────────────────────────┘
-
-A comprehensive CLI tool for Linear's API featuring:
-• Issue management (create, list, update, archive)
-• Project tracking and collaboration  
-• Team and user management
-• Comments and attachments
-• Webhook configuration
-• Table/plaintext/JSON output formats
-`),
+	Long: color.New(color.FgCyan).Sprintf("%s\nA comprehensive CLI tool for Linear's API featuring:\n• Issue management (create, list, update, archive)\n• Project tracking and collaboration  \n• Team and user management\n• Comments and attachments\n• Webhook configuration\n• Table/plaintext/JSON output formats\n", generateHeader()),
 	Version: "0.1.0",
 }
 
