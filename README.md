@@ -5,35 +5,73 @@ A comprehensive command-line interface for Linear's API, built with Go and Cobra
 ## ✨ Features
 
 - 🔐 **Authentication**: Personal API Key support
-- 📋 **Issue Management**: Create, list, update, and archive issues
-- 👥 **Team Management**: List teams, members, and team details
-- 🚀 **Project Tracking**: Manage projects and milestones
-- 💬 **Comments**: Add and view issue comments
-- 📎 **Attachments**: Handle file uploads and attachments
+- 📋 **Issue Management**: Create, list, view, assign, and manage issues with full details
+  - Sub-issue hierarchy with parent/child relationships
+  - Git branch integration showing linked branches
+  - Cycle (sprint) and project associations
+  - Attachments and recent comments preview
+  - Due dates, snoozed status, and completion tracking
+- 👥 **Team Management**: View teams, get team details, and list team members
+- 🚀 **Project Tracking**: Comprehensive project information
+  - Progress visualization with issue statistics
+  - Team and member associations
+  - Initiative hierarchy
+  - Recent issues preview
+  - Timeline tracking (created, updated, completed dates)
+- 👤 **User Management**: List all users, view user details, and current user info
+- 💬 **Comments**: List and create comments on issues with time-aware formatting
+- 📎 **Attachments**: View file uploads and attachments on issues
 - 🔗 **Webhooks**: Configure and manage webhooks
 - 🎨 **Multiple Output Formats**: Table, plaintext, and JSON output
 - ⚡ **Performance**: Fast and lightweight CLI tool
+- 🔄 **Flexible Sorting**: Sort lists by Linear's default order, creation date, or update date
+- 📅 **Time-based Filtering**: Filter lists by creation date with intuitive time expressions
 
 ## 🛠️ Installation
 
 ### Homebrew (macOS/Linux)
 ```bash
+brew tap dorkitude/linctl
 brew install linctl
-```
-
-### apt (Ubuntu/Debian)
-```bash
-sudo apt update
-sudo apt install linctl
 ```
 
 ### From Source
 ```bash
 git clone https://github.com/dorkitude/linctl.git
 cd linctl
-go build -o linctl
-sudo mv linctl /usr/local/bin/
+make deps        # Install dependencies
+make build       # Build the binary
+make install     # Install to /usr/local/bin (requires sudo)
 ```
+
+### For Development
+```bash
+git clone https://github.com/dorkitude/linctl.git
+cd linctl
+make deps        # Install dependencies
+make dev         # Build and run in development mode
+make test        # Run tests
+make lint        # Run linter
+make fmt         # Format code
+```
+
+## 🆕 What's New
+
+- **Time-based Filtering**: List commands now support `--newer-than` to filter by creation date:
+  - Default shows items from last 6 months (preventing overwhelming data)
+  - Use expressions like `3_weeks_ago`, `1_month_ago`, `2_days_ago`
+  - Use `all_time` to see all items regardless of age
+- **Enhanced Issue & Project Details**: `issue get` and `project get` now fetch comprehensive data including:
+  - Git branches, cycles, attachments, and recent comments for issues
+  - Members, initiatives, issue statistics, and timeline data for projects
+- **Sorting Options**: All list commands now support sorting by Linear's default order, creation date, or update date
+- **Complete Team Management**: List teams, view details, and see all team members
+- **User Management**: Browse users, check user details, and view your profile
+- **Comments System**: Read and add comments to issues with formatted timestamps
+- **Project Management**: View and track project progress across teams
+- **Sub-issue Support**: See parent/child issue relationships
+- **Quick Assign**: Instantly assign issues to yourself
+- **Issue Creation**: Create issues directly from the CLI
 
 ## 🚀 Quick Start
 
@@ -60,14 +98,41 @@ linctl issue list --assignee me
 # List issues in a specific state
 linctl issue list --state "In Progress"
 
-# Get issue details
+# List issues sorted by update date
+linctl issue list --sort updated
+
+# List issues from last 2 weeks (default is 6 months)
+linctl issue list --newer-than 2_weeks_ago
+
+# List all issues ever created
+linctl issue list --newer-than all_time
+
+# Get issue details (now includes git branch, cycle, project, attachments, and comments)
 linctl issue get LIN-123
 
 # Create a new issue
 linctl issue create --title "Bug fix" --team ENG
+
+# Assign issue to yourself
+linctl issue assign LIN-123
 ```
 
-### 3. Team Management
+### 3. Project Management
+```bash
+# List all projects (shows IDs)
+linctl project list
+
+# Filter projects by team
+linctl project list --team ENG
+
+# List projects created in the last month
+linctl project list --newer-than 1_month_ago
+
+# Get project details (use ID from list command)
+linctl project get 65a77a62-ec5e-491e-b1d9-84aebee01b33
+```
+
+### 4. Team Management
 ```bash
 # List all teams
 linctl team list
@@ -77,6 +142,30 @@ linctl team get ENG
 
 # List team members
 linctl team members ENG
+```
+
+### 5. User Management
+```bash
+# List all users
+linctl user list
+
+# Show only active users
+linctl user list --active
+
+# Get user details by email
+linctl user get john@example.com
+
+# Show your own profile
+linctl user me
+```
+
+### 6. Comments
+```bash
+# List comments on an issue
+linctl comment list LIN-123
+
+# Add a comment to an issue
+linctl comment create LIN-123 --body "Fixed the authentication bug"
 ```
 
 ## 📖 Command Reference
@@ -108,74 +197,126 @@ linctl issue ls [flags]     # Short alias
   -t, --team string        Filter by team key
   -r, --priority int       Filter by priority (0-4)
   -l, --limit int          Maximum results (default 50)
+  -o, --sort string        Sort order: linear (default), created, updated
+  -n, --newer-than string  Show items created after this time (default: 6_months_ago)
 
-# Get issue details
+# Get issue details (shows parent and sub-issues)
 linctl issue get <issue-id>
 linctl issue show <issue-id>  # Alias
 
 # Create issue
 linctl issue create [flags]
 linctl issue new [flags]      # Alias
+# Flags:
+  --title string           Issue title (required)
+  -d, --description string Issue description
+  -t, --team string        Team key (required)
+  -p, --priority int       Priority 0-4 (default 3)
+  -m, --assign-me          Assign to yourself
 
-# Update issue
+# Assign issue to yourself
+linctl issue assign <issue-id>
+
+# Update issue (coming soon)
 linctl issue update <issue-id> [flags]
 linctl issue edit <issue-id> [flags]    # Alias
 
-# Archive issue
+# Archive issue (coming soon)
 linctl issue archive <issue-id>
 ```
 
 ### Team Commands
 ```bash
-# List teams
+# List all teams with issue counts
 linctl team list
 linctl team ls              # Alias
+# Flags:
+  -l, --limit int          Maximum results (default 50)
+  -o, --sort string        Sort order: linear (default), created, updated
 
 # Get team details
 linctl team get <team-key>
 linctl team show <team-key> # Alias
 
-# List team members
+# Examples:
+linctl team get ENG         # Shows Engineering team details
+linctl team get DESIGN      # Shows Design team details
+
+# List team members with roles and status
 linctl team members <team-key>
+
+# Examples:
+linctl team members ENG     # Lists all Engineering team members
 ```
 
 ### Project Commands
 ```bash
 # List projects
-linctl project list
-linctl project ls           # Alias
+linctl project list [flags]
+linctl project ls [flags]     # Alias
+# Flags:
+  -t, --team string        Filter by team key
+  -s, --state string       Filter by state (planned, started, paused, completed, canceled)
+  -l, --limit int          Maximum results (default 50)
+  -o, --sort string        Sort order: linear (default), created, updated
+  -n, --newer-than string  Show items created after this time (default: 6_months_ago)
 
 # Get project details
 linctl project get <project-id>
 linctl project show <project-id>  # Alias
 
-# Create project
+# Create project (coming soon)
 linctl project create [flags]
 ```
 
 ### User Commands
 ```bash
-# List users
-linctl user list
-linctl user ls              # Alias
+# List all users in workspace
+linctl user list [flags]
+linctl user ls [flags]      # Alias
+# Flags:
+  -a, --active             Show only active users
+  -l, --limit int          Maximum results (default 50)
+  -o, --sort string        Sort order: linear (default), created, updated
 
-# Get user details
+# Examples:
+linctl user list            # List all users
+linctl user list --active   # List only active users
+
+# Get user details by email
 linctl user get <email>
 linctl user show <email>    # Alias
 
-# Show current user
-linctl user me
+# Examples:
+linctl user get john@example.com
+linctl user get jane.doe@company.com
+
+# Show current authenticated user
+linctl user me              # Shows your profile with admin status
 ```
 
 ### Comment Commands
 ```bash
-# List comments for issue
-linctl comment list <issue-id>
-linctl comment ls <issue-id>    # Alias
+# List all comments for an issue
+linctl comment list <issue-id> [flags]
+linctl comment ls <issue-id> [flags]    # Alias
+# Flags:
+  -l, --limit int          Maximum results (default 50)
+  -o, --sort string        Sort order: linear (default), created, updated
+
+# Examples:
+linctl comment list LIN-123      # Shows all comments with timestamps
+linctl comment list LIN-456 -l 10 # Show latest 10 comments
 
 # Add comment to issue
 linctl comment create <issue-id> --body "Comment text"
-linctl comment add <issue-id> -b "Comment text"  # Alias
+linctl comment add <issue-id> -b "Comment text"    # Alias
+linctl comment new <issue-id> -b "Comment text"    # Alias
+
+# Examples:
+linctl comment create LIN-123 --body "I've started working on this"
+linctl comment add LIN-123 -b "Fixed in commit abc123"
+linctl comment create LIN-456 --body "@john please review this PR"
 ```
 
 ## 🎨 Output Formats
@@ -243,6 +384,52 @@ Authentication credentials are stored securely in `~/.linctl-auth.json`.
 2. Create a new Personal API Key
 3. Run `linctl auth` and paste your key
 
+## 🔄 Sorting & Filtering Options
+
+### Sorting
+All list commands support sorting with the `--sort` or `-o` flag:
+
+- **linear** (default): Linear's built-in sorting order (respects manual ordering in the UI)
+- **created**: Sort by creation date (newest first)
+- **updated**: Sort by last update date (most recently updated first)
+
+### Time-based Filtering
+Issue and project list commands support the `--newer-than` or `-n` flag to filter by creation date:
+
+- **Default**: `6_months_ago` (prevents overwhelming data loads)
+- **Time expressions**: `N_units_ago` where units can be:
+  - `minutes`, `hours`, `days`, `weeks`, `months`, `years`
+  - Examples: `3_days_ago`, `2_weeks_ago`, `1_month_ago`
+- **Special values**:
+  - `all_time`: Show all items regardless of age
+  - ISO dates: `2025-07-01` or full ISO8601 timestamps
+
+### Examples
+```bash
+# Get recently updated issues
+linctl issue list --sort updated
+
+# Get oldest projects first
+linctl project list --sort created
+
+# Get recently joined users
+linctl user list --sort created --active
+
+# Get latest comments on an issue
+linctl comment list LIN-123 --sort created
+
+# Combine sorting with filters
+linctl issue list --assignee me --state "In Progress" --sort updated
+
+# Combine time filtering with sorting
+linctl issue list --newer-than 1_week_ago --sort updated
+
+# Get all projects sorted by creation date
+linctl project list --newer-than all_time --sort created
+```
+
+**Important**: By default, list commands only show items created in the last 6 months. This prevents overwhelming data loads and improves performance. Use `--newer-than all_time` to see all items.
+
 ## 🤖 Scripting & Automation
 
 Use `--plaintext` or `--json` flags for scripting:
@@ -258,6 +445,91 @@ echo "$urgent_issues" | jq '.[] | select(.assignee == "me") | .id'
 
 # Plaintext output for simple parsing
 linctl issue list --assignee me --plaintext | cut -f1 | tail -n +2
+
+# Create and assign issue in one command
+linctl issue create --title "Fix bug" --team ENG --assign-me --json
+
+# Get all projects for a team
+linctl project list --team ENG --json | jq '.[] | {name, progress}'
+
+# List all admin users
+linctl user list --json | jq '.[] | select(.admin == true) | {name, email}'
+
+# Get team member count
+linctl team members ENG --json | jq '. | length'
+
+# Export issue comments
+linctl comment list LIN-123 --json > issue-comments.json
+```
+
+## 📡 Real-World Examples
+
+### Team Workflows
+```bash
+# Find which team a user belongs to
+for team in $(linctl team list --json | jq -r '.[].key'); do
+  echo "Checking team: $team"
+  linctl team members $team --json | jq '.[] | select(.email == "john@example.com")'
+done
+
+# List all private teams
+linctl team list --json | jq '.[] | select(.private == true) | {key, name}'
+
+# Get teams with more than 50 issues
+linctl team list --json | jq '.[] | select(.issueCount > 50) | {key, name, issueCount}'
+```
+
+### User Management
+```bash
+# Find inactive users
+linctl user list --json | jq '.[] | select(.active == false) | {name, email}'
+
+# Check if you're an admin
+linctl user me --json | jq '.admin'
+
+# List users who are admins but not the current user
+linctl user list --json | jq '.[] | select(.admin == true and .isMe == false) | .email'
+```
+
+### Issue Comments
+```bash
+# Add a comment mentioning the issue is blocked
+linctl comment create LIN-123 --body "Blocked by LIN-456. Waiting for API changes."
+
+# Get all comments by a specific user
+linctl comment list LIN-123 --json | jq '.[] | select(.user.email == "john@example.com") | .body'
+
+# Count comments per issue
+for issue in LIN-123 LIN-124 LIN-125; do
+  count=$(linctl comment list $issue --json | jq '. | length')
+  echo "$issue: $count comments"
+done
+```
+
+### Project Tracking
+```bash
+# List projects nearing completion (>80% progress)
+linctl project list --json | jq '.[] | select(.progress > 0.8) | {name, progress}'
+
+# Get all paused projects
+linctl project list --state paused
+
+# Show project timeline
+linctl project get PROJECT-ID --json | jq '{name, startDate, targetDate, progress}'
+```
+
+### Daily Standup Helper
+```bash
+#!/bin/bash
+# Show my recent activity
+echo "=== My Issues ==="
+linctl issue list --assignee me --limit 10
+
+echo -e "\n=== Recent Comments ==="
+for issue in $(linctl issue list --assignee me --json | jq -r '.[].identifier'); do
+  echo "Comments on $issue:"
+  linctl comment list $issue --limit 3
+done
 ```
 
 ## 🐛 Troubleshooting
