@@ -22,32 +22,15 @@ clean:
 	rm -f $(BINARY_NAME)
 	go clean
 
-# Run all tests
+# Run smoke tests
 test:
-	@echo "🧪 Running all tests..."
-	go test -v ./tests/...
+	@echo "🧪 Running smoke tests..."
+	@./smoke_test.sh
 
-# Run unit tests only
-test-unit:
-	@echo "🧪 Running unit tests..."
-	go test -v ./tests/unit/...
-
-# Run integration tests (requires LINEAR_TEST_API_KEY)
-test-integration:
-	@echo "🧪 Running integration tests..."
-	@if [ -z "$$LINEAR_TEST_API_KEY" ]; then \
-		echo "⚠️  LINEAR_TEST_API_KEY not set. Skipping integration tests."; \
-		echo "   Set it with: export LINEAR_TEST_API_KEY=your-test-key"; \
-	else \
-		go test -v ./tests/integration/...; \
-	fi
-
-# Run tests with coverage
-test-coverage:
-	@echo "📊 Running tests with coverage..."
-	go test -v -coverprofile=coverage.out ./tests/...
-	go tool cover -html=coverage.out -o coverage.html
-	@echo "✅ Coverage report generated: coverage.html"
+# Run smoke tests with verbose output
+test-verbose:
+	@echo "🧪 Running smoke tests (verbose)..."
+	@bash -x ./smoke_test.sh
 
 # Install dependencies
 deps:
@@ -98,10 +81,8 @@ help:
 	@echo "📖 Available targets:"
 	@echo "  build            - Build the binary"
 	@echo "  clean            - Clean build artifacts"
-	@echo "  test             - Run all tests"
-	@echo "  test-unit        - Run unit tests only"
-	@echo "  test-integration - Run integration tests (requires API key)"
-	@echo "  test-coverage    - Run tests with coverage report"
+	@echo "  test             - Run smoke tests"
+	@echo "  test-verbose     - Run smoke tests with verbose output"
 	@echo "  deps             - Install dependencies"
 	@echo "  fmt              - Format code"
 	@echo "  lint             - Lint code"

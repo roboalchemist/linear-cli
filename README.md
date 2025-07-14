@@ -27,7 +27,7 @@ A comprehensive command-line interface for Linear's API, built with Go and Cobra
 - 🔄 **Flexible Sorting**: Sort lists by Linear's default order, creation date, or update date
 - 📅 **Time-based Filtering**: Filter lists by creation date with intuitive time expressions
 - 📚 **Built-in Documentation**: Access full documentation with `linctl docs`
-- 🧪 **Comprehensive Testing**: Unit and integration test suite with coverage reporting
+- 🧪 **Smoke Testing**: Automated smoke tests for all read-only commands
 
 ## 🛠️ Installation
 
@@ -236,9 +236,16 @@ linctl issue new [flags]      # Alias
 # Assign issue to yourself
 linctl issue assign <issue-id>
 
-# Update issue (coming soon)
+# Update issue
 linctl issue update <issue-id> [flags]
 linctl issue edit <issue-id> [flags]    # Alias
+# Flags:
+  --title string           New title
+  -d, --description string New description
+  -a, --assignee string    Assignee (email, name, 'me', or 'unassigned')
+  -s, --state string       State name (e.g., 'Todo', 'In Progress', 'Done')
+  --priority int           Priority (0=None, 1=Urgent, 2=High, 3=Normal, 4=Low)
+  --due-date string        Due date (YYYY-MM-DD format, or empty to remove)
 
 # Archive issue (coming soon)
 linctl issue archive <issue-id>
@@ -516,17 +523,8 @@ linctl includes comprehensive unit and integration tests to ensure reliability.
 
 ### Running Tests
 ```bash
-# Run all tests
+# Run all tests  (currently just a smoke test)
 make test
-
-# Run unit tests only
-make test-unit
-
-# Run integration tests (requires LINEAR_TEST_API_KEY)
-make test-integration
-
-# Run tests with coverage report
-make test-coverage
 ```
 
 ### Integration Testing
