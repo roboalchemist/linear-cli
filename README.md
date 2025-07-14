@@ -54,7 +54,8 @@ linctl docs      # Render the README.md
 git clone https://github.com/dorkitude/linctl.git
 cd linctl
 make deps        # Install dependencies
-make dev         # Build and run in development mode
+go run main.go   # Run directly without building
+make dev         # Or build and run in development mode
 make test        # Run all tests
 make lint        # Run linter
 make fmt         # Format code
