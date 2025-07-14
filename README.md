@@ -1,6 +1,5 @@
 # 🚀 linctl - Linear CLI Tool
 
-> **IMPORTANT**:  Agents like Claude Code, Cursor, and Gemini should use the `--json` flag on all read operations.
 
 A comprehensive command-line interface for Linear's API, built with Go and Cobra.
 
@@ -62,16 +61,21 @@ make fmt         # Format code
 linctl docs      # Render the README.md
 ```
 
-## ⚠️ Important: Default Time Filter
+## Important: Default Filters
 
-> **By default, `issue list` and `project list` commands only show items created in the last 6 months!**
-> 
-> This improves performance and prevents overwhelming data loads. To see older items:
-> - Use `--newer-than 1_year_ago` for items from the last year
-> - Use `--newer-than all_time` to see ALL items ever created
-> - See the [Time-based Filtering](#-time-based-filtering-important) section for details
+**By default, `issue list` and `project list` commands only show items created in the last 6 months!**
+ 
+This improves performance and prevents overwhelming data loads. To see older items:
+ - Use `--newer-than 1_year_ago` for items from the last year
+ - Use `--newer-than all_time` to see ALL items ever created
+ - See the [Time-based Filtering](#-time-based-filtering-important) section for details
+
+**By default, `issue list` also filters out canceled and completed items. To see all items, use the `--include-completed` flag.**
+
 
 ## 🚀 Quick Start
+
+> **IMPORTANT**  Agents like Claude Code, Cursor, and Gemini should use the `--json` flag on all read operations.
 
 ### 1. Authentication
 ```bash
@@ -213,10 +217,11 @@ linctl issue list [flags]
 linctl issue ls [flags]     # Short alias
 
 # Flags:
-  -a, --assignee string    Filter by assignee (email or 'me')
+  -a, --assignee string     Filter by assignee (email or 'me')
+  -c, --include-completed   Include completed and canceled issues
   -s, --state string       Filter by state name
   -t, --team string        Filter by team key
-  -r, --priority int       Filter by priority (0-4)
+  -r, --priority int       Filter by priority (0-4, default: -1)
   -l, --limit int          Maximum results (default 50)
   -o, --sort string        Sort order: linear (default), created, updated
   -n, --newer-than string  Show items created after this time (default: 6_months_ago, use 'all_time' for no filter)
@@ -412,7 +417,7 @@ Authentication credentials are stored securely in `~/.linctl-auth.json`.
 2. Create a new Personal API Key
 3. Run `linctl auth` and paste your key
 
-## 📅 Time-based Filtering (Important!)
+## 📅 Time-based Filtering
 
 **⚠️ Default Behavior**: To improve performance and prevent overwhelming data loads, list commands **only show items created in the last 6 months by default**. This is especially important for large workspaces.
 
