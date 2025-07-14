@@ -26,6 +26,7 @@ A comprehensive command-line interface for Linear's API, built with Go and Cobra
 - ⚡ **Performance**: Fast and lightweight CLI tool
 - 🔄 **Flexible Sorting**: Sort lists by Linear's default order, creation date, or update date
 - 📅 **Time-based Filtering**: Filter lists by creation date with intuitive time expressions
+- 📚 **Built-in Documentation**: Access full documentation with `linctl docs`
 
 ## 🛠️ Installation
 
@@ -33,6 +34,7 @@ A comprehensive command-line interface for Linear's API, built with Go and Cobra
 ```bash
 brew tap dorkitude/linctl
 brew install linctl
+linctl docs      # Render the README.md
 ```
 
 ### From Source
@@ -42,6 +44,7 @@ cd linctl
 make deps        # Install dependencies
 make build       # Build the binary
 make install     # Install to /usr/local/bin (requires sudo)
+linctl docs      # Render the README.md
 ```
 
 ### For Development
@@ -53,6 +56,7 @@ make dev         # Build and run in development mode
 make test        # Run tests
 make lint        # Run linter
 make fmt         # Format code
+linctl docs      # Render the README.md
 ```
 
 ## 🆕 What's New
@@ -94,6 +98,9 @@ linctl auth status
 
 # Show current user
 linctl whoami
+
+# View full documentation
+linctl docs | less
 ```
 
 ### 2. Issue Management
