@@ -1,5 +1,7 @@
 # 🚀 linctl - Linear CLI Tool
 
+> **IMPORTANT**:  Agents like Claude Code, Cursor, and Gemini should use the `--json` flag on all read operations.
+
 A comprehensive command-line interface for Linear's API, built with Go and Cobra.
 
 ## ✨ Features
