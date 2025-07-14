@@ -59,24 +59,6 @@ make fmt         # Format code
 linctl docs      # Render the README.md
 ```
 
-## 🆕 What's New
-
-- **Time-based Filtering**: List commands now support `--newer-than` to filter by creation date:
-  - Default shows items from last 6 months (preventing overwhelming data)
-  - Use expressions like `3_weeks_ago`, `1_month_ago`, `2_days_ago`
-  - Use `all_time` to see all items regardless of age
-- **Enhanced Issue & Project Details**: `issue get` and `project get` now fetch comprehensive data including:
-  - Git branches, cycles, attachments, and recent comments for issues
-  - Members, initiatives, issue statistics, and timeline data for projects
-- **Sorting Options**: All list commands now support sorting by Linear's default order, creation date, or update date
-- **Complete Team Management**: List teams, view details, and see all team members
-- **User Management**: Browse users, check user details, and view your profile
-- **Comments System**: Read and add comments to issues with formatted timestamps
-- **Project Management**: View and track project progress across teams
-- **Sub-issue Support**: See parent/child issue relationships
-- **Quick Assign**: Instantly assign issues to yourself
-- **Issue Creation**: Create issues directly from the CLI
-
 ## ⚠️ Important: Default Time Filter
 
 > **By default, `issue list` and `project list` commands only show items created in the last 6 months!**
