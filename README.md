@@ -371,31 +371,28 @@ linctl issue list --plaintext
 ```
 ```
 # Issues
-## BUG: fix regression in thread analytics
-- **ID**: END-4206
+## BUG: Fix login button alignment
+- **ID**: FAK-123
 - **State**: In Progress
-- **Assignee**: Kyle Wild
-- **Team**: END
-- **Created**: 2025-07-13
-- **URL**: https://linear.app/endgame/issue/END-4206/bug-fix-regression-in-thread-analytics
-- **Description**: As of about a week ago, we stopped getting Assistant Messages in thread-analytics.
+- **Assignee**: Jane Doe
+- **Team**: WEB
+- **Created**: 2025-07-12
+- **URL**: https://linear.app/example/issue/FAK-123/bug-fix-login-button-alignment
+- **Description**: The login button on the main page is misaligned on mobile devices.
 
-We need to fix this, and enhance our automated testing to make sure it doesn't happen again.
+Steps to reproduce:
+1. Open the website on a mobile browser.
+2. Navigate to the login page.
+3. Observe the button alignment.
 
-plan:
-
-* write a red test to prove that it isn't working as expected
-* make the test green
-* postmortem to see how this happened
-
-## add dates to sources in sources tab where meaningful
-- **ID**: END-4203
+## FEAT: Add dark mode support
+- **ID**: FAK-124
 - **State**: Todo
-- **Assignee**: Unassigned
-- **Team**: END
+- **Assignee**: John Smith
+- **Team**: APP
 - **Created**: 2025-07-11
-- **URL**: https://linear.app/endgame/issue/END-4203/add-dates-to-sources-in-sources-tab-where-meaningful
-- **Description**: and maybe into the citation popover?
+- **URL**: https://linear.app/example/issue/FAK-124/feat-add-dark-mode-support
+- **Description**: Implement a dark mode theme for the entire application to improve user experience in low-light environments.
 ```
 
 ### JSON Format
