@@ -27,6 +27,7 @@ A comprehensive command-line interface for Linear's API, built with Go and Cobra
 - 🔄 **Flexible Sorting**: Sort lists by Linear's default order, creation date, or update date
 - 📅 **Time-based Filtering**: Filter lists by creation date with intuitive time expressions
 - 📚 **Built-in Documentation**: Access full documentation with `linctl docs`
+- 🧪 **Comprehensive Testing**: Unit and integration test suite with coverage reporting
 
 ## 🛠️ Installation
 
@@ -53,7 +54,7 @@ git clone https://github.com/dorkitude/linctl.git
 cd linctl
 make deps        # Install dependencies
 make dev         # Build and run in development mode
-make test        # Run tests
+make test        # Run all tests
 make lint        # Run linter
 make fmt         # Format code
 linctl docs      # Render the README.md
@@ -494,6 +495,47 @@ linctl project list --newer-than all_time --sort created
 - The 6-month default filter significantly improves performance for large workspaces
 - Use specific time ranges when possible instead of `all_time`
 - Combine time filtering with other filters (assignee, state, team) for faster results
+
+## 🧪 Testing
+
+linctl includes comprehensive unit and integration tests to ensure reliability.
+
+### Running Tests
+```bash
+# Run all tests
+make test
+
+# Run unit tests only
+make test-unit
+
+# Run integration tests (requires LINEAR_TEST_API_KEY)
+make test-integration
+
+# Run tests with coverage report
+make test-coverage
+```
+
+### Integration Testing
+Integration tests require a Linear API key. Create a `.env.test` file:
+```bash
+cp .env.test.example .env.test
+# Edit .env.test and add your LINEAR_TEST_API_KEY
+```
+
+Or set it as an environment variable:
+```bash
+export LINEAR_TEST_API_KEY="your-test-api-key"
+make test-integration
+```
+
+⚠️ **Note**: Integration tests are read-only and safe to run with production API keys.
+
+### Test Structure
+- `tests/unit/` - Unit tests with mocked API responses
+- `tests/integration/` - End-to-end tests with real Linear API
+- `tests/testutils/` - Shared test utilities and helpers
+
+See [tests/README.md](tests/README.md) for detailed testing documentation.
 
 ## 🤖 Scripting & Automation
 

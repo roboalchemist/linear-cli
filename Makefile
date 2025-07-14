@@ -22,10 +22,32 @@ clean:
 	rm -f $(BINARY_NAME)
 	go clean
 
-# Run tests
+# Run all tests
 test:
-	@echo "🧪 Running tests..."
-	go test -v ./...
+	@echo "🧪 Running all tests..."
+	go test -v ./tests/...
+
+# Run unit tests only
+test-unit:
+	@echo "🧪 Running unit tests..."
+	go test -v ./tests/unit/...
+
+# Run integration tests (requires LINEAR_TEST_API_KEY)
+test-integration:
+	@echo "🧪 Running integration tests..."
+	@if [ -z "$$LINEAR_TEST_API_KEY" ]; then \
+		echo "⚠️  LINEAR_TEST_API_KEY not set. Skipping integration tests."; \
+		echo "   Set it with: export LINEAR_TEST_API_KEY=your-test-key"; \
+	else \
+		go test -v ./tests/integration/...; \
+	fi
+
+# Run tests with coverage
+test-coverage:
+	@echo "📊 Running tests with coverage..."
+	go test -v -coverprofile=coverage.out ./tests/...
+	go tool cover -html=coverage.out -o coverage.html
+	@echo "✅ Coverage report generated: coverage.html"
 
 # Install dependencies
 deps:
@@ -74,15 +96,18 @@ run: build
 # Show help
 help:
 	@echo "📖 Available targets:"
-	@echo "  build       - Build the binary"
-	@echo "  clean       - Clean build artifacts"
-	@echo "  test        - Run tests"
-	@echo "  deps        - Install dependencies"
-	@echo "  fmt         - Format code"
-	@echo "  lint        - Lint code"
-	@echo "  install     - Install binary to system"
-	@echo "  dev-install - Create development symlink"
-	@echo "  build-all   - Cross-compile for all platforms"
-	@echo "  release     - Prepare release builds"
-	@echo "  run         - Build and run the binary"
-	@echo "  help        - Show this help"
+	@echo "  build            - Build the binary"
+	@echo "  clean            - Clean build artifacts"
+	@echo "  test             - Run all tests"
+	@echo "  test-unit        - Run unit tests only"
+	@echo "  test-integration - Run integration tests (requires API key)"
+	@echo "  test-coverage    - Run tests with coverage report"
+	@echo "  deps             - Install dependencies"
+	@echo "  fmt              - Format code"
+	@echo "  lint             - Lint code"
+	@echo "  install          - Install binary to system"
+	@echo "  dev-install      - Create development symlink"
+	@echo "  build-all        - Cross-compile for all platforms"
+	@echo "  release          - Prepare release builds"
+	@echo "  run              - Build and run the binary"
+	@echo "  help             - Show this help"

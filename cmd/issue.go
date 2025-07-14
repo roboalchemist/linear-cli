@@ -630,7 +630,7 @@ func init() {
 	issueCreateCmd.Flags().StringP("title", "", "", "Issue title (required)")
 	issueCreateCmd.Flags().StringP("description", "d", "", "Issue description")
 	issueCreateCmd.Flags().StringP("team", "t", "", "Team key (required)")
-	issueCreateCmd.Flags().IntP("priority", "p", 3, "Priority (0=None, 1=Urgent, 2=High, 3=Normal, 4=Low)")
+	issueCreateCmd.Flags().Int("priority", 3, "Priority (0=None, 1=Urgent, 2=High, 3=Normal, 4=Low)")
 	issueCreateCmd.Flags().BoolP("assign-me", "m", false, "Assign to yourself")
 	_ = issueCreateCmd.MarkFlagRequired("title")
 	_ = issueCreateCmd.MarkFlagRequired("team")

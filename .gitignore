@@ -38,3 +38,8 @@ dist/
 
 # Log files
 *.log
+
+# Test files
+.env.test
+coverage.out
+coverage.html

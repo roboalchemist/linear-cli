@@ -17,6 +17,7 @@ const (
 type Client struct {
 	httpClient *http.Client
 	authHeader string
+	baseURL    string
 }
 
 type GraphQLRequest struct {
@@ -42,11 +43,17 @@ type GraphQLErrorLocation struct {
 
 // NewClient creates a new Linear API client
 func NewClient(authHeader string) *Client {
+	return NewClientWithURL(BaseURL, authHeader)
+}
+
+// NewClientWithURL creates a new Linear API client with custom URL
+func NewClientWithURL(baseURL, authHeader string) *Client {
 	return &Client{
 		httpClient: &http.Client{
 			Timeout: 30 * time.Second,
 		},
 		authHeader: authHeader,
+		baseURL:    baseURL,
 	}
 }
 
@@ -62,7 +69,7 @@ func (c *Client) Execute(ctx context.Context, query string, variables map[string
 		return fmt.Errorf("failed to marshal request: %w", err)
 	}
 
-	req, err := http.NewRequestWithContext(ctx, "POST", BaseURL, bytes.NewBuffer(jsonBody))
+	req, err := http.NewRequestWithContext(ctx, "POST", c.baseURL, bytes.NewBuffer(jsonBody))
 	if err != nil {
 		return fmt.Errorf("failed to create request: %w", err)
 	}
