@@ -6,11 +6,8 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
-	"os/exec"
 	"path/filepath"
-	"runtime"
 	"strings"
-	"time"
 
 	"github.com/dorkitude/linctl/pkg/api"
 	"github.com/fatih/color"
@@ -24,9 +21,7 @@ type User struct {
 }
 
 type AuthConfig struct {
-	APIKey      string    `json:"api_key,omitempty"`
-	AccessToken string    `json:"access_token,omitempty"`
-	ExpiresAt   time.Time `json:"expires_at,omitempty"`
+	APIKey string `json:"api_key,omitempty"`
 }
 
 // getConfigPath returns the path to the auth config file
@@ -74,10 +69,6 @@ func loadAuth() (*AuthConfig, error) {
 		return nil, err
 	}
 
-	// Check if token is expired (for OAuth)
-	if !config.ExpiresAt.IsZero() && time.Now().After(config.ExpiresAt) {
-		return nil, fmt.Errorf("token expired")
-	}
 
 	return &config, nil
 }
@@ -93,38 +84,12 @@ func GetAuthHeader() (string, error) {
 		return config.APIKey, nil
 	}
 
-	if config.AccessToken != "" {
-		return "Bearer " + config.AccessToken, nil
-	}
-
 	return "", fmt.Errorf("no valid authentication found")
 }
 
 // Login handles the authentication flow
 func Login(plaintext, jsonOut bool) error {
-	if !plaintext && !jsonOut {
-		fmt.Println("Choose authentication method:")
-		fmt.Println("1. Personal API Key (recommended for CLI)")
-		fmt.Println("2. OAuth 2.0 (opens browser)")
-		fmt.Print("Enter choice (1-2): ")
-	}
-
-	var choice string
-	if plaintext || jsonOut {
-		// Default to API key for non-interactive mode
-		choice = "1"
-	} else {
-		fmt.Scanln(&choice)
-	}
-
-	switch choice {
-	case "1", "":
-		return loginWithAPIKey(plaintext, jsonOut)
-	case "2":
-		return loginWithOAuth(plaintext, jsonOut)
-	default:
-		return fmt.Errorf("invalid choice")
-	}
+	return loginWithAPIKey(plaintext, jsonOut)
 }
 
 // loginWithAPIKey handles Personal API Key authentication
@@ -132,7 +97,11 @@ func loginWithAPIKey(plaintext, jsonOut bool) error {
 	if !plaintext && !jsonOut {
 		fmt.Println("\n" + color.New(color.FgYellow).Sprint("📝 Personal API Key Authentication"))
 		fmt.Println("Get your API key from: https://linear.app/settings/api")
-		fmt.Print("Enter your Personal API Key: ")
+		
+		// Get the config path to show to the user
+		configPath, _ := getConfigPath()
+		fmt.Printf("Your credentials will be stored in: %s\n", color.New(color.FgCyan).Sprint(configPath))
+		fmt.Print("\nEnter your Personal API Key: ")
 	}
 
 	reader := bufio.NewReader(os.Stdin)
@@ -172,16 +141,6 @@ func loginWithAPIKey(plaintext, jsonOut bool) error {
 	return nil
 }
 
-// loginWithOAuth handles OAuth 2.0 authentication
-func loginWithOAuth(plaintext, jsonOut bool) error {
-	if plaintext {
-		return fmt.Errorf("OAuth authentication not supported in plaintext mode")
-	}
-
-	// This would require registering an OAuth app with Linear
-	// For now, we'll return an error suggesting API key usage
-	return fmt.Errorf("OAuth authentication not yet implemented. Please use Personal API Key (option 1)")
-}
 
 // GetCurrentUser returns the current authenticated user
 func GetCurrentUser() (*User, error) {
@@ -218,22 +177,4 @@ func Logout() error {
 	}
 
 	return nil
-}
-
-// openBrowser opens the default browser to the given URL
-func openBrowser(url string) error {
-	var cmd string
-	var args []string
-
-	switch runtime.GOOS {
-	case "windows":
-		cmd = "cmd"
-		args = []string{"/c", "start"}
-	case "darwin":
-		cmd = "open"
-	default: // "linux", "freebsd", "openbsd", "netbsd"
-		cmd = "xdg-open"
-	}
-	args = append(args, url)
-	return exec.Command(cmd, args...).Start()
 }

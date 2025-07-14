@@ -4,7 +4,7 @@ A comprehensive command-line interface for Linear's API, built with Go and Cobra
 
 ## ✨ Features
 
-- 🔐 **Authentication**: Personal API Key and OAuth 2.0 support
+- 🔐 **Authentication**: Personal API Key support
 - 📋 **Issue Management**: Create, list, update, and archive issues
 - 👥 **Team Management**: List teams, members, and team details
 - 🚀 **Project Tracking**: Manage projects and milestones
@@ -243,9 +243,6 @@ Authentication credentials are stored securely in `~/.linctl-auth.json`.
 2. Create a new Personal API Key
 3. Run `linctl auth` and paste your key
 
-### OAuth 2.0 (Future)
-OAuth 2.0 flow will be available in a future release for building applications.
-
 ## 🤖 Scripting & Automation
 
 Use `--plaintext` or `--json` flags for scripting:
@@ -278,7 +275,6 @@ linctl auth
 ### API Rate Limits
 Linear has the following rate limits:
 - Personal API Keys: 5,000 requests/hour
-- OAuth Apps: 15,000 requests/hour
 
 ### Common Errors
 - `Not authenticated`: Run `linctl auth` first

@@ -15,7 +15,7 @@ import (
 var authCmd = &cobra.Command{
 	Use:   "auth",
 	Short: "Authenticate with Linear",
-	Long: `Authenticate with Linear using Personal API Key or OAuth.
+	Long: `Authenticate with Linear using Personal API Key.
 
 Examples:
   linctl auth              # Interactive authentication
@@ -31,7 +31,7 @@ Examples:
 var loginCmd = &cobra.Command{
 	Use:   "login",
 	Short: "Login to Linear",
-	Long:  `Authenticate with Linear using Personal API Key or OAuth flow.`,
+	Long:  `Authenticate with Linear using Personal API Key.`,
 	Run: func(cmd *cobra.Command, args []string) {
 		plaintext := viper.GetBool("plaintext")
 		jsonOut := viper.GetBool("json")
