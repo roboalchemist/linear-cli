@@ -139,7 +139,7 @@ func init() {
 	authCmd.AddCommand(loginCmd)
 	authCmd.AddCommand(statusCmd)
 	authCmd.AddCommand(logoutCmd)
-	
+
 	// Add whoami as a top-level command too
 	rootCmd.AddCommand(whoamiCmd)
 }

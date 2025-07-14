@@ -22,7 +22,7 @@ func generateHeader() string {
 		"🚀 linctl",
 		"Linear CLI - Built with ❤️",
 	}
-	
+
 	// Find the longest line
 	maxLen := 0
 	for _, line := range lines {
@@ -30,41 +30,41 @@ func generateHeader() string {
 			maxLen = len(line)
 		}
 	}
-	
+
 	// Add padding
 	width := maxLen + 8
-	
+
 	// Build the box
 	var result strings.Builder
-	
+
 	// Top border
 	result.WriteString("┌")
 	result.WriteString(strings.Repeat("─", width))
 	result.WriteString("┐\n")
-	
+
 	// Content lines
 	for _, line := range lines {
 		padding := (width - len(line)) / 2
 		result.WriteString("│")
 		result.WriteString(strings.Repeat(" ", padding))
 		result.WriteString(line)
-		result.WriteString(strings.Repeat(" ", width - padding - len(line)))
+		result.WriteString(strings.Repeat(" ", width-padding-len(line)))
 		result.WriteString("│\n")
 	}
-	
+
 	// Bottom border
 	result.WriteString("└")
 	result.WriteString(strings.Repeat("─", width))
 	result.WriteString("┘")
-	
+
 	return result.String()
 }
 
 // rootCmd represents the base command when called without any subcommands
 var rootCmd = &cobra.Command{
-	Use:   "linctl",
-	Short: "A comprehensive Linear CLI tool",
-	Long: color.New(color.FgCyan).Sprintf("%s\nA comprehensive CLI tool for Linear's API featuring:\n• Issue management (create, list, update, archive)\n• Project tracking and collaboration  \n• Team and user management\n• Comments and attachments\n• Webhook configuration\n• Table/plaintext/JSON output formats\n", generateHeader()),
+	Use:     "linctl",
+	Short:   "A comprehensive Linear CLI tool",
+	Long:    color.New(color.FgCyan).Sprintf("%s\nA comprehensive CLI tool for Linear's API featuring:\n• Issue management (create, list, update, archive)\n• Project tracking and collaboration  \n• Team and user management\n• Comments and attachments\n• Webhook configuration\n• Table/plaintext/JSON output formats\n", generateHeader()),
 	Version: "0.1.0",
 }
 
@@ -85,8 +85,8 @@ func init() {
 	rootCmd.PersistentFlags().BoolVarP(&jsonOut, "json", "j", false, "JSON output")
 
 	// Bind flags to viper
-	viper.BindPFlag("plaintext", rootCmd.PersistentFlags().Lookup("plaintext"))
-	viper.BindPFlag("json", rootCmd.PersistentFlags().Lookup("json"))
+	_ = viper.BindPFlag("plaintext", rootCmd.PersistentFlags().Lookup("plaintext"))
+	_ = viper.BindPFlag("json", rootCmd.PersistentFlags().Lookup("json"))
 }
 
 // initConfig reads in config file and ENV variables if set.

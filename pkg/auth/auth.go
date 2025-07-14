@@ -14,9 +14,9 @@ import (
 )
 
 type User struct {
-	ID       string `json:"id"`
-	Name     string `json:"name"`
-	Email    string `json:"email"`
+	ID        string `json:"id"`
+	Name      string `json:"name"`
+	Email     string `json:"email"`
 	AvatarURL string `json:"avatarUrl,omitempty"`
 }
 
@@ -69,7 +69,6 @@ func loadAuth() (*AuthConfig, error) {
 		return nil, err
 	}
 
-
 	return &config, nil
 }
 
@@ -97,7 +96,7 @@ func loginWithAPIKey(plaintext, jsonOut bool) error {
 	if !plaintext && !jsonOut {
 		fmt.Println("\n" + color.New(color.FgYellow).Sprint("📝 Personal API Key Authentication"))
 		fmt.Println("Get your API key from: https://linear.app/settings/api")
-		
+
 		// Get the config path to show to the user
 		configPath, _ := getConfigPath()
 		fmt.Printf("Your credentials will be stored in: %s\n", color.New(color.FgCyan).Sprint(configPath))
@@ -140,7 +139,6 @@ func loginWithAPIKey(plaintext, jsonOut bool) error {
 
 	return nil
 }
-
 
 // GetCurrentUser returns the current authenticated user
 func GetCurrentUser() (*User, error) {
