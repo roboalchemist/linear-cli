@@ -5,7 +5,7 @@ A comprehensive command-line interface for Linear's API, built with Go and Cobra
 ## ✨ Features
 
 - 🔐 **Authentication**: Personal API Key support
-- 📋 **Issue Management**: Create, list, view, assign, and manage issues with full details
+- 📋 **Issue Management**: Create, list, view, update, assign, and manage issues with full details
   - Sub-issue hierarchy with parent/child relationships
   - Git branch integration showing linked branches
   - Cycle (sprint) and project associations
@@ -117,6 +117,20 @@ linctl issue create --title "Bug fix" --team ENG
 
 # Assign issue to yourself
 linctl issue assign LIN-123
+
+# Update issue fields
+linctl issue update LIN-123 --title "New title"
+linctl issue update LIN-123 --description "Updated description"
+linctl issue update LIN-123 --assignee john.doe@company.com
+linctl issue update LIN-123 --assignee me  # Assign to yourself
+linctl issue update LIN-123 --assignee unassigned  # Remove assignee
+linctl issue update LIN-123 --state "In Progress"
+linctl issue update LIN-123 --priority 1  # 0=None, 1=Urgent, 2=High, 3=Normal, 4=Low
+linctl issue update LIN-123 --due-date "2024-12-31"
+linctl issue update LIN-123 --due-date ""  # Remove due date
+
+# Update multiple fields at once
+linctl issue update LIN-123 --title "Critical Bug" --assignee me --priority 1
 ```
 
 ### 3. Project Management

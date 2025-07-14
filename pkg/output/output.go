@@ -94,7 +94,7 @@ func Table(data TableData, plaintext, jsonOut bool) {
 	table.SetRowSeparator("")
 	table.SetHeaderLine(false)
 	table.SetBorder(false)
-	table.SetTablePadding("\t")
+	table.SetTablePadding("   ")
 	table.SetNoWhiteSpace(true)
 
 	// Add color to headers

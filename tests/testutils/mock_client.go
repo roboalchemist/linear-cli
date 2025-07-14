@@ -33,7 +33,7 @@ func MockLinearServer(t *testing.T, responses map[string]MockResponse) *httptest
 			if contains(req.Query, queryPrefix) {
 				if mockResp.Error != nil {
 					w.WriteHeader(http.StatusInternalServerError)
-					json.NewEncoder(w).Encode(map[string]interface{}{
+					_ = json.NewEncoder(w).Encode(map[string]interface{}{
 						"errors": []map[string]string{
 							{"message": mockResp.Error.Error()},
 						},
@@ -42,7 +42,7 @@ func MockLinearServer(t *testing.T, responses map[string]MockResponse) *httptest
 				}
 				
 				w.Header().Set("Content-Type", "application/json")
-				json.NewEncoder(w).Encode(map[string]interface{}{
+				_ = json.NewEncoder(w).Encode(map[string]interface{}{
 					"data": mockResp.Response,
 				})
 				return
@@ -51,7 +51,7 @@ func MockLinearServer(t *testing.T, responses map[string]MockResponse) *httptest
 		
 		// No matching response found
 		w.WriteHeader(http.StatusNotFound)
-		json.NewEncoder(w).Encode(map[string]interface{}{
+		_ = json.NewEncoder(w).Encode(map[string]interface{}{
 			"errors": []map[string]string{
 				{"message": fmt.Sprintf("No mock response for query: %s", req.Query)},
 			},

@@ -89,7 +89,15 @@ func TestGetProject(t *testing.T) {
 	if project.Description != "" {
 		t.Logf("  Description: %s", project.Description)
 	}
-	if project.StartDate != "" || project.TargetDate != "" {
-		t.Logf("  Timeline: %s → %s", project.StartDate, project.TargetDate)
+	if project.StartDate != nil || project.TargetDate != nil {
+		startDate := "Not set"
+		targetDate := "Not set"
+		if project.StartDate != nil {
+			startDate = *project.StartDate
+		}
+		if project.TargetDate != nil {
+			targetDate = *project.TargetDate
+		}
+		t.Logf("  Timeline: %s → %s", startDate, targetDate)
 	}
 }

@@ -7,23 +7,31 @@ import (
 
 // User represents a Linear user
 type User struct {
-	ID        string `json:"id"`
-	Name      string `json:"name"`
-	Email     string `json:"email"`
-	AvatarURL string `json:"avatarUrl"`
-	IsMe      bool   `json:"isMe"`
-	Active    bool   `json:"active"`
-	Admin     bool   `json:"admin"`
+	ID          string     `json:"id"`
+	Name        string     `json:"name"`
+	Email       string     `json:"email"`
+	AvatarURL   string     `json:"avatarUrl"`
+	DisplayName string     `json:"displayName"`
+	IsMe        bool       `json:"isMe"`
+	Active      bool       `json:"active"`
+	Admin       bool       `json:"admin"`
+	CreatedAt   *time.Time `json:"createdAt"`
 }
 
 // Team represents a Linear team
 type Team struct {
-	ID          string `json:"id"`
-	Key         string `json:"key"`
-	Name        string `json:"name"`
-	Description string `json:"description"`
-	Private     bool   `json:"private"`
-	IssueCount  int    `json:"issueCount"`
+	ID                 string  `json:"id"`
+	Key                string  `json:"key"`
+	Name               string  `json:"name"`
+	Description        string  `json:"description"`
+	Icon               *string `json:"icon"`
+	Color              string  `json:"color"`
+	Private            bool    `json:"private"`
+	IssueCount         int     `json:"issueCount"`
+	CyclesEnabled      bool    `json:"cyclesEnabled"`
+	CycleStartDay      int     `json:"cycleStartDay"`
+	CycleDuration      int     `json:"cycleDuration"`
+	UpcomingCycleCount int     `json:"upcomingCycleCount"`
 }
 
 // Issue represents a Linear issue
@@ -56,14 +64,30 @@ type Issue struct {
 	TriagedAt           *time.Time   `json:"triagedAt"`
 	CustomerTicketCount int          `json:"customerTicketCount"`
 	PreviousIdentifiers []string     `json:"previousIdentifiers"`
+	// Additional fields
+	Number              int          `json:"number"`
+	BoardOrder          float64      `json:"boardOrder"`
+	SubIssueSortOrder   float64      `json:"subIssueSortOrder"`
+	PriorityLabel       string       `json:"priorityLabel"`
+	IntegrationSourceType *string    `json:"integrationSourceType"`
+	Creator             *User        `json:"creator"`
+	Subscribers         *Users       `json:"subscribers"`
+	Relations           *IssueRelations `json:"relations"`
+	History             *IssueHistory `json:"history"`
+	Reactions           []Reaction   `json:"reactions"`
+	SlackIssueComments  []SlackComment `json:"slackIssueComments"`
+	ExternalUserCreator *ExternalUser `json:"externalUserCreator"`
+	CustomerTickets     []CustomerTicket `json:"customerTickets"`
 }
 
 // State represents an issue state
 type State struct {
-	ID    string `json:"id"`
-	Name  string `json:"name"`
-	Type  string `json:"type"`
-	Color string `json:"color"`
+	ID          string  `json:"id"`
+	Name        string  `json:"name"`
+	Type        string  `json:"type"`
+	Color       string  `json:"color"`
+	Description *string `json:"description"`
+	Position    float64 `json:"position"`
 }
 
 // Project represents a Linear project
@@ -88,6 +112,18 @@ type Project struct {
 	Creator             *User       `json:"creator"`
 	Members             *Users      `json:"members"`
 	Issues              *Issues     `json:"issues"`
+	// Additional fields
+	SlugId              string      `json:"slugId"`
+	Content             string      `json:"content"`
+	ConvertedFromIssue  *Issue      `json:"convertedFromIssue"`
+	LastAppliedTemplate *Template   `json:"lastAppliedTemplate"`
+	ProjectUpdates      *ProjectUpdates `json:"projectUpdates"`
+	Documents           *Documents  `json:"documents"`
+	Health              string      `json:"health"`
+	Scope               int         `json:"scope"`
+	SlackNewIssue       bool        `json:"slackNewIssue"`
+	SlackIssueComments  bool        `json:"slackIssueComments"`
+	SlackIssueStatuses  bool        `json:"slackIssueStatuses"`
 }
 
 // Paginated collections
@@ -116,28 +152,37 @@ type Labels struct {
 }
 
 type Label struct {
-	ID    string `json:"id"`
-	Name  string `json:"name"`
-	Color string `json:"color"`
+	ID          string  `json:"id"`
+	Name        string  `json:"name"`
+	Color       string  `json:"color"`
+	Description *string `json:"description"`
+	Parent      *Label  `json:"parent"`
 }
 
 // Cycle represents a Linear cycle (sprint)
 type Cycle struct {
-	ID       string  `json:"id"`
-	Number   int     `json:"number"`
-	Name     string  `json:"name"`
-	StartsAt string  `json:"startsAt"`
-	EndsAt   string  `json:"endsAt"`
-	Progress float64 `json:"progress"`
+	ID           string     `json:"id"`
+	Number       int        `json:"number"`
+	Name         string     `json:"name"`
+	Description  *string    `json:"description"`
+	StartsAt     string     `json:"startsAt"`
+	EndsAt       string     `json:"endsAt"`
+	Progress     float64    `json:"progress"`
+	CompletedAt  *time.Time `json:"completedAt"`
+	ScopeHistory []float64  `json:"scopeHistory"`
 }
 
 // Attachment represents a file attachment or link
 type Attachment struct {
-	ID        string    `json:"id"`
-	Title     string    `json:"title"`
-	URL       string    `json:"url"`
-	CreatedAt time.Time `json:"createdAt"`
-	Creator   *User     `json:"creator"`
+	ID         string                 `json:"id"`
+	Title      string                 `json:"title"`
+	Subtitle   *string                `json:"subtitle"`
+	URL        string                 `json:"url"`
+	Metadata   map[string]interface{} `json:"metadata"`
+	Source     *string                `json:"source"`
+	SourceType *string                `json:"sourceType"`
+	CreatedAt  time.Time              `json:"createdAt"`
+	Creator    *User                  `json:"creator"`
 }
 
 // Attachments represents a paginated list of attachments
@@ -155,6 +200,139 @@ type Initiative struct {
 type PageInfo struct {
 	HasNextPage bool   `json:"hasNextPage"`
 	EndCursor   string `json:"endCursor"`
+}
+
+// Additional types for expanded fields
+type IssueRelations struct {
+	Nodes []IssueRelation `json:"nodes"`
+}
+
+type IssueRelation struct {
+	ID          string `json:"id"`
+	Type        string `json:"type"`
+	Issue       *Issue `json:"issue"`
+	RelatedIssue *Issue `json:"relatedIssue"`
+}
+
+type IssueHistory struct {
+	Nodes []IssueHistoryEntry `json:"nodes"`
+}
+
+type IssueHistoryEntry struct {
+	ID             string    `json:"id"`
+	CreatedAt      time.Time `json:"createdAt"`
+	UpdatedAt      time.Time `json:"updatedAt"`
+	Changes        string    `json:"changes"`
+	Actor          *User     `json:"actor"`
+	FromAssignee   *User     `json:"fromAssignee"`
+	ToAssignee     *User     `json:"toAssignee"`
+	FromState      *State    `json:"fromState"`
+	ToState        *State    `json:"toState"`
+	FromPriority   *int      `json:"fromPriority"`
+	ToPriority     *int      `json:"toPriority"`
+	FromTitle      *string   `json:"fromTitle"`
+	ToTitle        *string   `json:"toTitle"`
+	FromCycle      *Cycle    `json:"fromCycle"`
+	ToCycle        *Cycle    `json:"toCycle"`
+	FromProject    *Project  `json:"fromProject"`
+	ToProject      *Project  `json:"toProject"`
+	AddedLabelIds  []string  `json:"addedLabelIds"`
+	RemovedLabelIds []string `json:"removedLabelIds"`
+}
+
+type Reaction struct {
+	ID        string    `json:"id"`
+	Emoji     string    `json:"emoji"`
+	User      *User     `json:"user"`
+	CreatedAt time.Time `json:"createdAt"`
+}
+
+type SlackComment struct {
+	ID      string `json:"id"`
+	Body    string `json:"body"`
+}
+
+type ExternalUser struct {
+	ID    string `json:"id"`
+	Name  string `json:"name"`
+	Email string `json:"email"`
+}
+
+type CustomerTicket struct {
+	ID         string    `json:"id"`
+	Title      string    `json:"title"`
+	CreatedAt  time.Time `json:"createdAt"`
+	ExternalId string    `json:"externalId"`
+}
+
+type Template struct {
+	ID          string `json:"id"`
+	Name        string `json:"name"`
+	Description string `json:"description"`
+}
+
+type Milestone struct {
+	ID          string     `json:"id"`
+	Name        string     `json:"name"`
+	Description string     `json:"description"`
+	TargetDate  *string    `json:"targetDate"`
+	Projects    *Projects  `json:"projects"`
+}
+
+type Roadmaps struct {
+	Nodes []Roadmap `json:"nodes"`
+}
+
+type Roadmap struct {
+	ID          string    `json:"id"`
+	Name        string    `json:"name"`
+	Description string    `json:"description"`
+	Creator     *User     `json:"creator"`
+	CreatedAt   time.Time `json:"createdAt"`
+	UpdatedAt   time.Time `json:"updatedAt"`
+}
+
+type ProjectUpdates struct {
+	Nodes []ProjectUpdate `json:"nodes"`
+}
+
+type ProjectUpdate struct {
+	ID                string    `json:"id"`
+	Body              string    `json:"body"`
+	User              *User     `json:"user"`
+	CreatedAt         time.Time `json:"createdAt"`
+	UpdatedAt         time.Time `json:"updatedAt"`
+	EditedAt          *time.Time `json:"editedAt"`
+	Health            string    `json:"health"`
+}
+
+type Documents struct {
+	Nodes []Document `json:"nodes"`
+}
+
+type Document struct {
+	ID          string    `json:"id"`
+	Title       string    `json:"title"`
+	Content     string    `json:"content"`
+	Icon        *string   `json:"icon"`
+	Color       string    `json:"color"`
+	Creator     *User     `json:"creator"`
+	UpdatedBy   *User     `json:"updatedBy"`
+	CreatedAt   time.Time `json:"createdAt"`
+	UpdatedAt   time.Time `json:"updatedAt"`
+}
+
+type ProjectLinks struct {
+	Nodes []ProjectLink `json:"nodes"`
+}
+
+type ProjectLink struct {
+	ID        string    `json:"id"`
+	URL       string    `json:"url"`
+	Label     string    `json:"label"`
+	Creator   *User     `json:"creator"`
+	CreatedAt time.Time `json:"createdAt"`
+	UpdatedAt time.Time `json:"updatedAt"`
 }
 
 // GetViewer returns the current authenticated user
@@ -200,6 +378,7 @@ func (c *Client) GetIssues(ctx context.Context, filter map[string]interface{}, f
 					createdAt
 					updatedAt
 					dueDate
+					url
 					state {
 						id
 						name
@@ -264,10 +443,14 @@ func (c *Client) GetIssue(ctx context.Context, id string) (*Issue, error) {
 			issue(id: $id) {
 				id
 				identifier
+				number
 				title
 				description
 				priority
+				priorityLabel
 				estimate
+				boardOrder
+				subIssueSortOrder
 				createdAt
 				updatedAt
 				dueDate
@@ -280,43 +463,77 @@ func (c *Client) GetIssue(ctx context.Context, id string) (*Issue, error) {
 				triagedAt
 				customerTicketCount
 				previousIdentifiers
+				integrationSourceType
 				state {
 					id
 					name
 					type
 					color
+					description
+					position
 				}
 				assignee {
 					id
 					name
 					email
 					avatarUrl
+					displayName
+					active
+					admin
+					createdAt
+				}
+				creator {
+					id
+					name
+					email
+					avatarUrl
+					displayName
+					active
 				}
 				team {
 					id
 					key
 					name
+					description
+					icon
+					color
+					cyclesEnabled
+					cycleStartDay
+					cycleDuration
+					upcomingCycleCount
 				}
 				labels {
 					nodes {
 						id
 						name
 						color
+						description
+						parent {
+							id
+							name
+						}
 					}
 				}
 				parent {
 					id
 					identifier
 					title
+					state {
+						name
+						type
+					}
 				}
 				children {
 					nodes {
 						id
 						identifier
 						title
+						priority
+						createdAt
 						state {
 							name
 							type
+							color
 						}
 						assignee {
 							name
@@ -328,21 +545,36 @@ func (c *Client) GetIssue(ctx context.Context, id string) (*Issue, error) {
 					id
 					number
 					name
+					description
 					startsAt
 					endsAt
 					progress
+					completedAt
+					scopeHistory
 				}
 				project {
 					id
 					name
+					description
 					state
 					progress
+					startDate
+					targetDate
+					health
+					lead {
+						name
+						email
+					}
 				}
-				attachments(first: 10) {
+				attachments(first: 20) {
 					nodes {
 						id
 						title
+						subtitle
 						url
+						metadata
+						source
+						sourceType
 						createdAt
 						creator {
 							name
@@ -350,16 +582,110 @@ func (c *Client) GetIssue(ctx context.Context, id string) (*Issue, error) {
 						}
 					}
 				}
-				comments(first: 5) {
+				comments(first: 10) {
 					nodes {
 						id
 						body
 						createdAt
+						updatedAt
+						editedAt
 						user {
 							name
 							email
+							avatarUrl
+						}
+						parent {
+							id
+						}
+						children {
+							nodes {
+								id
+								body
+								user {
+									name
+								}
+							}
 						}
 					}
+				}
+				subscribers {
+					nodes {
+						id
+						name
+						email
+						avatarUrl
+					}
+				}
+				relations {
+					nodes {
+						id
+						type
+						relatedIssue {
+							id
+							identifier
+							title
+							state {
+								name
+								type
+							}
+						}
+					}
+				}
+				history(first: 10) {
+					nodes {
+						id
+						createdAt
+						updatedAt
+						actor {
+							name
+							email
+						}
+						fromAssignee {
+							name
+						}
+						toAssignee {
+							name
+						}
+						fromState {
+							name
+						}
+						toState {
+							name
+						}
+						fromPriority
+						toPriority
+						fromTitle
+						toTitle
+						fromCycle {
+							name
+						}
+						toCycle {
+							name
+						}
+						fromProject {
+							name
+						}
+						toProject {
+							name
+						}
+						addedLabelIds
+						removedLabelIds
+					}
+				}
+				reactions {
+					id
+					emoji
+					user {
+						name
+						email
+					}
+					createdAt
+				}
+				externalUserCreator {
+					id
+					name
+					email
+					avatarUrl
 				}
 			}
 		}
@@ -437,6 +763,7 @@ func (c *Client) GetProjects(ctx context.Context, filter map[string]interface{},
 					progress
 					startDate
 					targetDate
+					url
 					createdAt
 					updatedAt
 					lead {
@@ -491,10 +818,14 @@ func (c *Client) GetProject(ctx context.Context, id string) (*Project, error) {
 		query Project($id: String!) {
 			project(id: $id) {
 				id
+				slugId
 				name
 				description
+				content
 				state
 				progress
+				health
+				scope
 				startDate
 				targetDate
 				url
@@ -505,22 +836,43 @@ func (c *Client) GetProject(ctx context.Context, id string) (*Project, error) {
 				completedAt
 				canceledAt
 				archivedAt
+				slackNewIssue
+				slackIssueComments
+				slackIssueStatuses
 				lead {
 					id
 					name
 					email
 					avatarUrl
+					displayName
+					active
 				}
 				creator {
 					id
 					name
 					email
+					avatarUrl
+					active
+				}
+				convertedFromIssue {
+					id
+					identifier
+					title
+				}
+				lastAppliedTemplate {
+					id
+					name
+					description
 				}
 				teams {
 					nodes {
 						id
 						key
 						name
+						description
+						icon
+						color
+						cyclesEnabled
 					}
 				}
 				members {
@@ -529,19 +881,71 @@ func (c *Client) GetProject(ctx context.Context, id string) (*Project, error) {
 						name
 						email
 						avatarUrl
+						displayName
+						active
+						admin
 					}
 				}
-				issues(first: 10) {
+				issues(first: 50, orderBy: updatedAt) {
 					nodes {
 						id
 						identifier
+						number
 						title
+						description
+						priority
+						estimate
+						createdAt
+						updatedAt
+						completedAt
 						state {
 							name
 							type
+							color
 						}
 						assignee {
 							name
+							email
+						}
+						labels {
+							nodes {
+								name
+								color
+							}
+						}
+					}
+				}
+				projectUpdates(first: 10) {
+					nodes {
+						id
+						body
+						health
+						createdAt
+						updatedAt
+						editedAt
+						user {
+							name
+							email
+							avatarUrl
+						}
+					}
+				}
+				documents(first: 20) {
+					nodes {
+						id
+						title
+						content
+						icon
+						color
+						createdAt
+						updatedAt
+						creator {
+							name
+							email
+						}
+						updatedBy {
+							name
+							email
 						}
 					}
 				}
@@ -721,11 +1125,14 @@ func (c *Client) GetTeam(ctx context.Context, key string) (*Team, error) {
 
 // Comment represents a Linear comment
 type Comment struct {
-	ID        string    `json:"id"`
-	Body      string    `json:"body"`
-	CreatedAt time.Time `json:"createdAt"`
-	UpdatedAt time.Time `json:"updatedAt"`
-	User      *User     `json:"user"`
+	ID        string     `json:"id"`
+	Body      string     `json:"body"`
+	CreatedAt time.Time  `json:"createdAt"`
+	UpdatedAt time.Time  `json:"updatedAt"`
+	EditedAt  *time.Time `json:"editedAt"`
+	User      *User      `json:"user"`
+	Parent    *Comment   `json:"parent"`
+	Children  *Comments  `json:"children"`
 }
 
 // Comments represents a paginated list of comments

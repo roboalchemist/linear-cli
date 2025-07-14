@@ -2,7 +2,6 @@ package integration
 
 import (
 	"context"
-	"os"
 	"testing"
 	
 	"github.com/dorkitude/linctl/pkg/api"

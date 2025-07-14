@@ -15,6 +15,24 @@ import (
 	"github.com/spf13/viper"
 )
 
+// constructProjectURL constructs an ID-based project URL
+func constructProjectURL(projectID string, originalURL string) string {
+	// Extract workspace from the original URL
+	// Format: https://linear.app/{workspace}/project/{slug}
+	if originalURL == "" {
+		return ""
+	}
+	
+	parts := strings.Split(originalURL, "/")
+	if len(parts) >= 5 {
+		workspace := parts[3]
+		return fmt.Sprintf("https://linear.app/%s/project/%s", workspace, projectID)
+	}
+	
+	// Fallback to original URL if we can't parse it
+	return originalURL
+}
+
 // projectCmd represents the project command
 var projectCmd = &cobra.Command{
 	Use:   "project",
@@ -115,35 +133,46 @@ var projectListCmd = &cobra.Command{
 			output.JSON(projects.Nodes)
 			return
 		} else if plaintext {
-			fmt.Println("ID\tName\tState\tProgress\tLead\tTeams\tCreated\tUpdated")
+			fmt.Println("# Projects")
 			for _, project := range projects.Nodes {
-				lead := "Unassigned"
+				fmt.Printf("## %s\n", project.Name)
+				fmt.Printf("- **ID**: %s\n", project.ID)
+				fmt.Printf("- **State**: %s\n", project.State)
+				fmt.Printf("- **Progress**: %.0f%%\n", project.Progress*100)
 				if project.Lead != nil {
-					lead = project.Lead.Name
+					fmt.Printf("- **Lead**: %s\n", project.Lead.Name)
+				} else {
+					fmt.Printf("- **Lead**: Unassigned\n")
 				}
-				teams := ""
 				if project.Teams != nil && len(project.Teams.Nodes) > 0 {
+					teams := ""
 					for i, team := range project.Teams.Nodes {
 						if i > 0 {
 							teams += ", "
 						}
 						teams += team.Key
 					}
+					fmt.Printf("- **Teams**: %s\n", teams)
 				}
-				fmt.Printf("%s\t%s\t%s\t%.0f%%\t%s\t%s\t%s\t%s\n",
-					project.ID,
-					truncateString(project.Name, 30),
-					project.State,
-					project.Progress*100,
-					lead,
-					teams,
-					project.CreatedAt.Format("2006-01-02"),
-					project.UpdatedAt.Format("2006-01-02"),
-				)
+				if project.StartDate != nil {
+					fmt.Printf("- **Start Date**: %s\n", *project.StartDate)
+				}
+				if project.TargetDate != nil {
+					fmt.Printf("- **Target Date**: %s\n", *project.TargetDate)
+				}
+				fmt.Printf("- **Created**: %s\n", project.CreatedAt.Format("2006-01-02"))
+				fmt.Printf("- **Updated**: %s\n", project.UpdatedAt.Format("2006-01-02"))
+				fmt.Printf("- **URL**: %s\n", constructProjectURL(project.ID, project.URL))
+				if project.Description != "" {
+					fmt.Printf("- **Description**: %s\n", project.Description)
+				}
+				fmt.Println()
 			}
+			fmt.Printf("\nTotal: %d projects\n", len(projects.Nodes))
+			return
 		} else {
 			// Table output
-			headers := []string{"ID", "Name", "State", "Progress", "Lead", "Teams", "Created", "Updated"}
+			headers := []string{"Name", "State", "Lead", "Teams", "Created", "Updated", "URL"}
 			rows := [][]string{}
 
 			for _, project := range projects.Nodes {
@@ -176,23 +205,14 @@ var projectListCmd = &cobra.Command{
 					stateColor = color.New(color.FgRed)
 				}
 
-				progressStr := fmt.Sprintf("%.0f%%", project.Progress*100)
-				progressColor := color.New(color.FgRed)
-				if project.Progress >= 0.75 {
-					progressColor = color.New(color.FgGreen)
-				} else if project.Progress >= 0.5 {
-					progressColor = color.New(color.FgYellow)
-				}
-
 				rows = append(rows, []string{
-					project.ID,
 					truncateString(project.Name, 25),
 					stateColor.Sprint(project.State),
-					progressColor.Sprint(progressStr),
 					lead,
 					teams,
 					project.CreatedAt.Format("2006-01-02"),
 					project.UpdatedAt.Format("2006-01-02"),
+					constructProjectURL(project.ID, project.URL),
 				})
 			}
 
@@ -242,41 +262,204 @@ var projectGetCmd = &cobra.Command{
 		if jsonOut {
 			output.JSON(project)
 		} else if plaintext {
-			fmt.Printf("ID: %s\n", project.ID)
-			fmt.Printf("Name: %s\n", project.Name)
+			fmt.Printf("# %s\n\n", project.Name)
+			
 			if project.Description != "" {
-				fmt.Printf("Description: %s\n", project.Description)
+				fmt.Printf("## Description\n%s\n\n", project.Description)
 			}
-			fmt.Printf("State: %s\n", project.State)
-			fmt.Printf("Progress: %.0f%%\n", project.Progress*100)
+			
+			if project.Content != "" {
+				fmt.Printf("## Content\n%s\n\n", project.Content)
+			}
+			
+			fmt.Printf("## Core Details\n")
+			fmt.Printf("- **ID**: %s\n", project.ID)
+			fmt.Printf("- **Slug ID**: %s\n", project.SlugId)
+			fmt.Printf("- **State**: %s\n", project.State)
+			fmt.Printf("- **Progress**: %.0f%%\n", project.Progress*100)
+			fmt.Printf("- **Health**: %s\n", project.Health)
+			fmt.Printf("- **Scope**: %d\n", project.Scope)
+			if project.Icon != nil && *project.Icon != "" {
+				fmt.Printf("- **Icon**: %s\n", *project.Icon)
+			}
+			fmt.Printf("- **Color**: %s\n", project.Color)
+			
+			fmt.Printf("\n## Timeline\n")
 			if project.StartDate != nil {
-				fmt.Printf("Start Date: %s\n", *project.StartDate)
+				fmt.Printf("- **Start Date**: %s\n", *project.StartDate)
 			}
 			if project.TargetDate != nil {
-				fmt.Printf("Target Date: %s\n", *project.TargetDate)
+				fmt.Printf("- **Target Date**: %s\n", *project.TargetDate)
 			}
+			fmt.Printf("- **Created**: %s\n", project.CreatedAt.Format("2006-01-02 15:04:05"))
+			fmt.Printf("- **Updated**: %s\n", project.UpdatedAt.Format("2006-01-02 15:04:05"))
+			if project.CompletedAt != nil {
+				fmt.Printf("- **Completed**: %s\n", project.CompletedAt.Format("2006-01-02 15:04:05"))
+			}
+			if project.CanceledAt != nil {
+				fmt.Printf("- **Canceled**: %s\n", project.CanceledAt.Format("2006-01-02 15:04:05"))
+			}
+			if project.ArchivedAt != nil {
+				fmt.Printf("- **Archived**: %s\n", project.ArchivedAt.Format("2006-01-02 15:04:05"))
+			}
+			
+			fmt.Printf("\n## People\n")
 			if project.Lead != nil {
-				fmt.Printf("Lead: %s (%s)\n", project.Lead.Name, project.Lead.Email)
+				fmt.Printf("- **Lead**: %s (%s)\n", project.Lead.Name, project.Lead.Email)
+				if project.Lead.DisplayName != "" && project.Lead.DisplayName != project.Lead.Name {
+					fmt.Printf("  - Display Name: %s\n", project.Lead.DisplayName)
+				}
+			} else {
+				fmt.Printf("- **Lead**: Unassigned\n")
 			}
 			if project.Creator != nil {
-				fmt.Printf("Creator: %s\n", project.Creator.Name)
+				fmt.Printf("- **Creator**: %s (%s)\n", project.Creator.Name, project.Creator.Email)
 			}
-			if project.Teams != nil && len(project.Teams.Nodes) > 0 {
-				fmt.Printf("Teams: ")
-				for i, team := range project.Teams.Nodes {
-					if i > 0 {
-						fmt.Printf(", ")
-					}
-					fmt.Printf("%s", team.Key)
+			
+			fmt.Printf("\n## Slack Integration\n")
+			fmt.Printf("- **Slack New Issue**: %v\n", project.SlackNewIssue)
+			fmt.Printf("- **Slack Issue Comments**: %v\n", project.SlackIssueComments)
+			fmt.Printf("- **Slack Issue Statuses**: %v\n", project.SlackIssueStatuses)
+			
+			if project.ConvertedFromIssue != nil {
+				fmt.Printf("\n## Origin\n")
+				fmt.Printf("- **Converted from Issue**: %s - %s\n", project.ConvertedFromIssue.Identifier, project.ConvertedFromIssue.Title)
+			}
+			
+			if project.LastAppliedTemplate != nil {
+				fmt.Printf("\n## Template\n")
+				fmt.Printf("- **Last Applied**: %s\n", project.LastAppliedTemplate.Name)
+				if project.LastAppliedTemplate.Description != "" {
+					fmt.Printf("  - Description: %s\n", project.LastAppliedTemplate.Description)
 				}
-				fmt.Println()
 			}
-			if project.Issues != nil {
-				fmt.Printf("Recent Issues: %d shown\n", len(project.Issues.Nodes))
+			
+			
+			// Teams
+			if project.Teams != nil && len(project.Teams.Nodes) > 0 {
+				fmt.Printf("\n## Teams\n")
+				for _, team := range project.Teams.Nodes {
+					fmt.Printf("- **%s** (%s)\n", team.Name, team.Key)
+					if team.Description != "" {
+						fmt.Printf("  - Description: %s\n", team.Description)
+					}
+					fmt.Printf("  - Cycles Enabled: %v\n", team.CyclesEnabled)
+				}
 			}
-			fmt.Printf("Created: %s\n", project.CreatedAt.Format("2006-01-02"))
-			fmt.Printf("Updated: %s\n", project.UpdatedAt.Format("2006-01-02"))
-			fmt.Printf("URL: %s\n", project.URL)
+			
+			fmt.Printf("\n## URL\n")
+			fmt.Printf("- %s\n", constructProjectURL(project.ID, project.URL))
+			
+			// Show members if available
+			if project.Members != nil && len(project.Members.Nodes) > 0 {
+				fmt.Printf("\n## Members\n")
+				for _, member := range project.Members.Nodes {
+					fmt.Printf("- %s (%s)", member.Name, member.Email)
+					if member.DisplayName != "" && member.DisplayName != member.Name {
+						fmt.Printf(" - %s", member.DisplayName)
+					}
+					if member.Admin {
+						fmt.Printf(" [Admin]")
+					}
+					if !member.Active {
+						fmt.Printf(" [Inactive]")
+					}
+					fmt.Println()
+				}
+			}
+			
+			// Project Updates
+			if project.ProjectUpdates != nil && len(project.ProjectUpdates.Nodes) > 0 {
+				fmt.Printf("\n## Recent Project Updates\n")
+				for _, update := range project.ProjectUpdates.Nodes {
+					fmt.Printf("\n### %s by %s\n", update.CreatedAt.Format("2006-01-02 15:04"), update.User.Name)
+					if update.EditedAt != nil {
+						fmt.Printf("*(edited %s)*\n", update.EditedAt.Format("2006-01-02 15:04"))
+					}
+					fmt.Printf("- **Health**: %s\n", update.Health)
+					fmt.Printf("\n%s\n", update.Body)
+				}
+			}
+			
+			// Documents
+			if project.Documents != nil && len(project.Documents.Nodes) > 0 {
+				fmt.Printf("\n## Documents\n")
+				for _, doc := range project.Documents.Nodes {
+					fmt.Printf("\n### %s\n", doc.Title)
+					if doc.Icon != nil && *doc.Icon != "" {
+						fmt.Printf("- **Icon**: %s\n", *doc.Icon)
+					}
+					fmt.Printf("- **Color**: %s\n", doc.Color)
+					fmt.Printf("- **Created**: %s by %s\n", doc.CreatedAt.Format("2006-01-02"), doc.Creator.Name)
+					if doc.UpdatedBy != nil {
+						fmt.Printf("- **Updated**: %s by %s\n", doc.UpdatedAt.Format("2006-01-02"), doc.UpdatedBy.Name)
+					}
+					fmt.Printf("\n%s\n", doc.Content)
+				}
+			}
+			
+			
+			// Show recent issues
+			if project.Issues != nil && len(project.Issues.Nodes) > 0 {
+				fmt.Printf("\n## Issues (%d total)\n", len(project.Issues.Nodes))
+				for _, issue := range project.Issues.Nodes {
+					stateStr := ""
+					if issue.State != nil {
+						switch issue.State.Type {
+						case "completed":
+							stateStr = "[x]"
+						case "started":
+							stateStr = "[~]"
+						case "canceled":
+							stateStr = "[-]"
+						default:
+							stateStr = "[ ]"
+						}
+					} else {
+						stateStr = "[ ]"
+					}
+					
+					assignee := "Unassigned"
+					if issue.Assignee != nil {
+						assignee = issue.Assignee.Name
+					}
+					
+					fmt.Printf("\n### %s %s (#%d)\n", stateStr, issue.Identifier, issue.Number)
+					fmt.Printf("**%s**\n", issue.Title)
+					fmt.Printf("- Assignee: %s\n", assignee)
+					fmt.Printf("- Priority: %s\n", priorityToString(issue.Priority))
+					if issue.Estimate != nil {
+						fmt.Printf("- Estimate: %.1f\n", *issue.Estimate)
+					}
+					if issue.State != nil {
+						fmt.Printf("- State: %s\n", issue.State.Name)
+					}
+					if issue.Labels != nil && len(issue.Labels.Nodes) > 0 {
+						labels := []string{}
+						for _, label := range issue.Labels.Nodes {
+							labels = append(labels, label.Name)
+						}
+						fmt.Printf("- Labels: %s\n", strings.Join(labels, ", "))
+					}
+					fmt.Printf("- Updated: %s\n", issue.UpdatedAt.Format("2006-01-02 15:04"))
+					if issue.Description != "" {
+						// Show first 3 lines of description
+						lines := strings.Split(issue.Description, "\n")
+						preview := ""
+						for i, line := range lines {
+							if i >= 3 {
+								preview += "\n  ..."
+								break
+							}
+							if i > 0 {
+								preview += "\n  "
+							}
+							preview += line
+						}
+						fmt.Printf("- Description: %s\n", preview)
+					}
+				}
+			}
 		} else {
 			// Formatted output
 			fmt.Println()
@@ -395,7 +578,7 @@ var projectGetCmd = &cobra.Command{
 			if project.URL != "" {
 				fmt.Printf("\n%s %s\n",
 					color.New(color.Bold).Sprint("URL:"),
-					color.New(color.FgBlue, color.Underline).Sprint(project.URL))
+					color.New(color.FgBlue, color.Underline).Sprint(constructProjectURL(project.ID, project.URL)))
 			}
 
 			fmt.Println()

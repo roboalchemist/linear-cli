@@ -90,8 +90,36 @@ var issueListCmd = &cobra.Command{
 			return
 		}
 
-		// Prepare table data
-		headers := []string{"Identifier", "Title", "State", "Assignee", "Team", "Priority", "Created", "Updated"}
+		// For plaintext output, use Markdown outline format
+		if plaintext {
+			fmt.Println("# Issues")
+			for _, issue := range issues.Nodes {
+				fmt.Printf("## %s\n", issue.Title)
+				fmt.Printf("- **ID**: %s\n", issue.Identifier)
+				if issue.State != nil {
+					fmt.Printf("- **State**: %s\n", issue.State.Name)
+				}
+				if issue.Assignee != nil {
+					fmt.Printf("- **Assignee**: %s\n", issue.Assignee.Name)
+				} else {
+					fmt.Printf("- **Assignee**: Unassigned\n")
+				}
+				if issue.Team != nil {
+					fmt.Printf("- **Team**: %s\n", issue.Team.Key)
+				}
+				fmt.Printf("- **Created**: %s\n", issue.CreatedAt.Format("2006-01-02"))
+				fmt.Printf("- **URL**: %s\n", issue.URL)
+				if issue.Description != "" {
+					fmt.Printf("- **Description**: %s\n", issue.Description)
+				}
+				fmt.Println()
+			}
+			fmt.Printf("\nTotal: %d issues\n", len(issues.Nodes))
+			return
+		}
+
+		// Prepare table data for rich output
+		headers := []string{"Title", "State", "Assignee", "Team", "Created", "URL"}
 		rows := make([][]string, len(issues.Nodes))
 
 		for i, issue := range issues.Nodes {
@@ -110,65 +138,40 @@ var issueListCmd = &cobra.Command{
 				state = issue.State.Name
 			}
 
-			priority := priorityToString(issue.Priority)
-
-			// Apply colors if not in plaintext/json mode
-			if !plaintext && !jsonOut {
-				// Color state based on type
-				if issue.State != nil {
-					var stateColor *color.Color
-					switch issue.State.Type {
-					case "triage":
-						stateColor = color.New(color.FgMagenta)
-					case "backlog":
-						stateColor = color.New(color.FgCyan)
-					case "unstarted":
-						stateColor = color.New(color.FgWhite)
-					case "started":
-						stateColor = color.New(color.FgBlue)
-					case "completed":
-						stateColor = color.New(color.FgGreen)
-					case "canceled":
-						stateColor = color.New(color.FgRed)
-					default:
-						stateColor = color.New(color.FgWhite)
-					}
-					state = stateColor.Sprint(state)
-				}
-
-				// Color priority
-				var priorityColor *color.Color
-				switch issue.Priority {
-				case 0:
-					priorityColor = color.New(color.FgWhite, color.Faint)
-				case 1:
-					priorityColor = color.New(color.FgRed, color.Bold)
-				case 2:
-					priorityColor = color.New(color.FgRed)
-				case 3:
-					priorityColor = color.New(color.FgYellow)
-				case 4:
-					priorityColor = color.New(color.FgBlue)
+			// Apply colors for rich output
+			if issue.State != nil {
+				var stateColor *color.Color
+				switch issue.State.Type {
+				case "triage":
+					stateColor = color.New(color.FgMagenta)
+				case "backlog":
+					stateColor = color.New(color.FgCyan)
+				case "unstarted":
+					stateColor = color.New(color.FgWhite)
+				case "started":
+					stateColor = color.New(color.FgBlue)
+				case "completed":
+					stateColor = color.New(color.FgGreen)
+				case "canceled":
+					stateColor = color.New(color.FgRed)
 				default:
-					priorityColor = color.New(color.FgWhite)
+					stateColor = color.New(color.FgWhite)
 				}
-				priority = priorityColor.Sprint(priority)
+				state = stateColor.Sprint(state)
+			}
 
-				// Color unassigned in yellow
-				if issue.Assignee == nil {
-					assignee = color.New(color.FgYellow).Sprint(assignee)
-				}
+			// Color unassigned in yellow
+			if issue.Assignee == nil {
+				assignee = color.New(color.FgYellow).Sprint(assignee)
 			}
 
 			rows[i] = []string{
-				issue.Identifier,
 				truncateString(issue.Title, 40),
 				state,
 				assignee,
 				team,
-				priority,
 				issue.CreatedAt.Format("2006-01-02"),
-				issue.UpdatedAt.Format("2006-01-02"),
+				issue.URL,
 			}
 		}
 
@@ -222,35 +225,277 @@ var issueGetCmd = &cobra.Command{
 		}
 
 		if plaintext {
-			fmt.Printf("ID: %s\n", issue.Identifier)
-			fmt.Printf("Title: %s\n", issue.Title)
+			fmt.Printf("# %s - %s\n\n", issue.Identifier, issue.Title)
+			
 			if issue.Description != "" {
-				fmt.Printf("Description: %s\n", issue.Description)
+				fmt.Printf("## Description\n%s\n\n", issue.Description)
 			}
+			
+			fmt.Printf("## Core Details\n")
+			fmt.Printf("- **ID**: %s\n", issue.Identifier)
+			fmt.Printf("- **Number**: %d\n", issue.Number)
 			if issue.State != nil {
-				fmt.Printf("State: %s\n", issue.State.Name)
+				fmt.Printf("- **State**: %s (%s)\n", issue.State.Name, issue.State.Type)
+				if issue.State.Description != nil && *issue.State.Description != "" {
+					fmt.Printf("  - Description: %s\n", *issue.State.Description)
+				}
 			}
 			if issue.Assignee != nil {
-				fmt.Printf("Assignee: %s\n", issue.Assignee.Name)
+				fmt.Printf("- **Assignee**: %s (%s)\n", issue.Assignee.Name, issue.Assignee.Email)
+				if issue.Assignee.DisplayName != "" && issue.Assignee.DisplayName != issue.Assignee.Name {
+					fmt.Printf("  - Display Name: %s\n", issue.Assignee.DisplayName)
+				}
+			} else {
+				fmt.Printf("- **Assignee**: Unassigned\n")
+			}
+			if issue.Creator != nil {
+				fmt.Printf("- **Creator**: %s (%s)\n", issue.Creator.Name, issue.Creator.Email)
 			}
 			if issue.Team != nil {
-				fmt.Printf("Team: %s\n", issue.Team.Name)
+				fmt.Printf("- **Team**: %s (%s)\n", issue.Team.Name, issue.Team.Key)
+				if issue.Team.Description != "" {
+					fmt.Printf("  - Description: %s\n", issue.Team.Description)
+				}
 			}
-			fmt.Printf("Priority: %s\n", priorityToString(issue.Priority))
-			if issue.Project != nil {
-				fmt.Printf("Project: %s\n", issue.Project.Name)
+			fmt.Printf("- **Priority**: %s (%d)\n", priorityToString(issue.Priority), issue.Priority)
+			if issue.PriorityLabel != "" {
+				fmt.Printf("- **Priority Label**: %s\n", issue.PriorityLabel)
 			}
-			if issue.Cycle != nil {
-				fmt.Printf("Cycle: %s\n", issue.Cycle.Name)
+			if issue.Estimate != nil {
+				fmt.Printf("- **Estimate**: %.1f\n", *issue.Estimate)
+			}
+			
+			fmt.Printf("\n## Status & Dates\n")
+			fmt.Printf("- **Created**: %s\n", issue.CreatedAt.Format("2006-01-02 15:04:05"))
+			fmt.Printf("- **Updated**: %s\n", issue.UpdatedAt.Format("2006-01-02 15:04:05"))
+			if issue.TriagedAt != nil {
+				fmt.Printf("- **Triaged**: %s\n", issue.TriagedAt.Format("2006-01-02 15:04:05"))
+			}
+			if issue.CompletedAt != nil {
+				fmt.Printf("- **Completed**: %s\n", issue.CompletedAt.Format("2006-01-02 15:04:05"))
+			}
+			if issue.CanceledAt != nil {
+				fmt.Printf("- **Canceled**: %s\n", issue.CanceledAt.Format("2006-01-02 15:04:05"))
+			}
+			if issue.ArchivedAt != nil {
+				fmt.Printf("- **Archived**: %s\n", issue.ArchivedAt.Format("2006-01-02 15:04:05"))
 			}
 			if issue.DueDate != nil && *issue.DueDate != "" {
-				fmt.Printf("Due Date: %s\n", *issue.DueDate)
+				fmt.Printf("- **Due Date**: %s\n", *issue.DueDate)
 			}
+			if issue.SnoozedUntilAt != nil {
+				fmt.Printf("- **Snoozed Until**: %s\n", issue.SnoozedUntilAt.Format("2006-01-02 15:04:05"))
+			}
+			
+			fmt.Printf("\n## Technical Details\n")
+			fmt.Printf("- **Board Order**: %.2f\n", issue.BoardOrder)
+			fmt.Printf("- **Sub-Issue Sort Order**: %.2f\n", issue.SubIssueSortOrder)
 			if issue.BranchName != "" {
-				fmt.Printf("Git Branch: %s\n", issue.BranchName)
+				fmt.Printf("- **Git Branch**: %s\n", issue.BranchName)
 			}
-			fmt.Printf("Created: %s\n", issue.CreatedAt.Format("2006-01-02 15:04:05"))
-			fmt.Printf("URL: %s\n", issue.URL)
+			if issue.CustomerTicketCount > 0 {
+				fmt.Printf("- **Customer Ticket Count**: %d\n", issue.CustomerTicketCount)
+			}
+			if len(issue.PreviousIdentifiers) > 0 {
+				fmt.Printf("- **Previous Identifiers**: %s\n", strings.Join(issue.PreviousIdentifiers, ", "))
+			}
+			if issue.IntegrationSourceType != nil && *issue.IntegrationSourceType != "" {
+				fmt.Printf("- **Integration Source**: %s\n", *issue.IntegrationSourceType)
+			}
+			if issue.ExternalUserCreator != nil {
+				fmt.Printf("- **External Creator**: %s (%s)\n", issue.ExternalUserCreator.Name, issue.ExternalUserCreator.Email)
+			}
+			fmt.Printf("- **URL**: %s\n", issue.URL)
+			
+			// Project and Cycle Info
+			if issue.Project != nil {
+				fmt.Printf("\n## Project\n")
+				fmt.Printf("- **Name**: %s\n", issue.Project.Name)
+				fmt.Printf("- **State**: %s\n", issue.Project.State)
+				fmt.Printf("- **Progress**: %.0f%%\n", issue.Project.Progress*100)
+				if issue.Project.Health != "" {
+					fmt.Printf("- **Health**: %s\n", issue.Project.Health)
+				}
+				if issue.Project.Description != "" {
+					fmt.Printf("- **Description**: %s\n", issue.Project.Description)
+				}
+			}
+			
+			if issue.Cycle != nil {
+				fmt.Printf("\n## Cycle\n")
+				fmt.Printf("- **Name**: %s (#%d)\n", issue.Cycle.Name, issue.Cycle.Number)
+				if issue.Cycle.Description != nil && *issue.Cycle.Description != "" {
+					fmt.Printf("- **Description**: %s\n", *issue.Cycle.Description)
+				}
+				fmt.Printf("- **Period**: %s to %s\n", issue.Cycle.StartsAt, issue.Cycle.EndsAt)
+				fmt.Printf("- **Progress**: %.0f%%\n", issue.Cycle.Progress*100)
+				if issue.Cycle.CompletedAt != nil {
+					fmt.Printf("- **Completed**: %s\n", issue.Cycle.CompletedAt.Format("2006-01-02"))
+				}
+			}
+			
+			
+			// Labels
+			if issue.Labels != nil && len(issue.Labels.Nodes) > 0 {
+				fmt.Printf("\n## Labels\n")
+				for _, label := range issue.Labels.Nodes {
+					fmt.Printf("- %s", label.Name)
+					if label.Description != nil && *label.Description != "" {
+						fmt.Printf(" - %s", *label.Description)
+					}
+					fmt.Println()
+				}
+			}
+			
+			// Subscribers
+			if issue.Subscribers != nil && len(issue.Subscribers.Nodes) > 0 {
+				fmt.Printf("\n## Subscribers\n")
+				for _, subscriber := range issue.Subscribers.Nodes {
+					fmt.Printf("- %s (%s)\n", subscriber.Name, subscriber.Email)
+				}
+			}
+			
+			// Relations
+			if issue.Relations != nil && len(issue.Relations.Nodes) > 0 {
+				fmt.Printf("\n## Related Issues\n")
+				for _, relation := range issue.Relations.Nodes {
+					if relation.RelatedIssue != nil {
+						relationType := relation.Type
+						switch relationType {
+						case "blocks":
+							relationType = "Blocks"
+						case "blocked":
+							relationType = "Blocked by"
+						case "related":
+							relationType = "Related to"
+						case "duplicate":
+							relationType = "Duplicate of"
+						}
+						fmt.Printf("- %s: %s - %s", relationType, relation.RelatedIssue.Identifier, relation.RelatedIssue.Title)
+						if relation.RelatedIssue.State != nil {
+							fmt.Printf(" [%s]", relation.RelatedIssue.State.Name)
+						}
+						fmt.Println()
+					}
+				}
+			}
+			
+			// Reactions
+			if len(issue.Reactions) > 0 {
+				fmt.Printf("\n## Reactions\n")
+				reactionMap := make(map[string][]string)
+				for _, reaction := range issue.Reactions {
+					reactionMap[reaction.Emoji] = append(reactionMap[reaction.Emoji], reaction.User.Name)
+				}
+				for emoji, users := range reactionMap {
+					fmt.Printf("- %s: %s\n", emoji, strings.Join(users, ", "))
+				}
+			}
+			
+			// Show parent issue if this is a sub-issue
+			if issue.Parent != nil {
+				fmt.Printf("\n## Parent Issue\n")
+				fmt.Printf("- %s: %s\n", issue.Parent.Identifier, issue.Parent.Title)
+			}
+			
+			// Show sub-issues if any
+			if issue.Children != nil && len(issue.Children.Nodes) > 0 {
+				fmt.Printf("\n## Sub-issues\n")
+				for _, child := range issue.Children.Nodes {
+					stateStr := ""
+					if child.State != nil {
+						switch child.State.Type {
+						case "completed", "done":
+							stateStr = "[x]"
+						case "started", "in_progress":
+							stateStr = "[~]"
+						case "canceled":
+							stateStr = "[-]"
+						default:
+							stateStr = "[ ]"
+						}
+					} else {
+						stateStr = "[ ]"
+					}
+					
+					assignee := "Unassigned"
+					if child.Assignee != nil {
+						assignee = child.Assignee.Name
+					}
+					
+					fmt.Printf("- %s %s: %s (%s)\n", stateStr, child.Identifier, child.Title, assignee)
+				}
+			}
+			
+			// Show attachments if any
+			if issue.Attachments != nil && len(issue.Attachments.Nodes) > 0 {
+				fmt.Printf("\n## Attachments\n")
+				for _, attachment := range issue.Attachments.Nodes {
+					fmt.Printf("- [%s](%s)\n", attachment.Title, attachment.URL)
+				}
+			}
+			
+			// Show recent comments if any
+			if issue.Comments != nil && len(issue.Comments.Nodes) > 0 {
+				fmt.Printf("\n## Recent Comments\n")
+				for _, comment := range issue.Comments.Nodes {
+					fmt.Printf("\n### %s - %s\n", comment.User.Name, comment.CreatedAt.Format("2006-01-02 15:04"))
+					if comment.EditedAt != nil {
+						fmt.Printf("*(edited %s)*\n", comment.EditedAt.Format("2006-01-02 15:04"))
+					}
+					fmt.Printf("%s\n", comment.Body)
+					if comment.Children != nil && len(comment.Children.Nodes) > 0 {
+						for _, reply := range comment.Children.Nodes {
+							fmt.Printf("\n  **Reply from %s**: %s\n", reply.User.Name, reply.Body)
+						}
+					}
+				}
+				fmt.Printf("\n> Use `linctl comment list %s` to see all comments\n", issue.Identifier)
+			}
+			
+			// Show history
+			if issue.History != nil && len(issue.History.Nodes) > 0 {
+				fmt.Printf("\n## Recent History\n")
+				for _, entry := range issue.History.Nodes {
+					fmt.Printf("\n- **%s** by %s", entry.CreatedAt.Format("2006-01-02 15:04"), entry.Actor.Name)
+					changes := []string{}
+					
+					if entry.FromState != nil && entry.ToState != nil {
+						changes = append(changes, fmt.Sprintf("State: %s → %s", entry.FromState.Name, entry.ToState.Name))
+					}
+					if entry.FromAssignee != nil && entry.ToAssignee != nil {
+						changes = append(changes, fmt.Sprintf("Assignee: %s → %s", entry.FromAssignee.Name, entry.ToAssignee.Name))
+					} else if entry.FromAssignee != nil && entry.ToAssignee == nil {
+						changes = append(changes, fmt.Sprintf("Unassigned from %s", entry.FromAssignee.Name))
+					} else if entry.FromAssignee == nil && entry.ToAssignee != nil {
+						changes = append(changes, fmt.Sprintf("Assigned to %s", entry.ToAssignee.Name))
+					}
+					if entry.FromPriority != nil && entry.ToPriority != nil {
+						changes = append(changes, fmt.Sprintf("Priority: %s → %s", priorityToString(*entry.FromPriority), priorityToString(*entry.ToPriority)))
+					}
+					if entry.FromTitle != nil && entry.ToTitle != nil {
+						changes = append(changes, fmt.Sprintf("Title: \"%s\" → \"%s\"", *entry.FromTitle, *entry.ToTitle))
+					}
+					if entry.FromCycle != nil && entry.ToCycle != nil {
+						changes = append(changes, fmt.Sprintf("Cycle: %s → %s", entry.FromCycle.Name, entry.ToCycle.Name))
+					}
+					if entry.FromProject != nil && entry.ToProject != nil {
+						changes = append(changes, fmt.Sprintf("Project: %s → %s", entry.FromProject.Name, entry.ToProject.Name))
+					}
+					if len(entry.AddedLabelIds) > 0 {
+						changes = append(changes, fmt.Sprintf("Added %d label(s)", len(entry.AddedLabelIds)))
+					}
+					if len(entry.RemovedLabelIds) > 0 {
+						changes = append(changes, fmt.Sprintf("Removed %d label(s)", len(entry.RemovedLabelIds)))
+					}
+					
+					if len(changes) > 0 {
+						fmt.Printf("\n  - %s", strings.Join(changes, "\n  - "))
+					}
+					fmt.Println()
+				}
+			}
+			
 			return
 		}
 
@@ -609,12 +854,139 @@ var issueCreateCmd = &cobra.Command{
 	},
 }
 
+var issueUpdateCmd = &cobra.Command{
+	Use:   "update [issue-id]",
+	Short: "Update an issue",
+	Long: `Update various fields of an issue.
+
+Examples:
+  linctl issue update LIN-123 --title "New title"
+  linctl issue update LIN-123 --description "Updated description"
+  linctl issue update LIN-123 --assignee john.doe@company.com
+  linctl issue update LIN-123 --state "In Progress"
+  linctl issue update LIN-123 --priority 1
+  linctl issue update LIN-123 --due-date "2024-12-31"
+  linctl issue update LIN-123 --title "New title" --assignee me --priority 2`,
+	Args: cobra.ExactArgs(1),
+	Run: func(cmd *cobra.Command, args []string) {
+		plaintext := viper.GetBool("plaintext")
+		jsonOut := viper.GetBool("json")
+
+		authHeader, err := auth.GetAuthHeader()
+		if err != nil {
+			output.Error("Not authenticated. Run 'linctl auth' first.", plaintext, jsonOut)
+			os.Exit(1)
+		}
+
+		client := api.NewClient(authHeader)
+
+		// Build update input
+		input := make(map[string]interface{})
+
+		// Handle title update
+		if cmd.Flags().Changed("title") {
+			title, _ := cmd.Flags().GetString("title")
+			input["title"] = title
+		}
+
+		// Handle description update
+		if cmd.Flags().Changed("description") {
+			description, _ := cmd.Flags().GetString("description")
+			input["description"] = description
+		}
+
+		// Handle assignee update
+		if cmd.Flags().Changed("assignee") {
+			assignee, _ := cmd.Flags().GetString("assignee")
+			if assignee == "me" {
+				// Get current user
+				viewer, err := client.GetViewer(context.Background())
+				if err != nil {
+					output.Error(fmt.Sprintf("Failed to get current user: %v", err), plaintext, jsonOut)
+					os.Exit(1)
+				}
+				input["assigneeId"] = viewer.ID
+			} else if assignee == "unassigned" || assignee == "" {
+				input["assigneeId"] = nil
+			} else {
+				// Look up user by email
+				users, err := client.GetUsers(context.Background(), 100, "", "")
+				if err != nil {
+					output.Error(fmt.Sprintf("Failed to get users: %v", err), plaintext, jsonOut)
+					os.Exit(1)
+				}
+
+				var foundUser *api.User
+				for _, user := range users.Nodes {
+					if user.Email == assignee || user.Name == assignee {
+						foundUser = &user
+						break
+					}
+				}
+
+				if foundUser == nil {
+					output.Error(fmt.Sprintf("User not found: %s", assignee), plaintext, jsonOut)
+					os.Exit(1)
+				}
+
+				input["assigneeId"] = foundUser.ID
+			}
+		}
+
+		// Handle state update
+		if cmd.Flags().Changed("state") {
+			state, _ := cmd.Flags().GetString("state")
+			// For now, we'll pass the state name and let the API handle the mapping
+			// In a future improvement, we could fetch available states for the team
+			input["stateId"] = state
+		}
+
+		// Handle priority update
+		if cmd.Flags().Changed("priority") {
+			priority, _ := cmd.Flags().GetInt("priority")
+			input["priority"] = priority
+		}
+
+		// Handle due date update
+		if cmd.Flags().Changed("due-date") {
+			dueDate, _ := cmd.Flags().GetString("due-date")
+			if dueDate == "" {
+				input["dueDate"] = nil
+			} else {
+				input["dueDate"] = dueDate
+			}
+		}
+
+		// Check if any updates were specified
+		if len(input) == 0 {
+			output.Error("No updates specified. Use flags to specify what to update.", plaintext, jsonOut)
+			os.Exit(1)
+		}
+
+		// Update the issue
+		issue, err := client.UpdateIssue(context.Background(), args[0], input)
+		if err != nil {
+			output.Error(fmt.Sprintf("Failed to update issue: %v", err), plaintext, jsonOut)
+			os.Exit(1)
+		}
+
+		if jsonOut {
+			output.JSON(issue)
+		} else if plaintext {
+			fmt.Printf("Updated issue %s\n", issue.Identifier)
+		} else {
+			output.Success(fmt.Sprintf("Updated issue %s", issue.Identifier), plaintext, jsonOut)
+		}
+	},
+}
+
 func init() {
 	rootCmd.AddCommand(issueCmd)
 	issueCmd.AddCommand(issueListCmd)
 	issueCmd.AddCommand(issueGetCmd)
 	issueCmd.AddCommand(issueAssignCmd)
 	issueCmd.AddCommand(issueCreateCmd)
+	issueCmd.AddCommand(issueUpdateCmd)
 
 	// Issue list flags
 	issueListCmd.Flags().StringP("assignee", "a", "", "Filter by assignee (email or 'me')")
@@ -634,4 +1006,12 @@ func init() {
 	issueCreateCmd.Flags().BoolP("assign-me", "m", false, "Assign to yourself")
 	_ = issueCreateCmd.MarkFlagRequired("title")
 	_ = issueCreateCmd.MarkFlagRequired("team")
+
+	// Issue update flags
+	issueUpdateCmd.Flags().String("title", "", "New title for the issue")
+	issueUpdateCmd.Flags().StringP("description", "d", "", "New description for the issue")
+	issueUpdateCmd.Flags().StringP("assignee", "a", "", "Assignee (email, name, 'me', or 'unassigned')")
+	issueUpdateCmd.Flags().StringP("state", "s", "", "State name (e.g., 'Todo', 'In Progress', 'Done')")
+	issueUpdateCmd.Flags().Int("priority", -1, "Priority (0=None, 1=Urgent, 2=High, 3=Normal, 4=Low)")
+	issueUpdateCmd.Flags().String("due-date", "", "Due date (YYYY-MM-DD format, or empty to remove)")
 }
