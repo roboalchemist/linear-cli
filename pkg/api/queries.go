@@ -1141,6 +1141,55 @@ type Comments struct {
 	PageInfo PageInfo  `json:"pageInfo"`
 }
 
+// WorkflowState represents a Linear workflow state
+type WorkflowState struct {
+	ID          string `json:"id"`
+	Name        string `json:"name"`
+	Type        string `json:"type"`
+	Color       string `json:"color"`
+	Description string `json:"description"`
+	Position    float64 `json:"position"`
+}
+
+// GetTeamStates returns workflow states for a team
+func (c *Client) GetTeamStates(ctx context.Context, teamKey string) ([]WorkflowState, error) {
+	query := `
+		query TeamStates($key: String!) {
+			team(id: $key) {
+				states {
+					nodes {
+						id
+						name
+						type
+						color
+						description
+						position
+					}
+				}
+			}
+		}
+	`
+
+	variables := map[string]interface{}{
+		"key": teamKey,
+	}
+
+	var response struct {
+		Team struct {
+			States struct {
+				Nodes []WorkflowState `json:"nodes"`
+			} `json:"states"`
+		} `json:"team"`
+	}
+
+	err := c.Execute(ctx, query, variables, &response)
+	if err != nil {
+		return nil, err
+	}
+
+	return response.Team.States.Nodes, nil
+}
+
 // GetTeamMembers returns members of a specific team
 func (c *Client) GetTeamMembers(ctx context.Context, teamKey string) (*Users, error) {
 	query := `

@@ -935,10 +935,42 @@ Examples:
 
 		// Handle state update
 		if cmd.Flags().Changed("state") {
-			state, _ := cmd.Flags().GetString("state")
-			// For now, we'll pass the state name and let the API handle the mapping
-			// In a future improvement, we could fetch available states for the team
-			input["stateId"] = state
+			stateName, _ := cmd.Flags().GetString("state")
+			
+			// First, get the issue to know which team it belongs to
+			issue, err := client.GetIssue(context.Background(), args[0])
+			if err != nil {
+				output.Error(fmt.Sprintf("Failed to get issue: %v", err), plaintext, jsonOut)
+				os.Exit(1)
+			}
+			
+			// Get available states for the team
+			states, err := client.GetTeamStates(context.Background(), issue.Team.Key)
+			if err != nil {
+				output.Error(fmt.Sprintf("Failed to get team states: %v", err), plaintext, jsonOut)
+				os.Exit(1)
+			}
+			
+			// Find the state by name (case-insensitive)
+			var stateID string
+			for _, state := range states {
+				if strings.EqualFold(state.Name, stateName) {
+					stateID = state.ID
+					break
+				}
+			}
+			
+			if stateID == "" {
+				// Show available states
+				var stateNames []string
+				for _, state := range states {
+					stateNames = append(stateNames, state.Name)
+				}
+				output.Error(fmt.Sprintf("State '%s' not found. Available states: %s", stateName, strings.Join(stateNames, ", ")), plaintext, jsonOut)
+				os.Exit(1)
+			}
+			
+			input["stateId"] = stateID
 		}
 
 		// Handle priority update
