@@ -237,7 +237,7 @@ linctl issue new [flags]      # Alias
   --title string           Issue title (required)
   -d, --description string Issue description
   -t, --team string        Team key (required)
-  -p, --priority int       Priority 0-4 (default 3)
+  --priority int       Priority 0-4 (default 3)
   -m, --assign-me          Assign to yourself
 
 # Assign issue to yourself
@@ -293,6 +293,7 @@ linctl project ls [flags]     # Alias
   -l, --limit int          Maximum results (default 50)
   -o, --sort string        Sort order: linear (default), created, updated
   -n, --newer-than string  Show items created after this time (default: 6_months_ago)
+  -c, --include-completed  Include completed and canceled projects
 
 # Get project details
 linctl project get <project-id>
