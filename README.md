@@ -73,6 +73,15 @@ make fmt         # Format code
 - **Quick Assign**: Instantly assign issues to yourself
 - **Issue Creation**: Create issues directly from the CLI
 
+## ⚠️ Important: Default Time Filter
+
+> **By default, `issue list` and `project list` commands only show items created in the last 6 months!**
+> 
+> This improves performance and prevents overwhelming data loads. To see older items:
+> - Use `--newer-than 1_year_ago` for items from the last year
+> - Use `--newer-than all_time` to see ALL items ever created
+> - See the [Time-based Filtering](#-time-based-filtering-important) section for details
+
 ## 🚀 Quick Start
 
 ### 1. Authentication
@@ -101,11 +110,14 @@ linctl issue list --state "In Progress"
 # List issues sorted by update date
 linctl issue list --sort updated
 
-# List issues from last 2 weeks (default is 6 months)
+# List recent issues (last 2 weeks instead of default 6 months)
 linctl issue list --newer-than 2_weeks_ago
 
-# List all issues ever created
+# List ALL issues ever created (override 6-month default)
 linctl issue list --newer-than all_time
+
+# List today's issues
+linctl issue list --newer-than 1_day_ago
 
 # Get issue details (now includes git branch, cycle, project, attachments, and comments)
 linctl issue get LIN-123
@@ -125,8 +137,11 @@ linctl project list
 # Filter projects by team
 linctl project list --team ENG
 
-# List projects created in the last month
+# List projects created in the last month (instead of default 6 months)
 linctl project list --newer-than 1_month_ago
+
+# List ALL projects regardless of age
+linctl project list --newer-than all_time
 
 # Get project details (use ID from list command)
 linctl project get 65a77a62-ec5e-491e-b1d9-84aebee01b33
@@ -198,7 +213,7 @@ linctl issue ls [flags]     # Short alias
   -r, --priority int       Filter by priority (0-4)
   -l, --limit int          Maximum results (default 50)
   -o, --sort string        Sort order: linear (default), created, updated
-  -n, --newer-than string  Show items created after this time (default: 6_months_ago)
+  -n, --newer-than string  Show items created after this time (default: 6_months_ago, use 'all_time' for no filter)
 
 # Get issue details (shows parent and sub-issues)
 linctl issue get <issue-id>
@@ -384,25 +399,82 @@ Authentication credentials are stored securely in `~/.linctl-auth.json`.
 2. Create a new Personal API Key
 3. Run `linctl auth` and paste your key
 
-## 🔄 Sorting & Filtering Options
+## 📅 Time-based Filtering (Important!)
 
-### Sorting
+**⚠️ Default Behavior**: To improve performance and prevent overwhelming data loads, list commands **only show items created in the last 6 months by default**. This is especially important for large workspaces.
+
+### Using the --newer-than Flag
+
+The `--newer-than` (or `-n`) flag is available on `issue list` and `project list` commands:
+
+```bash
+# Default behavior (last 6 months)
+linctl issue list
+
+# Show items from a specific time period
+linctl issue list --newer-than 2_weeks_ago
+linctl project list --newer-than 1_month_ago
+
+# Show ALL items regardless of age
+linctl issue list --newer-than all_time
+```
+
+### Supported Time Formats
+
+1. **Relative time expressions**: `N_units_ago`
+   - Units: `minutes`, `hours`, `days`, `weeks`, `months`, `years`
+   - Examples: `30_minutes_ago`, `2_hours_ago`, `3_days_ago`, `1_week_ago`, `6_months_ago`
+
+2. **Special values**:
+   - `all_time` - Shows all items without any date filter
+   - ISO dates - `2025-07-01` or `2025-07-01T15:30:00Z`
+
+3. **Default value**: `6_months_ago` (when flag is not specified)
+
+### Quick Reference
+
+| Time Expression | Description | Example Command |
+|----------------|-------------|-----------------|
+| *(no flag)* | Last 6 months (default) | `linctl issue list` |
+| `1_day_ago` | Last 24 hours | `linctl issue list --newer-than 1_day_ago` |
+| `1_week_ago` | Last 7 days | `linctl issue list --newer-than 1_week_ago` |
+| `2_weeks_ago` | Last 14 days | `linctl issue list --newer-than 2_weeks_ago` |
+| `1_month_ago` | Last month | `linctl issue list --newer-than 1_month_ago` |
+| `3_months_ago` | Last quarter | `linctl issue list --newer-than 3_months_ago` |
+| `6_months_ago` | Last 6 months | `linctl issue list --newer-than 6_months_ago` |
+| `1_year_ago` | Last year | `linctl issue list --newer-than 1_year_ago` |
+| `all_time` | No date filter | `linctl issue list --newer-than all_time` |
+| `2025-07-01` | Since specific date | `linctl issue list --newer-than 2025-07-01` |
+
+### Common Use Cases
+
+```bash
+# Recent activity - issues from last week
+linctl issue list --newer-than 1_week_ago
+
+# Sprint planning - issues from current month
+linctl issue list --newer-than 1_month_ago --state "Todo"
+
+# Quarterly review - all projects from last 3 months
+linctl project list --newer-than 3_months_ago
+
+# Historical analysis - ALL issues ever created
+linctl issue list --newer-than all_time --sort created
+
+# Today's issues
+linctl issue list --newer-than 1_day_ago
+
+# Combine with other filters
+linctl issue list --newer-than 2_weeks_ago --assignee me --sort updated
+```
+
+## 🔄 Sorting Options
+
 All list commands support sorting with the `--sort` or `-o` flag:
 
 - **linear** (default): Linear's built-in sorting order (respects manual ordering in the UI)
 - **created**: Sort by creation date (newest first)
 - **updated**: Sort by last update date (most recently updated first)
-
-### Time-based Filtering
-Issue and project list commands support the `--newer-than` or `-n` flag to filter by creation date:
-
-- **Default**: `6_months_ago` (prevents overwhelming data loads)
-- **Time expressions**: `N_units_ago` where units can be:
-  - `minutes`, `hours`, `days`, `weeks`, `months`, `years`
-  - Examples: `3_days_ago`, `2_weeks_ago`, `1_month_ago`
-- **Special values**:
-  - `all_time`: Show all items regardless of age
-  - ISO dates: `2025-07-01` or full ISO8601 timestamps
 
 ### Examples
 ```bash
@@ -428,7 +500,11 @@ linctl issue list --newer-than 1_week_ago --sort updated
 linctl project list --newer-than all_time --sort created
 ```
 
-**Important**: By default, list commands only show items created in the last 6 months. This prevents overwhelming data loads and improves performance. Use `--newer-than all_time` to see all items.
+### Performance Tips
+
+- The 6-month default filter significantly improves performance for large workspaces
+- Use specific time ranges when possible instead of `all_time`
+- Combine time filtering with other filters (assignee, state, team) for faster results
 
 ## 🤖 Scripting & Automation
 
@@ -445,6 +521,11 @@ echo "$urgent_issues" | jq '.[] | select(.assignee == "me") | .id'
 
 # Plaintext output for simple parsing
 linctl issue list --assignee me --plaintext | cut -f1 | tail -n +2
+
+# Get issue count for different time periods
+echo "Last week: $(linctl issue list --newer-than 1_week_ago --json | jq '. | length')"
+echo "Last month: $(linctl issue list --newer-than 1_month_ago --json | jq '. | length')"
+echo "All time: $(linctl issue list --newer-than all_time --json | jq '. | length')"
 
 # Create and assign issue in one command
 linctl issue create --title "Fix bug" --team ENG --assign-me --json
@@ -552,6 +633,14 @@ Linear has the following rate limits:
 - `Not authenticated`: Run `linctl auth` first
 - `Team not found`: Use team key (e.g., "ENG") not display name
 - `Invalid priority`: Use numbers 0-4 (0=None, 1=Urgent, 2=High, 3=Normal, 4=Low)
+
+### Time Filtering Issues
+- **Missing old issues?** Remember that list commands default to showing only the last 6 months
+  - Solution: Use `--newer-than all_time` to see all issues
+- **Invalid time expression?** Check the format: `N_units_ago` (e.g., `3_weeks_ago`)
+  - Valid units: `minutes`, `hours`, `days`, `weeks`, `months`, `years`
+- **Performance issues?** Avoid using `all_time` on large workspaces
+  - Solution: Use specific time ranges like `--newer-than 1_year_ago`
 
 ## 🤝 Contributing
 
