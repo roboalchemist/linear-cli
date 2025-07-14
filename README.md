@@ -370,9 +370,32 @@ LIN-124  Update documentation Done         jane@co.com DOC   Normal
 linctl issue list --plaintext
 ```
 ```
-ID	Title	State	Assignee	Team	Priority
-LIN-123	Fix authentication	In Progress	john@co.com	ENG	High
-LIN-124	Update documentation	Done	jane@co.com	DOC	Normal
+# Issues
+## BUG: fix regression in thread analytics
+- **ID**: END-4206
+- **State**: In Progress
+- **Assignee**: Kyle Wild
+- **Team**: END
+- **Created**: 2025-07-13
+- **URL**: https://linear.app/endgame/issue/END-4206/bug-fix-regression-in-thread-analytics
+- **Description**: As of about a week ago, we stopped getting Assistant Messages in thread-analytics.
+
+We need to fix this, and enhance our automated testing to make sure it doesn't happen again.
+
+plan:
+
+* write a red test to prove that it isn't working as expected
+* make the test green
+* postmortem to see how this happened
+
+## add dates to sources in sources tab where meaningful
+- **ID**: END-4203
+- **State**: Todo
+- **Assignee**: Unassigned
+- **Team**: END
+- **Created**: 2025-07-11
+- **URL**: https://linear.app/endgame/issue/END-4203/add-dates-to-sources-in-sources-tab-where-meaningful
+- **Description**: and maybe into the citation popover?
 ```
 
 ### JSON Format
