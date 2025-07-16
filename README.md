@@ -1,7 +1,7 @@
 # 🚀 linctl - Linear CLI Tool
 
 
-A comprehensive command-line interface for Linear's API, built with Go and Cobra.
+A comprehensive command-line interface for Linear's API, built with agents in mind (but nice for humans too).
 
 ## ✨ Features
 
