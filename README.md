@@ -69,7 +69,7 @@ linctl docs      # Render the README.md
 This improves performance and prevents overwhelming data loads. To see older items:
  - Use `--newer-than 1_year_ago` for items from the last year
  - Use `--newer-than all_time` to see ALL items ever created
- - See the [Time-based Filtering](#-time-based-filtering-important) section for details
+ - See the [Time-based Filtering](#-time-based-filtering) section for details
 
 **By default, `issue list` also filters out canceled and completed items. To see all items, use the `--include-completed` flag.**
 
