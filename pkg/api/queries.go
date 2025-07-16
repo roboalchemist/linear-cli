@@ -2,6 +2,7 @@ package api
 
 import (
 	"context"
+	"encoding/json"
 	"time"
 )
 
@@ -65,19 +66,19 @@ type Issue struct {
 	CustomerTicketCount int          `json:"customerTicketCount"`
 	PreviousIdentifiers []string     `json:"previousIdentifiers"`
 	// Additional fields
-	Number              int          `json:"number"`
-	BoardOrder          float64      `json:"boardOrder"`
-	SubIssueSortOrder   float64      `json:"subIssueSortOrder"`
-	PriorityLabel       string       `json:"priorityLabel"`
-	IntegrationSourceType *string    `json:"integrationSourceType"`
-	Creator             *User        `json:"creator"`
-	Subscribers         *Users       `json:"subscribers"`
-	Relations           *IssueRelations `json:"relations"`
-	History             *IssueHistory `json:"history"`
-	Reactions           []Reaction   `json:"reactions"`
-	SlackIssueComments  []SlackComment `json:"slackIssueComments"`
-	ExternalUserCreator *ExternalUser `json:"externalUserCreator"`
-	CustomerTickets     []CustomerTicket `json:"customerTickets"`
+	Number                int              `json:"number"`
+	BoardOrder            float64          `json:"boardOrder"`
+	SubIssueSortOrder     float64          `json:"subIssueSortOrder"`
+	PriorityLabel         string           `json:"priorityLabel"`
+	IntegrationSourceType *string          `json:"integrationSourceType"`
+	Creator               *User            `json:"creator"`
+	Subscribers           *Users           `json:"subscribers"`
+	Relations             *IssueRelations  `json:"relations"`
+	History               *IssueHistory    `json:"history"`
+	Reactions             []Reaction       `json:"reactions"`
+	SlackIssueComments    []SlackComment   `json:"slackIssueComments"`
+	ExternalUserCreator   *ExternalUser    `json:"externalUserCreator"`
+	CustomerTickets       []CustomerTicket `json:"customerTickets"`
 }
 
 // State represents an issue state
@@ -92,38 +93,38 @@ type State struct {
 
 // Project represents a Linear project
 type Project struct {
-	ID                  string      `json:"id"`
-	Name                string      `json:"name"`
-	Description         string      `json:"description"`
-	State               string      `json:"state"`
-	Progress            float64     `json:"progress"`
-	StartDate           *string     `json:"startDate"`
-	TargetDate          *string     `json:"targetDate"`
-	Lead                *User       `json:"lead"`
-	Teams               *Teams      `json:"teams"`
-	URL                 string      `json:"url"`
-	Icon                *string     `json:"icon"`
-	Color               string      `json:"color"`
-	CreatedAt           time.Time   `json:"createdAt"`
-	UpdatedAt           time.Time   `json:"updatedAt"`
-	CompletedAt         *time.Time  `json:"completedAt"`
-	CanceledAt          *time.Time  `json:"canceledAt"`
-	ArchivedAt          *time.Time  `json:"archivedAt"`
-	Creator             *User       `json:"creator"`
-	Members             *Users      `json:"members"`
-	Issues              *Issues     `json:"issues"`
+	ID          string     `json:"id"`
+	Name        string     `json:"name"`
+	Description string     `json:"description"`
+	State       string     `json:"state"`
+	Progress    float64    `json:"progress"`
+	StartDate   *string    `json:"startDate"`
+	TargetDate  *string    `json:"targetDate"`
+	Lead        *User      `json:"lead"`
+	Teams       *Teams     `json:"teams"`
+	URL         string     `json:"url"`
+	Icon        *string    `json:"icon"`
+	Color       string     `json:"color"`
+	CreatedAt   time.Time  `json:"createdAt"`
+	UpdatedAt   time.Time  `json:"updatedAt"`
+	CompletedAt *time.Time `json:"completedAt"`
+	CanceledAt  *time.Time `json:"canceledAt"`
+	ArchivedAt  *time.Time `json:"archivedAt"`
+	Creator     *User      `json:"creator"`
+	Members     *Users     `json:"members"`
+	Issues      *Issues    `json:"issues"`
 	// Additional fields
-	SlugId              string      `json:"slugId"`
-	Content             string      `json:"content"`
-	ConvertedFromIssue  *Issue      `json:"convertedFromIssue"`
-	LastAppliedTemplate *Template   `json:"lastAppliedTemplate"`
+	SlugId              string          `json:"slugId"`
+	Content             string          `json:"content"`
+	ConvertedFromIssue  *Issue          `json:"convertedFromIssue"`
+	LastAppliedTemplate *Template       `json:"lastAppliedTemplate"`
 	ProjectUpdates      *ProjectUpdates `json:"projectUpdates"`
-	Documents           *Documents  `json:"documents"`
-	Health              string      `json:"health"`
-	Scope               int         `json:"scope"`
-	SlackNewIssue       bool        `json:"slackNewIssue"`
-	SlackIssueComments  bool        `json:"slackIssueComments"`
-	SlackIssueStatuses  bool        `json:"slackIssueStatuses"`
+	Documents           *Documents      `json:"documents"`
+	Health              string          `json:"health"`
+	Scope               int             `json:"scope"`
+	SlackNewIssue       bool            `json:"slackNewIssue"`
+	SlackIssueComments  bool            `json:"slackIssueComments"`
+	SlackIssueStatuses  bool            `json:"slackIssueStatuses"`
 }
 
 // Paginated collections
@@ -174,15 +175,47 @@ type Cycle struct {
 
 // Attachment represents a file attachment or link
 type Attachment struct {
-	ID         string                 `json:"id"`
-	Title      string                 `json:"title"`
-	Subtitle   *string                `json:"subtitle"`
-	URL        string                 `json:"url"`
-	Metadata   map[string]interface{} `json:"metadata"`
-	Source     *string                `json:"source"`
-	SourceType *string                `json:"sourceType"`
-	CreatedAt  time.Time              `json:"createdAt"`
-	Creator    *User                  `json:"creator"`
+	ID        string                 `json:"id"`
+	Title     string                 `json:"title"`
+	Subtitle  *string                `json:"subtitle"`
+	URL       string                 `json:"url"`
+	Metadata  map[string]interface{} `json:"metadata"`
+	CreatedAt time.Time              `json:"createdAt"`
+	Creator   *User                  `json:"creator"`
+
+	// Use a map to capture any extra fields Linear might return
+	Extra map[string]interface{} `json:"-"`
+}
+
+// UnmarshalJSON implements custom unmarshaling to handle unexpected fields from Linear API
+func (a *Attachment) UnmarshalJSON(data []byte) error {
+	// Create an alias to avoid infinite recursion
+	type Alias Attachment
+	aux := &struct {
+		*Alias
+		// Capture extra fields that might come from Linear
+		Source     interface{} `json:"source,omitempty"`
+		SourceType interface{} `json:"sourceType,omitempty"`
+	}{
+		Alias: (*Alias)(a),
+	}
+
+	if err := json.Unmarshal(data, &aux); err != nil {
+		return err
+	}
+
+	// Store unexpected fields in Extra map if needed
+	if aux.Source != nil || aux.SourceType != nil {
+		a.Extra = make(map[string]interface{})
+		if aux.Source != nil {
+			a.Extra["source"] = aux.Source
+		}
+		if aux.SourceType != nil {
+			a.Extra["sourceType"] = aux.SourceType
+		}
+	}
+
+	return nil
 }
 
 // Attachments represents a paginated list of attachments
@@ -208,9 +241,9 @@ type IssueRelations struct {
 }
 
 type IssueRelation struct {
-	ID          string `json:"id"`
-	Type        string `json:"type"`
-	Issue       *Issue `json:"issue"`
+	ID           string `json:"id"`
+	Type         string `json:"type"`
+	Issue        *Issue `json:"issue"`
 	RelatedIssue *Issue `json:"relatedIssue"`
 }
 
@@ -219,25 +252,25 @@ type IssueHistory struct {
 }
 
 type IssueHistoryEntry struct {
-	ID             string    `json:"id"`
-	CreatedAt      time.Time `json:"createdAt"`
-	UpdatedAt      time.Time `json:"updatedAt"`
-	Changes        string    `json:"changes"`
-	Actor          *User     `json:"actor"`
-	FromAssignee   *User     `json:"fromAssignee"`
-	ToAssignee     *User     `json:"toAssignee"`
-	FromState      *State    `json:"fromState"`
-	ToState        *State    `json:"toState"`
-	FromPriority   *int      `json:"fromPriority"`
-	ToPriority     *int      `json:"toPriority"`
-	FromTitle      *string   `json:"fromTitle"`
-	ToTitle        *string   `json:"toTitle"`
-	FromCycle      *Cycle    `json:"fromCycle"`
-	ToCycle        *Cycle    `json:"toCycle"`
-	FromProject    *Project  `json:"fromProject"`
-	ToProject      *Project  `json:"toProject"`
-	AddedLabelIds  []string  `json:"addedLabelIds"`
-	RemovedLabelIds []string `json:"removedLabelIds"`
+	ID              string    `json:"id"`
+	CreatedAt       time.Time `json:"createdAt"`
+	UpdatedAt       time.Time `json:"updatedAt"`
+	Changes         string    `json:"changes"`
+	Actor           *User     `json:"actor"`
+	FromAssignee    *User     `json:"fromAssignee"`
+	ToAssignee      *User     `json:"toAssignee"`
+	FromState       *State    `json:"fromState"`
+	ToState         *State    `json:"toState"`
+	FromPriority    *int      `json:"fromPriority"`
+	ToPriority      *int      `json:"toPriority"`
+	FromTitle       *string   `json:"fromTitle"`
+	ToTitle         *string   `json:"toTitle"`
+	FromCycle       *Cycle    `json:"fromCycle"`
+	ToCycle         *Cycle    `json:"toCycle"`
+	FromProject     *Project  `json:"fromProject"`
+	ToProject       *Project  `json:"toProject"`
+	AddedLabelIds   []string  `json:"addedLabelIds"`
+	RemovedLabelIds []string  `json:"removedLabelIds"`
 }
 
 type Reaction struct {
@@ -248,8 +281,8 @@ type Reaction struct {
 }
 
 type SlackComment struct {
-	ID      string `json:"id"`
-	Body    string `json:"body"`
+	ID   string `json:"id"`
+	Body string `json:"body"`
 }
 
 type ExternalUser struct {
@@ -272,11 +305,11 @@ type Template struct {
 }
 
 type Milestone struct {
-	ID          string     `json:"id"`
-	Name        string     `json:"name"`
-	Description string     `json:"description"`
-	TargetDate  *string    `json:"targetDate"`
-	Projects    *Projects  `json:"projects"`
+	ID          string    `json:"id"`
+	Name        string    `json:"name"`
+	Description string    `json:"description"`
+	TargetDate  *string   `json:"targetDate"`
+	Projects    *Projects `json:"projects"`
 }
 
 type Roadmaps struct {
@@ -297,13 +330,13 @@ type ProjectUpdates struct {
 }
 
 type ProjectUpdate struct {
-	ID                string    `json:"id"`
-	Body              string    `json:"body"`
-	User              *User     `json:"user"`
-	CreatedAt         time.Time `json:"createdAt"`
-	UpdatedAt         time.Time `json:"updatedAt"`
-	EditedAt          *time.Time `json:"editedAt"`
-	Health            string    `json:"health"`
+	ID        string     `json:"id"`
+	Body      string     `json:"body"`
+	User      *User      `json:"user"`
+	CreatedAt time.Time  `json:"createdAt"`
+	UpdatedAt time.Time  `json:"updatedAt"`
+	EditedAt  *time.Time `json:"editedAt"`
+	Health    string     `json:"health"`
 }
 
 type Documents struct {
@@ -311,15 +344,15 @@ type Documents struct {
 }
 
 type Document struct {
-	ID          string    `json:"id"`
-	Title       string    `json:"title"`
-	Content     string    `json:"content"`
-	Icon        *string   `json:"icon"`
-	Color       string    `json:"color"`
-	Creator     *User     `json:"creator"`
-	UpdatedBy   *User     `json:"updatedBy"`
-	CreatedAt   time.Time `json:"createdAt"`
-	UpdatedAt   time.Time `json:"updatedAt"`
+	ID        string    `json:"id"`
+	Title     string    `json:"title"`
+	Content   string    `json:"content"`
+	Icon      *string   `json:"icon"`
+	Color     string    `json:"color"`
+	Creator   *User     `json:"creator"`
+	UpdatedBy *User     `json:"updatedBy"`
+	CreatedAt time.Time `json:"createdAt"`
+	UpdatedAt time.Time `json:"updatedAt"`
 }
 
 type ProjectLinks struct {
@@ -573,8 +606,6 @@ func (c *Client) GetIssue(ctx context.Context, id string) (*Issue, error) {
 						subtitle
 						url
 						metadata
-						source
-						sourceType
 						createdAt
 						creator {
 							name
@@ -1143,11 +1174,11 @@ type Comments struct {
 
 // WorkflowState represents a Linear workflow state
 type WorkflowState struct {
-	ID          string `json:"id"`
-	Name        string `json:"name"`
-	Type        string `json:"type"`
-	Color       string `json:"color"`
-	Description string `json:"description"`
+	ID          string  `json:"id"`
+	Name        string  `json:"name"`
+	Type        string  `json:"type"`
+	Color       string  `json:"color"`
+	Description string  `json:"description"`
 	Position    float64 `json:"position"`
 }
 

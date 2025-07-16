@@ -22,13 +22,13 @@ func constructProjectURL(projectID string, originalURL string) string {
 	if originalURL == "" {
 		return ""
 	}
-	
+
 	parts := strings.Split(originalURL, "/")
 	if len(parts) >= 5 {
 		workspace := parts[3]
 		return fmt.Sprintf("https://linear.app/%s/project/%s", workspace, projectID)
 	}
-	
+
 	// Fallback to original URL if we can't parse it
 	return originalURL
 }
@@ -263,15 +263,15 @@ var projectGetCmd = &cobra.Command{
 			output.JSON(project)
 		} else if plaintext {
 			fmt.Printf("# %s\n\n", project.Name)
-			
+
 			if project.Description != "" {
 				fmt.Printf("## Description\n%s\n\n", project.Description)
 			}
-			
+
 			if project.Content != "" {
 				fmt.Printf("## Content\n%s\n\n", project.Content)
 			}
-			
+
 			fmt.Printf("## Core Details\n")
 			fmt.Printf("- **ID**: %s\n", project.ID)
 			fmt.Printf("- **Slug ID**: %s\n", project.SlugId)
@@ -283,7 +283,7 @@ var projectGetCmd = &cobra.Command{
 				fmt.Printf("- **Icon**: %s\n", *project.Icon)
 			}
 			fmt.Printf("- **Color**: %s\n", project.Color)
-			
+
 			fmt.Printf("\n## Timeline\n")
 			if project.StartDate != nil {
 				fmt.Printf("- **Start Date**: %s\n", *project.StartDate)
@@ -302,7 +302,7 @@ var projectGetCmd = &cobra.Command{
 			if project.ArchivedAt != nil {
 				fmt.Printf("- **Archived**: %s\n", project.ArchivedAt.Format("2006-01-02 15:04:05"))
 			}
-			
+
 			fmt.Printf("\n## People\n")
 			if project.Lead != nil {
 				fmt.Printf("- **Lead**: %s (%s)\n", project.Lead.Name, project.Lead.Email)
@@ -315,17 +315,17 @@ var projectGetCmd = &cobra.Command{
 			if project.Creator != nil {
 				fmt.Printf("- **Creator**: %s (%s)\n", project.Creator.Name, project.Creator.Email)
 			}
-			
+
 			fmt.Printf("\n## Slack Integration\n")
 			fmt.Printf("- **Slack New Issue**: %v\n", project.SlackNewIssue)
 			fmt.Printf("- **Slack Issue Comments**: %v\n", project.SlackIssueComments)
 			fmt.Printf("- **Slack Issue Statuses**: %v\n", project.SlackIssueStatuses)
-			
+
 			if project.ConvertedFromIssue != nil {
 				fmt.Printf("\n## Origin\n")
 				fmt.Printf("- **Converted from Issue**: %s - %s\n", project.ConvertedFromIssue.Identifier, project.ConvertedFromIssue.Title)
 			}
-			
+
 			if project.LastAppliedTemplate != nil {
 				fmt.Printf("\n## Template\n")
 				fmt.Printf("- **Last Applied**: %s\n", project.LastAppliedTemplate.Name)
@@ -333,8 +333,7 @@ var projectGetCmd = &cobra.Command{
 					fmt.Printf("  - Description: %s\n", project.LastAppliedTemplate.Description)
 				}
 			}
-			
-			
+
 			// Teams
 			if project.Teams != nil && len(project.Teams.Nodes) > 0 {
 				fmt.Printf("\n## Teams\n")
@@ -346,10 +345,10 @@ var projectGetCmd = &cobra.Command{
 					fmt.Printf("  - Cycles Enabled: %v\n", team.CyclesEnabled)
 				}
 			}
-			
+
 			fmt.Printf("\n## URL\n")
 			fmt.Printf("- %s\n", constructProjectURL(project.ID, project.URL))
-			
+
 			// Show members if available
 			if project.Members != nil && len(project.Members.Nodes) > 0 {
 				fmt.Printf("\n## Members\n")
@@ -367,7 +366,7 @@ var projectGetCmd = &cobra.Command{
 					fmt.Println()
 				}
 			}
-			
+
 			// Project Updates
 			if project.ProjectUpdates != nil && len(project.ProjectUpdates.Nodes) > 0 {
 				fmt.Printf("\n## Recent Project Updates\n")
@@ -380,7 +379,7 @@ var projectGetCmd = &cobra.Command{
 					fmt.Printf("\n%s\n", update.Body)
 				}
 			}
-			
+
 			// Documents
 			if project.Documents != nil && len(project.Documents.Nodes) > 0 {
 				fmt.Printf("\n## Documents\n")
@@ -397,8 +396,7 @@ var projectGetCmd = &cobra.Command{
 					fmt.Printf("\n%s\n", doc.Content)
 				}
 			}
-			
-			
+
 			// Show recent issues
 			if project.Issues != nil && len(project.Issues.Nodes) > 0 {
 				fmt.Printf("\n## Issues (%d total)\n", len(project.Issues.Nodes))
@@ -418,12 +416,12 @@ var projectGetCmd = &cobra.Command{
 					} else {
 						stateStr = "[ ]"
 					}
-					
+
 					assignee := "Unassigned"
 					if issue.Assignee != nil {
 						assignee = issue.Assignee.Name
 					}
-					
+
 					fmt.Printf("\n### %s %s (#%d)\n", stateStr, issue.Identifier, issue.Number)
 					fmt.Printf("**%s**\n", issue.Title)
 					fmt.Printf("- Assignee: %s\n", assignee)
@@ -530,8 +528,6 @@ var projectGetCmd = &cobra.Command{
 						color.New(color.FgCyan).Sprint(member.Email))
 				}
 			}
-
-
 
 			// Show sample issues if available
 			if project.Issues != nil && len(project.Issues.Nodes) > 0 {

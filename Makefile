@@ -76,6 +76,10 @@ release: clean
 run: build
 	./$(BINARY_NAME)
 
+# Run everything: build, format, lint, test, and install
+everything: build fmt lint test install
+	@echo "✅ Everything complete!"
+
 # Show help
 help:
 	@echo "📖 Available targets:"
@@ -91,4 +95,5 @@ help:
 	@echo "  build-all        - Cross-compile for all platforms"
 	@echo "  release          - Prepare release builds"
 	@echo "  run              - Build and run the binary"
+	@echo "  everything       - Run build, fmt, lint, test, and install"
 	@echo "  help             - Show this help"

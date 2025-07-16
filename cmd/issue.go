@@ -226,11 +226,11 @@ var issueGetCmd = &cobra.Command{
 
 		if plaintext {
 			fmt.Printf("# %s - %s\n\n", issue.Identifier, issue.Title)
-			
+
 			if issue.Description != "" {
 				fmt.Printf("## Description\n%s\n\n", issue.Description)
 			}
-			
+
 			fmt.Printf("## Core Details\n")
 			fmt.Printf("- **ID**: %s\n", issue.Identifier)
 			fmt.Printf("- **Number**: %d\n", issue.Number)
@@ -264,7 +264,7 @@ var issueGetCmd = &cobra.Command{
 			if issue.Estimate != nil {
 				fmt.Printf("- **Estimate**: %.1f\n", *issue.Estimate)
 			}
-			
+
 			fmt.Printf("\n## Status & Dates\n")
 			fmt.Printf("- **Created**: %s\n", issue.CreatedAt.Format("2006-01-02 15:04:05"))
 			fmt.Printf("- **Updated**: %s\n", issue.UpdatedAt.Format("2006-01-02 15:04:05"))
@@ -286,7 +286,7 @@ var issueGetCmd = &cobra.Command{
 			if issue.SnoozedUntilAt != nil {
 				fmt.Printf("- **Snoozed Until**: %s\n", issue.SnoozedUntilAt.Format("2006-01-02 15:04:05"))
 			}
-			
+
 			fmt.Printf("\n## Technical Details\n")
 			fmt.Printf("- **Board Order**: %.2f\n", issue.BoardOrder)
 			fmt.Printf("- **Sub-Issue Sort Order**: %.2f\n", issue.SubIssueSortOrder)
@@ -306,7 +306,7 @@ var issueGetCmd = &cobra.Command{
 				fmt.Printf("- **External Creator**: %s (%s)\n", issue.ExternalUserCreator.Name, issue.ExternalUserCreator.Email)
 			}
 			fmt.Printf("- **URL**: %s\n", issue.URL)
-			
+
 			// Project and Cycle Info
 			if issue.Project != nil {
 				fmt.Printf("\n## Project\n")
@@ -320,7 +320,7 @@ var issueGetCmd = &cobra.Command{
 					fmt.Printf("- **Description**: %s\n", issue.Project.Description)
 				}
 			}
-			
+
 			if issue.Cycle != nil {
 				fmt.Printf("\n## Cycle\n")
 				fmt.Printf("- **Name**: %s (#%d)\n", issue.Cycle.Name, issue.Cycle.Number)
@@ -333,8 +333,7 @@ var issueGetCmd = &cobra.Command{
 					fmt.Printf("- **Completed**: %s\n", issue.Cycle.CompletedAt.Format("2006-01-02"))
 				}
 			}
-			
-			
+
 			// Labels
 			if issue.Labels != nil && len(issue.Labels.Nodes) > 0 {
 				fmt.Printf("\n## Labels\n")
@@ -346,7 +345,7 @@ var issueGetCmd = &cobra.Command{
 					fmt.Println()
 				}
 			}
-			
+
 			// Subscribers
 			if issue.Subscribers != nil && len(issue.Subscribers.Nodes) > 0 {
 				fmt.Printf("\n## Subscribers\n")
@@ -354,7 +353,7 @@ var issueGetCmd = &cobra.Command{
 					fmt.Printf("- %s (%s)\n", subscriber.Name, subscriber.Email)
 				}
 			}
-			
+
 			// Relations
 			if issue.Relations != nil && len(issue.Relations.Nodes) > 0 {
 				fmt.Printf("\n## Related Issues\n")
@@ -379,7 +378,7 @@ var issueGetCmd = &cobra.Command{
 					}
 				}
 			}
-			
+
 			// Reactions
 			if len(issue.Reactions) > 0 {
 				fmt.Printf("\n## Reactions\n")
@@ -391,13 +390,13 @@ var issueGetCmd = &cobra.Command{
 					fmt.Printf("- %s: %s\n", emoji, strings.Join(users, ", "))
 				}
 			}
-			
+
 			// Show parent issue if this is a sub-issue
 			if issue.Parent != nil {
 				fmt.Printf("\n## Parent Issue\n")
 				fmt.Printf("- %s: %s\n", issue.Parent.Identifier, issue.Parent.Title)
 			}
-			
+
 			// Show sub-issues if any
 			if issue.Children != nil && len(issue.Children.Nodes) > 0 {
 				fmt.Printf("\n## Sub-issues\n")
@@ -417,16 +416,16 @@ var issueGetCmd = &cobra.Command{
 					} else {
 						stateStr = "[ ]"
 					}
-					
+
 					assignee := "Unassigned"
 					if child.Assignee != nil {
 						assignee = child.Assignee.Name
 					}
-					
+
 					fmt.Printf("- %s %s: %s (%s)\n", stateStr, child.Identifier, child.Title, assignee)
 				}
 			}
-			
+
 			// Show attachments if any
 			if issue.Attachments != nil && len(issue.Attachments.Nodes) > 0 {
 				fmt.Printf("\n## Attachments\n")
@@ -434,7 +433,7 @@ var issueGetCmd = &cobra.Command{
 					fmt.Printf("- [%s](%s)\n", attachment.Title, attachment.URL)
 				}
 			}
-			
+
 			// Show recent comments if any
 			if issue.Comments != nil && len(issue.Comments.Nodes) > 0 {
 				fmt.Printf("\n## Recent Comments\n")
@@ -452,14 +451,14 @@ var issueGetCmd = &cobra.Command{
 				}
 				fmt.Printf("\n> Use `linctl comment list %s` to see all comments\n", issue.Identifier)
 			}
-			
+
 			// Show history
 			if issue.History != nil && len(issue.History.Nodes) > 0 {
 				fmt.Printf("\n## Recent History\n")
 				for _, entry := range issue.History.Nodes {
 					fmt.Printf("\n- **%s** by %s", entry.CreatedAt.Format("2006-01-02 15:04"), entry.Actor.Name)
 					changes := []string{}
-					
+
 					if entry.FromState != nil && entry.ToState != nil {
 						changes = append(changes, fmt.Sprintf("State: %s → %s", entry.FromState.Name, entry.ToState.Name))
 					}
@@ -488,14 +487,14 @@ var issueGetCmd = &cobra.Command{
 					if len(entry.RemovedLabelIds) > 0 {
 						changes = append(changes, fmt.Sprintf("Removed %d label(s)", len(entry.RemovedLabelIds)))
 					}
-					
+
 					if len(changes) > 0 {
 						fmt.Printf("\n  - %s", strings.Join(changes, "\n  - "))
 					}
 					fmt.Println()
 				}
 			}
-			
+
 			return
 		}
 
@@ -898,7 +897,8 @@ Examples:
 		// Handle assignee update
 		if cmd.Flags().Changed("assignee") {
 			assignee, _ := cmd.Flags().GetString("assignee")
-			if assignee == "me" {
+			switch assignee {
+			case "me":
 				// Get current user
 				viewer, err := client.GetViewer(context.Background())
 				if err != nil {
@@ -906,9 +906,9 @@ Examples:
 					os.Exit(1)
 				}
 				input["assigneeId"] = viewer.ID
-			} else if assignee == "unassigned" || assignee == "" {
+			case "unassigned", "":
 				input["assigneeId"] = nil
-			} else {
+			default:
 				// Look up user by email
 				users, err := client.GetUsers(context.Background(), 100, "", "")
 				if err != nil {
@@ -936,21 +936,21 @@ Examples:
 		// Handle state update
 		if cmd.Flags().Changed("state") {
 			stateName, _ := cmd.Flags().GetString("state")
-			
+
 			// First, get the issue to know which team it belongs to
 			issue, err := client.GetIssue(context.Background(), args[0])
 			if err != nil {
 				output.Error(fmt.Sprintf("Failed to get issue: %v", err), plaintext, jsonOut)
 				os.Exit(1)
 			}
-			
+
 			// Get available states for the team
 			states, err := client.GetTeamStates(context.Background(), issue.Team.Key)
 			if err != nil {
 				output.Error(fmt.Sprintf("Failed to get team states: %v", err), plaintext, jsonOut)
 				os.Exit(1)
 			}
-			
+
 			// Find the state by name (case-insensitive)
 			var stateID string
 			for _, state := range states {
@@ -959,7 +959,7 @@ Examples:
 					break
 				}
 			}
-			
+
 			if stateID == "" {
 				// Show available states
 				var stateNames []string
@@ -969,7 +969,7 @@ Examples:
 				output.Error(fmt.Sprintf("State '%s' not found. Available states: %s", stateName, strings.Join(stateNames, ", ")), plaintext, jsonOut)
 				os.Exit(1)
 			}
-			
+
 			input["stateId"] = stateID
 		}
 

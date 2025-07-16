@@ -2,7 +2,7 @@ package main
 
 import (
 	_ "embed"
-	
+
 	"github.com/dorkitude/linctl/cmd"
 )
 

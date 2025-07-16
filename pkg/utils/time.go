@@ -45,7 +45,7 @@ func ParseTimeExpression(expr string) (string, error) {
 
 	// Get the unit (handle both singular and plural)
 	unit := strings.Join(parts[1:len(parts)-1], "_")
-	
+
 	// Calculate the time
 	now := time.Now()
 	var targetTime time.Time
