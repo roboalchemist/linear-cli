@@ -26,6 +26,7 @@ Examples:
   linctl issue ls -a me -s "In Progress"
   linctl issue list --include-completed  # Show all issues including completed
   linctl issue list --newer-than 3_weeks_ago  # Show issues from last 3 weeks
+  linctl issue search "login bug" --team ENG
   linctl issue get LIN-123
   linctl issue create --title "Bug fix" --team ENG`,
 }
@@ -79,120 +80,179 @@ var issueListCmd = &cobra.Command{
 			os.Exit(1)
 		}
 
-		if len(issues.Nodes) == 0 {
-			output.Info("No issues found", plaintext, jsonOut)
-			return
-		}
+		renderIssueCollection(issues, plaintext, jsonOut, "No issues found", "issues", "# Issues")
+	},
+}
 
-		// For JSON output, show raw data
-		if jsonOut {
-			output.JSON(issues.Nodes)
-			return
-		}
+func renderIssueCollection(issues *api.Issues, plaintext, jsonOut bool, emptyMessage, summaryLabel, plaintextTitle string) {
+	if len(issues.Nodes) == 0 {
+		output.Info(emptyMessage, plaintext, jsonOut)
+		return
+	}
 
-		// For plaintext output, use Markdown outline format
-		if plaintext {
-			fmt.Println("# Issues")
-			for _, issue := range issues.Nodes {
-				fmt.Printf("## %s\n", issue.Title)
-				fmt.Printf("- **ID**: %s\n", issue.Identifier)
-				if issue.State != nil {
-					fmt.Printf("- **State**: %s\n", issue.State.Name)
-				}
-				if issue.Assignee != nil {
-					fmt.Printf("- **Assignee**: %s\n", issue.Assignee.Name)
-				} else {
-					fmt.Printf("- **Assignee**: Unassigned\n")
-				}
-				if issue.Team != nil {
-					fmt.Printf("- **Team**: %s\n", issue.Team.Key)
-				}
-				fmt.Printf("- **Created**: %s\n", issue.CreatedAt.Format("2006-01-02"))
-				fmt.Printf("- **URL**: %s\n", issue.URL)
-				if issue.Description != "" {
-					fmt.Printf("- **Description**: %s\n", issue.Description)
-				}
-				fmt.Println()
+	if jsonOut {
+		output.JSON(issues.Nodes)
+		return
+	}
+
+	if plaintext {
+		fmt.Println(plaintextTitle)
+		for _, issue := range issues.Nodes {
+			fmt.Printf("## %s\n", issue.Title)
+			fmt.Printf("- **ID**: %s\n", issue.Identifier)
+			if issue.State != nil {
+				fmt.Printf("- **State**: %s\n", issue.State.Name)
 			}
-			fmt.Printf("\nTotal: %d issues\n", len(issues.Nodes))
-			return
-		}
-
-		// Prepare table data for rich output
-		headers := []string{"Title", "State", "Assignee", "Team", "Created", "URL"}
-		rows := make([][]string, len(issues.Nodes))
-
-		for i, issue := range issues.Nodes {
-			assignee := "Unassigned"
 			if issue.Assignee != nil {
-				assignee = issue.Assignee.Name
+				fmt.Printf("- **Assignee**: %s\n", issue.Assignee.Name)
+			} else {
+				fmt.Printf("- **Assignee**: Unassigned\n")
 			}
-
-			team := ""
 			if issue.Team != nil {
-				team = issue.Team.Key
+				fmt.Printf("- **Team**: %s\n", issue.Team.Key)
 			}
-
-			state := ""
-			if issue.State != nil {
-				state = issue.State.Name
+			fmt.Printf("- **Created**: %s\n", issue.CreatedAt.Format("2006-01-02"))
+			fmt.Printf("- **URL**: %s\n", issue.URL)
+			if issue.Description != "" {
+				fmt.Printf("- **Description**: %s\n", issue.Description)
 			}
+			fmt.Println()
+		}
+		fmt.Printf("\nTotal: %d %s\n", len(issues.Nodes), summaryLabel)
+		return
+	}
 
-			// Apply colors for rich output
-			if issue.State != nil {
-				var stateColor *color.Color
-				switch issue.State.Type {
-				case "triage":
-					stateColor = color.New(color.FgMagenta)
-				case "backlog":
-					stateColor = color.New(color.FgCyan)
-				case "unstarted":
-					stateColor = color.New(color.FgWhite)
-				case "started":
-					stateColor = color.New(color.FgBlue)
-				case "completed":
-					stateColor = color.New(color.FgGreen)
-				case "canceled":
-					stateColor = color.New(color.FgRed)
-				default:
-					stateColor = color.New(color.FgWhite)
-				}
-				state = stateColor.Sprint(state)
+	headers := []string{"Title", "State", "Assignee", "Team", "Created", "URL"}
+	rows := make([][]string, len(issues.Nodes))
+
+	for i, issue := range issues.Nodes {
+		assignee := "Unassigned"
+		if issue.Assignee != nil {
+			assignee = issue.Assignee.Name
+		}
+
+		team := ""
+		if issue.Team != nil {
+			team = issue.Team.Key
+		}
+
+		state := ""
+		if issue.State != nil {
+			state = issue.State.Name
+			var stateColor *color.Color
+			switch issue.State.Type {
+			case "triage":
+				stateColor = color.New(color.FgMagenta)
+			case "backlog":
+				stateColor = color.New(color.FgCyan)
+			case "unstarted":
+				stateColor = color.New(color.FgWhite)
+			case "started":
+				stateColor = color.New(color.FgBlue)
+			case "completed":
+				stateColor = color.New(color.FgGreen)
+			case "canceled":
+				stateColor = color.New(color.FgRed)
+			default:
+				stateColor = color.New(color.FgWhite)
 			}
+			state = stateColor.Sprint(state)
+		}
 
-			// Color unassigned in yellow
-			if issue.Assignee == nil {
-				assignee = color.New(color.FgYellow).Sprint(assignee)
-			}
+		if issue.Assignee == nil {
+			assignee = color.New(color.FgYellow).Sprint(assignee)
+		}
 
-			rows[i] = []string{
-				truncateString(issue.Title, 40),
-				state,
-				assignee,
-				team,
-				issue.CreatedAt.Format("2006-01-02"),
-				issue.URL,
+		rows[i] = []string{
+			truncateString(issue.Title, 40),
+			state,
+			assignee,
+			team,
+			issue.CreatedAt.Format("2006-01-02"),
+			issue.URL,
+		}
+	}
+
+	tableData := output.TableData{
+		Headers: headers,
+		Rows:    rows,
+	}
+
+	output.Table(tableData, false, false)
+
+	fmt.Printf("\n%s %d %s\n",
+		color.New(color.FgGreen).Sprint("✓"),
+		len(issues.Nodes),
+		summaryLabel)
+
+	if issues.PageInfo.HasNextPage {
+		fmt.Printf("%s Use --limit to see more results\n",
+			color.New(color.FgYellow).Sprint("ℹ️"))
+	}
+}
+
+var issueSearchCmd = &cobra.Command{
+	Use:     "search [query]",
+	Aliases: []string{"find"},
+	Short:   "Search issues by keyword",
+	Long: `Perform a full-text search across Linear issues.
+
+Examples:
+  linctl issue search "payment outage"
+  linctl issue search "auth token" --team ENG --include-completed
+  linctl issue search "customer:" --json`,
+	Args: cobra.MinimumNArgs(1),
+	Run: func(cmd *cobra.Command, args []string) {
+		plaintext := viper.GetBool("plaintext")
+		jsonOut := viper.GetBool("json")
+
+		query := strings.TrimSpace(strings.Join(args, " "))
+		if query == "" {
+			output.Error("Search query is required", plaintext, jsonOut)
+			os.Exit(1)
+		}
+
+		authHeader, err := auth.GetAuthHeader()
+		if err != nil {
+			output.Error("Not authenticated. Run 'linctl auth' first.", plaintext, jsonOut)
+			os.Exit(1)
+		}
+
+		client := api.NewClient(authHeader)
+
+		filter := buildIssueFilter(cmd)
+
+		limit, _ := cmd.Flags().GetInt("limit")
+		if limit == 0 {
+			limit = 50
+		}
+
+		sortBy, _ := cmd.Flags().GetString("sort")
+		orderBy := ""
+		if sortBy != "" {
+			switch sortBy {
+			case "created", "createdAt":
+				orderBy = "createdAt"
+			case "updated", "updatedAt":
+				orderBy = "updatedAt"
+			case "linear":
+				orderBy = ""
+			default:
+				output.Error(fmt.Sprintf("Invalid sort option: %s. Valid options are: linear, created, updated", sortBy), plaintext, jsonOut)
+				os.Exit(1)
 			}
 		}
 
-		tableData := output.TableData{
-			Headers: headers,
-			Rows:    rows,
+		includeArchived, _ := cmd.Flags().GetBool("include-archived")
+
+		issues, err := client.IssueSearch(context.Background(), query, filter, limit, "", orderBy, includeArchived)
+		if err != nil {
+			output.Error(fmt.Sprintf("Failed to search issues: %v", err), plaintext, jsonOut)
+			os.Exit(1)
 		}
 
-		output.Table(tableData, plaintext, jsonOut)
-
-		// Show summary count like project list does
-		if !plaintext && !jsonOut {
-			fmt.Printf("\n%s %d issues\n",
-				color.New(color.FgGreen).Sprint("✓"),
-				len(issues.Nodes))
-		}
-
-		if !plaintext && !jsonOut && issues.PageInfo.HasNextPage {
-			fmt.Printf("%s Use --limit to see more results\n",
-				color.New(color.FgYellow).Sprint("ℹ️"))
-		}
+		emptyMsg := fmt.Sprintf("No matches found for %q", query)
+		renderIssueCollection(issues, plaintext, jsonOut, emptyMsg, "matches", "# Search Results")
 	},
 }
 
@@ -1015,6 +1075,7 @@ Examples:
 func init() {
 	rootCmd.AddCommand(issueCmd)
 	issueCmd.AddCommand(issueListCmd)
+	issueCmd.AddCommand(issueSearchCmd)
 	issueCmd.AddCommand(issueGetCmd)
 	issueCmd.AddCommand(issueAssignCmd)
 	issueCmd.AddCommand(issueCreateCmd)
@@ -1029,6 +1090,17 @@ func init() {
 	issueListCmd.Flags().BoolP("include-completed", "c", false, "Include completed and canceled issues")
 	issueListCmd.Flags().StringP("sort", "o", "linear", "Sort order: linear (default), created, updated")
 	issueListCmd.Flags().StringP("newer-than", "n", "", "Show issues created after this time (default: 6_months_ago, use 'all_time' for no filter)")
+
+	// Issue search flags
+	issueSearchCmd.Flags().StringP("assignee", "a", "", "Filter by assignee (email or 'me')")
+	issueSearchCmd.Flags().StringP("state", "s", "", "Filter by state name")
+	issueSearchCmd.Flags().StringP("team", "t", "", "Filter by team key")
+	issueSearchCmd.Flags().IntP("priority", "r", -1, "Filter by priority (0=None, 1=Urgent, 2=High, 3=Normal, 4=Low)")
+	issueSearchCmd.Flags().IntP("limit", "l", 50, "Maximum number of issues to fetch")
+	issueSearchCmd.Flags().BoolP("include-completed", "c", false, "Include completed and canceled issues")
+	issueSearchCmd.Flags().Bool("include-archived", false, "Include archived issues in results")
+	issueSearchCmd.Flags().StringP("sort", "o", "linear", "Sort order: linear (default), created, updated")
+	issueSearchCmd.Flags().StringP("newer-than", "n", "", "Show issues created after this time (default: 6_months_ago, use 'all_time' for no filter)")
 
 	// Issue create flags
 	issueCreateCmd.Flags().StringP("title", "", "", "Issue title (required)")

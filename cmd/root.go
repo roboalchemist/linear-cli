@@ -11,10 +11,14 @@ import (
 )
 
 var (
-	cfgFile   string
-	plaintext bool
-	jsonOut   bool
+    cfgFile   string
+    plaintext bool
+    jsonOut   bool
 )
+
+// version is set at build time via -ldflags
+// default value is for local dev builds
+var version = "dev"
 
 // generateHeader creates a nice header box with proper Unicode box drawing
 func generateHeader() string {
@@ -62,10 +66,10 @@ func generateHeader() string {
 
 // rootCmd represents the base command when called without any subcommands
 var rootCmd = &cobra.Command{
-	Use:     "linctl",
-	Short:   "A comprehensive Linear CLI tool",
-	Long:    color.New(color.FgCyan).Sprintf("%s\nA comprehensive CLI tool for Linear's API featuring:\n• Issue management (create, list, update, archive)\n• Project tracking and collaboration  \n• Team and user management\n• Comments and attachments\n• Webhook configuration\n• Table/plaintext/JSON output formats\n", generateHeader()),
-	Version: "0.1.0",
+    Use:     "linctl",
+    Short:   "A comprehensive Linear CLI tool",
+    Long:    color.New(color.FgCyan).Sprintf("%s\nA comprehensive CLI tool for Linear's API featuring:\n• Issue management (create, list, update, archive)\n• Project tracking and collaboration  \n• Team and user management\n• Comments and attachments\n• Webhook configuration\n• Table/plaintext/JSON output formats\n", generateHeader()),
+    Version: version,
 }
 
 // Execute adds all child commands to the root command and sets flags appropriately.

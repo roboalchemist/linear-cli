@@ -12,6 +12,7 @@ A comprehensive command-line interface for Linear's API, built with Go and Cobra
   - Cycle (sprint) and project associations
   - Attachments and recent comments preview
   - Due dates, snoozed status, and completion tracking
+  - Full-text search via `linctl issue search`
 - 👥 **Team Management**: View teams, get team details, and list team members
 - 🚀 **Project Tracking**: Comprehensive project information
   - Progress visualization with issue statistics
@@ -64,14 +65,15 @@ linctl docs      # Render the README.md
 
 ## Important: Default Filters
 
-**By default, `issue list` and `project list` commands only show items created in the last 6 months!**
+**By default, `issue list`, `issue search`, and `project list` commands only show items created in the last 6 months!**
  
 This improves performance and prevents overwhelming data loads. To see older items:
  - Use `--newer-than 1_year_ago` for items from the last year
  - Use `--newer-than all_time` to see ALL items ever created
  - See the [Time-based Filtering](#-time-based-filtering) section for details
 
-**By default, `issue list` also filters out canceled and completed items. To see all items, use the `--include-completed` flag.**
+**By default, `issue list` and `issue search` also filter out canceled and completed items. To see all items, use the `--include-completed` flag.**
+- Need archived matches? Add `--include-archived` when using `issue search`.
 
 
 ## 🚀 Quick Start
@@ -106,6 +108,10 @@ linctl issue list --state "In Progress"
 
 # List issues sorted by update date
 linctl issue list --sort updated
+
+# Search issues using Linear's full-text index (shares the same filters as list)
+linctl issue search "login bug" --team ENG
+linctl issue search "customer:" --include-completed --include-archived
 
 # List recent issues (last 2 weeks instead of default 6 months)
 linctl issue list --newer-than 2_weeks_ago
@@ -721,6 +727,8 @@ Linear has the following rate limits:
 3. Make your changes
 4. Add tests
 5. Submit a pull request
+
+See CONTRIBUTING.md for a detailed release checklist and the Homebrew tap auto-bump workflow.
 
 ## 📄 License
 
