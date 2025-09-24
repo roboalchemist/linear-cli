@@ -1,0 +1,68 @@
+name: Bump Homebrew Tap
+
+on:
+  release:
+    types: [published]
+
+permissions:
+  contents: read
+  pull-requests: write
+
+jobs:
+  bump:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up tools
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y jq
+
+      - name: Prepare variables
+        env:
+          TAG_NAME: ${{ github.event.release.tag_name }}
+        run: |
+          echo "TAG=${TAG_NAME}" >> $GITHUB_ENV
+          echo "TARBALL=https://github.com/${{ github.repository }}/archive/refs/tags/${TAG_NAME}.tar.gz" >> $GITHUB_ENV
+
+      - name: Compute tarball sha256
+        run: |
+          curl -sL "$TARBALL" -o linctl.tgz
+          SHASUM=$(sha256sum linctl.tgz | awk '{print $1}')
+          echo "SHA256=$SHASUM" >> $GITHUB_ENV
+
+      - name: Clone tap repo and push branch
+        env:
+          GH_TOKEN: ${{ secrets.HOMEBREW_TAP_TOKEN }}
+        run: |
+          set -e
+          git config --global user.name "${{ github.actor }}"
+          git config --global user.email "${{ github.actor }}@users.noreply.github.com"
+          git clone https://github.com/dorkitude/homebrew-linctl.git
+          cd homebrew-linctl
+          BRANCH="bump-linctl-${TAG#v}"
+          git checkout -b "$BRANCH"
+          # Update Formula
+          sed -i.bak -E "s|url \"[^\"]+\"|url \"https://github.com/${{ github.repository }}/archive/refs/tags/${TAG}.tar.gz\"|g" Formula/linctl.rb
+          sed -i.bak -E "s|sha256 \"[0-9a-f]+\"|sha256 \"${SHA256}\"|g" Formula/linctl.rb
+          rm -f Formula/linctl.rb.bak
+          git add Formula/linctl.rb
+          git commit -m "linctl: bump to ${TAG}"
+          git push "https://${GH_TOKEN}@github.com/dorkitude/homebrew-linctl.git" HEAD:"$BRANCH"
+
+      - name: Open PR on tap repo
+        env:
+          GH_TOKEN: ${{ secrets.HOMEBREW_TAP_TOKEN }}
+        run: |
+          cd homebrew-linctl
+          BRANCH="bump-linctl-${TAG#v}"
+          gh pr create \
+            --title "linctl: bump to ${TAG}" \
+            --body "Update formula to ${TAG}." \
+            --base master \
+            --head "$BRANCH"
+
