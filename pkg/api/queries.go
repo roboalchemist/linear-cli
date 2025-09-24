@@ -469,6 +469,87 @@ func (c *Client) GetIssues(ctx context.Context, filter map[string]interface{}, f
 	return &response.Issues, nil
 }
 
+// IssueSearch returns issues that match a full-text query
+func (c *Client) IssueSearch(ctx context.Context, term string, filter map[string]interface{}, first int, after string, orderBy string, includeArchived bool) (*Issues, error) {
+	query := `
+		query IssueSearch($term: String!, $filter: IssueFilter, $first: Int, $after: String, $orderBy: PaginationOrderBy, $includeArchived: Boolean) {
+			searchIssues(term: $term, filter: $filter, first: $first, after: $after, orderBy: $orderBy, includeArchived: $includeArchived) {
+				nodes {
+					id
+					identifier
+					title
+					description
+					priority
+					estimate
+					createdAt
+					updatedAt
+					dueDate
+					url
+					state {
+						id
+						name
+						type
+						color
+					}
+					assignee {
+						id
+						name
+						email
+					}
+					team {
+						id
+						key
+						name
+					}
+					labels {
+						nodes {
+							id
+							name
+							color
+						}
+					}
+				}
+				pageInfo {
+					hasNextPage
+					endCursor
+				}
+			}
+		}
+	`
+
+	variables := map[string]interface{}{
+		"term":            term,
+		"first":           first,
+		"includeArchived": includeArchived,
+	}
+	if filter != nil {
+		variables["filter"] = filter
+	}
+	if after != "" {
+		variables["after"] = after
+	}
+	if orderBy != "" {
+		variables["orderBy"] = orderBy
+	}
+
+	var response struct {
+		SearchIssues struct {
+			Nodes    []Issue  `json:"nodes"`
+			PageInfo PageInfo `json:"pageInfo"`
+		} `json:"searchIssues"`
+	}
+
+	err := c.Execute(ctx, query, variables, &response)
+	if err != nil {
+		return nil, err
+	}
+
+	return &Issues{
+		Nodes:    response.SearchIssues.Nodes,
+		PageInfo: response.SearchIssues.PageInfo,
+	}, nil
+}
+
 // GetIssue returns a single issue by ID
 func (c *Client) GetIssue(ctx context.Context, id string) (*Issue, error) {
 	query := `

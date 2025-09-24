@@ -132,6 +132,9 @@ run_test "issue list (sort by updated)" "go run main.go issue list --sort update
 issue_output=$(go run main.go issue list --limit 5 2>/dev/null || true)
 issue_id=$(echo "$issue_output" | grep -E -o '[A-Z]+-[0-9]+' | head -1)
 if [ -n "$issue_id" ]; then
+    run_test "issue search (default)" "go run main.go issue search $issue_id"
+    run_test "issue search (json)" "go run main.go issue search $issue_id -j" "$issue_id"
+    run_test "issue search (plaintext)" "go run main.go issue search $issue_id -p" "# Search Results"
     run_test "issue get" "go run main.go issue get $issue_id"
     run_test "issue get (plaintext)" "go run main.go issue get $issue_id -p" "# $issue_id"
     
