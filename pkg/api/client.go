@@ -76,7 +76,7 @@ func (c *Client) Execute(ctx context.Context, query string, variables map[string
 
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("Authorization", c.authHeader)
-	req.Header.Set("User-Agent", "linctl/0.1.0")
+	req.Header.Set("User-Agent", "linear-cli/0.1.0")
 
 	resp, err := c.httpClient.Do(req)
 	if err != nil {

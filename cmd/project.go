@@ -6,10 +6,10 @@ import (
 	"os"
 	"strings"
 
-	"github.com/dorkitude/linctl/pkg/api"
-	"github.com/dorkitude/linctl/pkg/auth"
-	"github.com/dorkitude/linctl/pkg/output"
-	"github.com/dorkitude/linctl/pkg/utils"
+	"github.com/dorkitude/linear-cli/pkg/api"
+	"github.com/dorkitude/linear-cli/pkg/auth"
+	"github.com/dorkitude/linear-cli/pkg/output"
+	"github.com/dorkitude/linear-cli/pkg/utils"
 	"github.com/fatih/color"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
@@ -37,14 +37,15 @@ func constructProjectURL(projectID string, originalURL string) string {
 var projectCmd = &cobra.Command{
 	Use:   "project",
 	Short: "Manage Linear projects",
-	Long: `Manage Linear projects including listing, viewing, and creating projects.
+	Long: `Manage Linear projects including listing, viewing, creating projects, and managing milestones.
 
 Examples:
-  linctl project list                      # List active projects
-  linctl project list --include-completed  # List all projects including completed
-  linctl project list --newer-than 1_month_ago  # List projects from last month
-  linctl project get PROJECT-ID            # Get project details
-  linctl project create                    # Create a new project`,
+  linear-cli project list                      # List active projects
+  linear-cli project list --include-completed  # List all projects including completed
+  linear-cli project list --newer-than 1_month_ago  # List projects from last month
+  linear-cli project get PROJECT-ID            # Get project details
+  linear-cli project milestone list PROJECT-ID # List project milestones
+  linear-cli project create                    # Create a new project`,
 }
 
 var projectListCmd = &cobra.Command{
@@ -367,6 +368,18 @@ var projectGetCmd = &cobra.Command{
 				}
 			}
 
+			// Milestones
+			if project.ProjectMilestones != nil && len(project.ProjectMilestones.Nodes) > 0 {
+				fmt.Printf("\n## Milestones\n")
+				for _, ms := range project.ProjectMilestones.Nodes {
+					fmt.Printf("- **%s** — %s, %.0f%%", ms.Name, ms.Status, ms.Progress*100)
+					if ms.TargetDate != nil {
+						fmt.Printf(", target: %s", *ms.TargetDate)
+					}
+					fmt.Println()
+				}
+			}
+
 			// Project Updates
 			if project.ProjectUpdates != nil && len(project.ProjectUpdates.Nodes) > 0 {
 				fmt.Printf("\n## Recent Project Updates\n")
@@ -529,6 +542,31 @@ var projectGetCmd = &cobra.Command{
 				}
 			}
 
+			// Show milestones if available
+			if project.ProjectMilestones != nil && len(project.ProjectMilestones.Nodes) > 0 {
+				fmt.Printf("\n%s\n", color.New(color.Bold).Sprint("Milestones:"))
+				for _, ms := range project.ProjectMilestones.Nodes {
+					statusColor := color.New(color.FgWhite)
+					switch strings.ToLower(ms.Status) {
+					case "done":
+						statusColor = color.New(color.FgGreen)
+					case "next":
+						statusColor = color.New(color.FgBlue)
+					case "overdue":
+						statusColor = color.New(color.FgRed)
+					}
+					targetStr := ""
+					if ms.TargetDate != nil {
+						targetStr = fmt.Sprintf(" → %s", *ms.TargetDate)
+					}
+					fmt.Printf("  • %s %s %.0f%%%s\n",
+						color.New(color.FgCyan).Sprint(ms.Name),
+						statusColor.Sprintf("[%s]", ms.Status),
+						ms.Progress*100,
+						targetStr)
+				}
+			}
+
 			// Show sample issues if available
 			if project.Issues != nil && len(project.Issues.Nodes) > 0 {
 				fmt.Printf("\n%s\n", color.New(color.Bold).Sprint("Recent Issues:"))
@@ -582,10 +620,240 @@ var projectGetCmd = &cobra.Command{
 	},
 }
 
+var projectAddTeamCmd = &cobra.Command{
+	Use:   "add-team PROJECT-ID TEAM-KEY [TEAM-KEY...]",
+	Short: "Add teams to a project",
+	Long: `Add one or more teams to a project. Teams are specified by their key (e.g. ENG, DESIGN).
+
+Examples:
+  linear-cli project add-team PROJECT-ID ENG
+  linear-cli project add-team PROJECT-ID ENG DESIGN OPS`,
+	Args: cobra.MinimumNArgs(2),
+	Run: func(cmd *cobra.Command, args []string) {
+		plaintext := viper.GetBool("plaintext")
+		jsonOut := viper.GetBool("json")
+		projectID := args[0]
+		teamKeys := args[1:]
+
+		authHeader, err := auth.GetAuthHeader()
+		if err != nil {
+			output.Error(fmt.Sprintf("Authentication failed: %v", err), plaintext, jsonOut)
+			os.Exit(1)
+		}
+
+		client := api.NewClient(authHeader)
+		ctx := context.Background()
+
+		// Fetch current project to get existing teams
+		project, err := client.GetProject(ctx, projectID)
+		if err != nil {
+			output.Error(fmt.Sprintf("Failed to get project: %v", err), plaintext, jsonOut)
+			os.Exit(1)
+		}
+
+		// Build set of existing team IDs
+		existingIDs := make(map[string]bool)
+		if project.Teams != nil {
+			for _, t := range project.Teams.Nodes {
+				existingIDs[t.ID] = true
+			}
+		}
+
+		// Resolve each team key and collect new IDs
+		var newTeamIDs []string
+		for _, key := range teamKeys {
+			team, err := client.GetTeam(ctx, key)
+			if err != nil {
+				output.Error(fmt.Sprintf("Failed to find team '%s': %v", key, err), plaintext, jsonOut)
+				os.Exit(1)
+			}
+			if existingIDs[team.ID] {
+				if !jsonOut {
+					fmt.Fprintf(os.Stderr, "Team %s (%s) is already on the project, skipping\n", key, team.Name)
+				}
+				continue
+			}
+			newTeamIDs = append(newTeamIDs, team.ID)
+			existingIDs[team.ID] = true
+		}
+
+		if len(newTeamIDs) == 0 {
+			if jsonOut {
+				output.JSON(project)
+			} else {
+				fmt.Println("No new teams to add.")
+			}
+			return
+		}
+
+		// Build full team ID list (existing + new)
+		var allTeamIDs []string
+		if project.Teams != nil {
+			for _, t := range project.Teams.Nodes {
+				allTeamIDs = append(allTeamIDs, t.ID)
+			}
+		}
+		allTeamIDs = append(allTeamIDs, newTeamIDs...)
+
+		// Update project
+		input := map[string]interface{}{
+			"teamIds": allTeamIDs,
+		}
+		updated, err := client.UpdateProject(ctx, projectID, input)
+		if err != nil {
+			output.Error(fmt.Sprintf("Failed to update project: %v", err), plaintext, jsonOut)
+			os.Exit(1)
+		}
+
+		if jsonOut {
+			output.JSON(updated)
+		} else if plaintext {
+			fmt.Printf("# Updated Project: %s\n\n## Teams\n", updated.Name)
+			if updated.Teams != nil {
+				for _, t := range updated.Teams.Nodes {
+					fmt.Printf("- %s (%s)\n", t.Key, t.Name)
+				}
+			}
+		} else {
+			fmt.Printf("\n%s Added %d team(s) to project %s\n",
+				color.New(color.FgGreen).Sprint("✓"),
+				len(newTeamIDs),
+				color.New(color.FgCyan, color.Bold).Sprint(updated.Name))
+			if updated.Teams != nil {
+				fmt.Printf("\n%s\n", color.New(color.Bold).Sprint("Teams:"))
+				for _, t := range updated.Teams.Nodes {
+					fmt.Printf("  • %s - %s\n",
+						color.New(color.FgCyan).Sprint(t.Key),
+						t.Name)
+				}
+			}
+			fmt.Println()
+		}
+	},
+}
+
+var projectRemoveTeamCmd = &cobra.Command{
+	Use:   "remove-team PROJECT-ID TEAM-KEY [TEAM-KEY...]",
+	Short: "Remove teams from a project",
+	Long: `Remove one or more teams from a project. Teams are specified by their key (e.g. ENG, DESIGN).
+
+Examples:
+  linear-cli project remove-team PROJECT-ID ENG
+  linear-cli project remove-team PROJECT-ID ENG DESIGN`,
+	Args: cobra.MinimumNArgs(2),
+	Run: func(cmd *cobra.Command, args []string) {
+		plaintext := viper.GetBool("plaintext")
+		jsonOut := viper.GetBool("json")
+		projectID := args[0]
+		teamKeys := args[1:]
+
+		authHeader, err := auth.GetAuthHeader()
+		if err != nil {
+			output.Error(fmt.Sprintf("Authentication failed: %v", err), plaintext, jsonOut)
+			os.Exit(1)
+		}
+
+		client := api.NewClient(authHeader)
+		ctx := context.Background()
+
+		// Fetch current project to get existing teams
+		project, err := client.GetProject(ctx, projectID)
+		if err != nil {
+			output.Error(fmt.Sprintf("Failed to get project: %v", err), plaintext, jsonOut)
+			os.Exit(1)
+		}
+
+		// Resolve team keys to IDs for removal
+		removeIDs := make(map[string]bool)
+		for _, key := range teamKeys {
+			team, err := client.GetTeam(ctx, key)
+			if err != nil {
+				output.Error(fmt.Sprintf("Failed to find team '%s': %v", key, err), plaintext, jsonOut)
+				os.Exit(1)
+			}
+			// Check if team is actually on the project
+			found := false
+			if project.Teams != nil {
+				for _, t := range project.Teams.Nodes {
+					if t.ID == team.ID {
+						found = true
+						break
+					}
+				}
+			}
+			if !found {
+				if !jsonOut {
+					fmt.Fprintf(os.Stderr, "Team %s (%s) is not on the project, skipping\n", key, team.Name)
+				}
+				continue
+			}
+			removeIDs[team.ID] = true
+		}
+
+		if len(removeIDs) == 0 {
+			if jsonOut {
+				output.JSON(project)
+			} else {
+				fmt.Println("No teams to remove.")
+			}
+			return
+		}
+
+		// Build team ID list without removed teams
+		var remainingIDs []string
+		if project.Teams != nil {
+			for _, t := range project.Teams.Nodes {
+				if !removeIDs[t.ID] {
+					remainingIDs = append(remainingIDs, t.ID)
+				}
+			}
+		}
+
+		// Update project
+		input := map[string]interface{}{
+			"teamIds": remainingIDs,
+		}
+		updated, err := client.UpdateProject(ctx, projectID, input)
+		if err != nil {
+			output.Error(fmt.Sprintf("Failed to update project: %v", err), plaintext, jsonOut)
+			os.Exit(1)
+		}
+
+		if jsonOut {
+			output.JSON(updated)
+		} else if plaintext {
+			fmt.Printf("# Updated Project: %s\n\n## Teams\n", updated.Name)
+			if updated.Teams != nil {
+				for _, t := range updated.Teams.Nodes {
+					fmt.Printf("- %s (%s)\n", t.Key, t.Name)
+				}
+			}
+		} else {
+			fmt.Printf("\n%s Removed %d team(s) from project %s\n",
+				color.New(color.FgGreen).Sprint("✓"),
+				len(removeIDs),
+				color.New(color.FgCyan, color.Bold).Sprint(updated.Name))
+			if updated.Teams != nil && len(updated.Teams.Nodes) > 0 {
+				fmt.Printf("\n%s\n", color.New(color.Bold).Sprint("Remaining Teams:"))
+				for _, t := range updated.Teams.Nodes {
+					fmt.Printf("  • %s - %s\n",
+						color.New(color.FgCyan).Sprint(t.Key),
+						t.Name)
+				}
+			} else {
+				fmt.Println("  No teams remain on this project.")
+			}
+			fmt.Println()
+		}
+	},
+}
+
 func init() {
 	rootCmd.AddCommand(projectCmd)
 	projectCmd.AddCommand(projectListCmd)
 	projectCmd.AddCommand(projectGetCmd)
+	projectCmd.AddCommand(projectAddTeamCmd)
+	projectCmd.AddCommand(projectRemoveTeamCmd)
 
 	// List command flags
 	projectListCmd.Flags().StringP("team", "t", "", "Filter by team key")

@@ -1,6 +1,6 @@
 # Linear API Master Reference
 
-> Comprehensive reference for Linear's GraphQL API endpoints and features for the `linctl` CLI tool
+> Comprehensive reference for Linear's GraphQL API endpoints and features for the `linear-cli` CLI tool
 
 ## Table of Contents
 - [Authentication](#authentication)
@@ -506,90 +506,90 @@ mutation WebhookCreate($input: WebhookCreateInput!) {
 ### Issue Commands
 ```bash
 # List issues
-linctl issue list --assignee me --state "In Progress"
-linctl issue ls -a me -s "In Progress"
+linear-cli issue list --assignee me --state "In Progress"
+linear-cli issue ls -a me -s "In Progress"
 
 # Get specific issue
-linctl issue get LIN-123
-linctl issue show LIN-123
+linear-cli issue get LIN-123
+linear-cli issue show LIN-123
 
 # Create issue
-linctl issue create --title "Bug fix" --team TEAM_KEY
-linctl issue new -t "Bug fix" --team TEAM_KEY
+linear-cli issue create --title "Bug fix" --team TEAM_KEY
+linear-cli issue new -t "Bug fix" --team TEAM_KEY
 
 # Update issue
-linctl issue update LIN-123 --assignee user@example.com
-linctl issue edit LIN-123 -a user@example.com
+linear-cli issue update LIN-123 --assignee user@example.com
+linear-cli issue edit LIN-123 -a user@example.com
 
 # Archive issue
-linctl issue archive LIN-123
+linear-cli issue archive LIN-123
 ```
 
 ### Project Commands
 ```bash
 # List projects
-linctl project list --team TEAM_KEY
-linctl project ls -t TEAM_KEY
+linear-cli project list --team TEAM_KEY
+linear-cli project ls -t TEAM_KEY
 
 # Get project
-linctl project get PROJECT_ID
-linctl project show PROJECT_ID
+linear-cli project get PROJECT_ID
+linear-cli project show PROJECT_ID
 
 # Create project
-linctl project create --name "New Feature" --team TEAM_KEY
+linear-cli project create --name "New Feature" --team TEAM_KEY
 ```
 
 ### Team Commands
 ```bash
 # List teams
-linctl team list
-linctl team ls
+linear-cli team list
+linear-cli team ls
 
 # Get team info
-linctl team get TEAM_KEY
-linctl team show TEAM_KEY
+linear-cli team get TEAM_KEY
+linear-cli team show TEAM_KEY
 
 # List team members
-linctl team members TEAM_KEY
+linear-cli team members TEAM_KEY
 ```
 
 ### User Commands
 ```bash
 # Show current user
-linctl user me
-linctl whoami
+linear-cli user me
+linear-cli whoami
 
 # List users
-linctl user list
-linctl user ls
+linear-cli user list
+linear-cli user ls
 
 # Show user info
-linctl user get user@example.com
+linear-cli user get user@example.com
 ```
 
 ### Comment Commands
 ```bash
 # List comments
-linctl comment list LIN-123
-linctl comment ls LIN-123
+linear-cli comment list LIN-123
+linear-cli comment ls LIN-123
 
 # Add comment
-linctl comment create LIN-123 --body "Comment text"
-linctl comment add LIN-123 -b "Comment text"
+linear-cli comment create LIN-123 --body "Comment text"
+linear-cli comment add LIN-123 -b "Comment text"
 ```
 
 ### Auth Commands
 ```bash
 # Authenticate
-linctl auth
-linctl auth login
+linear-cli auth
+linear-cli auth login
 
 # Show current auth status
-linctl auth status
-linctl auth whoami
+linear-cli auth status
+linear-cli auth whoami
 
 # Logout
-linctl auth logout
+linear-cli auth logout
 ```
 
 ### Global Flags

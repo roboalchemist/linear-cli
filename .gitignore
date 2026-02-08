@@ -29,10 +29,13 @@ go.work
 Thumbs.db
 
 # Build output
+linear-cli
 linctl
 dist/
 
 # Config files (may contain sensitive data)
+.linear-cli.yaml
+.linear-cli-auth.json
 .linctl.yaml
 .linctl-auth.json
 

@@ -6,9 +6,9 @@ import (
 	"os"
 	"strings"
 
-	"github.com/dorkitude/linctl/pkg/api"
-	"github.com/dorkitude/linctl/pkg/auth"
-	"github.com/dorkitude/linctl/pkg/output"
+	"github.com/dorkitude/linear-cli/pkg/api"
+	"github.com/dorkitude/linear-cli/pkg/auth"
+	"github.com/dorkitude/linear-cli/pkg/output"
 	"github.com/fatih/color"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
@@ -21,9 +21,9 @@ var teamCmd = &cobra.Command{
 	Long: `Manage Linear teams including listing teams, viewing team details, and listing team members.
 
 Examples:
-  linctl team list              # List all teams
-  linctl team get ENG           # Get team details
-  linctl team members ENG       # List team members`,
+  linear-cli team list              # List all teams
+  linear-cli team get ENG           # Get team details
+  linear-cli team members ENG       # List team members`,
 }
 
 var teamListCmd = &cobra.Command{

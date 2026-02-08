@@ -6,10 +6,10 @@ import (
 	"os"
 	"strings"
 
-	"github.com/dorkitude/linctl/pkg/api"
-	"github.com/dorkitude/linctl/pkg/auth"
-	"github.com/dorkitude/linctl/pkg/output"
-	"github.com/dorkitude/linctl/pkg/utils"
+	"github.com/dorkitude/linear-cli/pkg/api"
+	"github.com/dorkitude/linear-cli/pkg/auth"
+	"github.com/dorkitude/linear-cli/pkg/output"
+	"github.com/dorkitude/linear-cli/pkg/utils"
 	"github.com/fatih/color"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
@@ -22,13 +22,13 @@ var issueCmd = &cobra.Command{
 	Long: `Create, list, update, and manage Linear issues.
 
 Examples:
-  linctl issue list --assignee me --state "In Progress"
-  linctl issue ls -a me -s "In Progress"
-  linctl issue list --include-completed  # Show all issues including completed
-  linctl issue list --newer-than 3_weeks_ago  # Show issues from last 3 weeks
-  linctl issue search "login bug" --team ENG
-  linctl issue get LIN-123
-  linctl issue create --title "Bug fix" --team ENG`,
+  linear-cli issue list --assignee me --state "In Progress"
+  linear-cli issue ls -a me -s "In Progress"
+  linear-cli issue list --include-completed  # Show all issues including completed
+  linear-cli issue list --newer-than 3_weeks_ago  # Show issues from last 3 weeks
+  linear-cli issue search "login bug" --team ENG
+  linear-cli issue get LIN-123
+  linear-cli issue create --title "Bug fix" --team ENG`,
 }
 
 var issueListCmd = &cobra.Command{
@@ -42,7 +42,7 @@ var issueListCmd = &cobra.Command{
 
 		authHeader, err := auth.GetAuthHeader()
 		if err != nil {
-			output.Error("Not authenticated. Run 'linctl auth' first.", plaintext, jsonOut)
+			output.Error("Not authenticated. Run 'linear-cli auth' first.", plaintext, jsonOut)
 			os.Exit(1)
 		}
 
@@ -198,9 +198,9 @@ var issueSearchCmd = &cobra.Command{
 	Long: `Perform a full-text search across Linear issues.
 
 Examples:
-  linctl issue search "payment outage"
-  linctl issue search "auth token" --team ENG --include-completed
-  linctl issue search "customer:" --json`,
+  linear-cli issue search "payment outage"
+  linear-cli issue search "auth token" --team ENG --include-completed
+  linear-cli issue search "customer:" --json`,
 	Args: cobra.MinimumNArgs(1),
 	Run: func(cmd *cobra.Command, args []string) {
 		plaintext := viper.GetBool("plaintext")
@@ -214,7 +214,7 @@ Examples:
 
 		authHeader, err := auth.GetAuthHeader()
 		if err != nil {
-			output.Error("Not authenticated. Run 'linctl auth' first.", plaintext, jsonOut)
+			output.Error("Not authenticated. Run 'linear-cli auth' first.", plaintext, jsonOut)
 			os.Exit(1)
 		}
 
@@ -268,7 +268,7 @@ var issueGetCmd = &cobra.Command{
 
 		authHeader, err := auth.GetAuthHeader()
 		if err != nil {
-			output.Error("Not authenticated. Run 'linctl auth' first.", plaintext, jsonOut)
+			output.Error("Not authenticated. Run 'linear-cli auth' first.", plaintext, jsonOut)
 			os.Exit(1)
 		}
 
@@ -378,6 +378,15 @@ var issueGetCmd = &cobra.Command{
 				}
 				if issue.Project.Description != "" {
 					fmt.Printf("- **Description**: %s\n", issue.Project.Description)
+				}
+			}
+
+			if issue.ProjectMilestone != nil {
+				fmt.Printf("\n## Milestone\n")
+				fmt.Printf("- **Name**: %s\n", issue.ProjectMilestone.Name)
+				fmt.Printf("- **Status**: %s\n", issue.ProjectMilestone.Status)
+				if issue.ProjectMilestone.TargetDate != nil {
+					fmt.Printf("- **Target Date**: %s\n", *issue.ProjectMilestone.TargetDate)
 				}
 			}
 
@@ -494,6 +503,19 @@ var issueGetCmd = &cobra.Command{
 				}
 			}
 
+			// Show documents if any
+			if issue.Documents != nil && len(issue.Documents.Nodes) > 0 {
+				fmt.Printf("\n## Documents\n")
+				for _, doc := range issue.Documents.Nodes {
+					icon := ""
+					if doc.Icon != nil && *doc.Icon != "" {
+						icon = *doc.Icon + " "
+					}
+					fmt.Printf("- %s[%s](%s)\n", icon, doc.Title, doc.URL)
+				}
+				fmt.Printf("\n> Use `linear-cli document get <id>` to view full document content\n")
+			}
+
 			// Show recent comments if any
 			if issue.Comments != nil && len(issue.Comments.Nodes) > 0 {
 				fmt.Printf("\n## Recent Comments\n")
@@ -509,7 +531,7 @@ var issueGetCmd = &cobra.Command{
 						}
 					}
 				}
-				fmt.Printf("\n> Use `linctl comment list %s` to see all comments\n", issue.Identifier)
+				fmt.Printf("\n> Use `linear-cli comment list %s` to see all comments\n", issue.Identifier)
 			}
 
 			// Show history
@@ -600,6 +622,12 @@ var issueGetCmd = &cobra.Command{
 				color.New(color.FgWhite, color.Faint).Sprintf("%.0f%%", issue.Project.Progress*100))
 		}
 
+		if issue.ProjectMilestone != nil {
+			fmt.Printf("Milestone: %s (%s)\n",
+				color.New(color.FgCyan).Sprint(issue.ProjectMilestone.Name),
+				color.New(color.FgWhite, color.Faint).Sprint(issue.ProjectMilestone.Status))
+		}
+
 		if issue.Cycle != nil {
 			fmt.Printf("Cycle: %s\n",
 				color.New(color.FgMagenta).Sprint(issue.Cycle.Name))
@@ -677,6 +705,23 @@ var issueGetCmd = &cobra.Command{
 			}
 		}
 
+		// Show documents if any
+		if issue.Documents != nil && len(issue.Documents.Nodes) > 0 {
+			fmt.Printf("\n%s\n", color.New(color.FgYellow).Sprint("Documents:"))
+			for _, doc := range issue.Documents.Nodes {
+				icon := "📄"
+				if doc.Icon != nil && *doc.Icon != "" {
+					icon = *doc.Icon
+				}
+				fmt.Printf("  %s %s - %s\n",
+					icon,
+					color.New(color.FgCyan).Sprint(doc.Title),
+					color.New(color.FgBlue, color.Underline).Sprint(doc.URL))
+			}
+			fmt.Printf("\n  %s Use 'linear-cli document get <id>' to view full content\n",
+				color.New(color.FgWhite, color.Faint).Sprint("→"))
+		}
+
 		// Show recent comments if any
 		if issue.Comments != nil && len(issue.Comments.Nodes) > 0 {
 			fmt.Printf("\n%s\n", color.New(color.FgYellow).Sprint("Recent Comments:"))
@@ -694,7 +739,7 @@ var issueGetCmd = &cobra.Command{
 					fmt.Printf("     %s\n", preview)
 				}
 			}
-			fmt.Printf("\n  %s Use 'linctl comment list %s' to see all comments\n",
+			fmt.Printf("\n  %s Use 'linear-cli comment list %s' to see all comments\n",
 				color.New(color.FgWhite, color.Faint).Sprint("→"),
 				issue.Identifier)
 		}
@@ -789,7 +834,7 @@ var issueAssignCmd = &cobra.Command{
 
 		authHeader, err := auth.GetAuthHeader()
 		if err != nil {
-			output.Error("Not authenticated. Run 'linctl auth' first.", plaintext, jsonOut)
+			output.Error("Not authenticated. Run 'linear-cli auth' first.", plaintext, jsonOut)
 			os.Exit(1)
 		}
 
@@ -837,7 +882,7 @@ var issueCreateCmd = &cobra.Command{
 
 		authHeader, err := auth.GetAuthHeader()
 		if err != nil {
-			output.Error("Not authenticated. Run 'linctl auth' first.", plaintext, jsonOut)
+			output.Error("Not authenticated. Run 'linear-cli auth' first.", plaintext, jsonOut)
 			os.Exit(1)
 		}
 
@@ -890,6 +935,42 @@ var issueCreateCmd = &cobra.Command{
 			input["assigneeId"] = viewer.ID
 		}
 
+		// Handle milestone for create
+		if cmd.Flags().Changed("milestone") {
+			milestoneVal, _ := cmd.Flags().GetString("milestone")
+			projectFlag, _ := cmd.Flags().GetString("project")
+			if projectFlag == "" {
+				output.Error("--project is required when using --milestone (milestones are per-project)", plaintext, jsonOut)
+				os.Exit(1)
+			}
+			input["projectId"] = projectFlag
+
+			if milestoneVal != "" && !strings.EqualFold(milestoneVal, "none") {
+				milestoneID, err := resolveMilestoneByProject(client, projectFlag, milestoneVal, plaintext, jsonOut)
+				if err != nil {
+					output.Error(fmt.Sprintf("Failed to resolve milestone: %v", err), plaintext, jsonOut)
+					os.Exit(1)
+				}
+				input["projectMilestoneId"] = milestoneID
+			}
+		} else if cmd.Flags().Changed("project") {
+			projectFlag, _ := cmd.Flags().GetString("project")
+			input["projectId"] = projectFlag
+		}
+
+		// Handle parent flag
+		if cmd.Flags().Changed("parent") {
+			parentVal, _ := cmd.Flags().GetString("parent")
+			if parentVal != "" {
+				parentIssue, err := client.GetIssue(context.Background(), parentVal)
+				if err != nil {
+					output.Error(fmt.Sprintf("Failed to resolve parent issue '%s': %v", parentVal, err), plaintext, jsonOut)
+					os.Exit(1)
+				}
+				input["parentId"] = parentIssue.ID
+			}
+		}
+
 		// Create issue
 		issue, err := client.CreateIssue(context.Background(), input)
 		if err != nil {
@@ -919,13 +1000,13 @@ var issueUpdateCmd = &cobra.Command{
 	Long: `Update various fields of an issue.
 
 Examples:
-  linctl issue update LIN-123 --title "New title"
-  linctl issue update LIN-123 --description "Updated description"
-  linctl issue update LIN-123 --assignee john.doe@company.com
-  linctl issue update LIN-123 --state "In Progress"
-  linctl issue update LIN-123 --priority 1
-  linctl issue update LIN-123 --due-date "2024-12-31"
-  linctl issue update LIN-123 --title "New title" --assignee me --priority 2`,
+  linear-cli issue update LIN-123 --title "New title"
+  linear-cli issue update LIN-123 --description "Updated description"
+  linear-cli issue update LIN-123 --assignee john.doe@company.com
+  linear-cli issue update LIN-123 --state "In Progress"
+  linear-cli issue update LIN-123 --priority 1
+  linear-cli issue update LIN-123 --due-date "2024-12-31"
+  linear-cli issue update LIN-123 --title "New title" --assignee me --priority 2`,
 	Args: cobra.ExactArgs(1),
 	Run: func(cmd *cobra.Command, args []string) {
 		plaintext := viper.GetBool("plaintext")
@@ -933,7 +1014,7 @@ Examples:
 
 		authHeader, err := auth.GetAuthHeader()
 		if err != nil {
-			output.Error("Not authenticated. Run 'linctl auth' first.", plaintext, jsonOut)
+			output.Error("Not authenticated. Run 'linear-cli auth' first.", plaintext, jsonOut)
 			os.Exit(1)
 		}
 
@@ -1049,6 +1130,36 @@ Examples:
 			}
 		}
 
+		// Handle milestone update
+		if cmd.Flags().Changed("milestone") {
+			milestoneVal, _ := cmd.Flags().GetString("milestone")
+			if milestoneVal == "" || strings.EqualFold(milestoneVal, "none") {
+				input["projectMilestoneId"] = nil
+			} else {
+				milestoneID, err := resolveMilestone(client, args[0], milestoneVal, plaintext, jsonOut)
+				if err != nil {
+					output.Error(fmt.Sprintf("Failed to resolve milestone: %v", err), plaintext, jsonOut)
+					os.Exit(1)
+				}
+				input["projectMilestoneId"] = milestoneID
+			}
+		}
+
+		// Handle parent update
+		if cmd.Flags().Changed("parent") {
+			parentVal, _ := cmd.Flags().GetString("parent")
+			if parentVal == "" || strings.EqualFold(parentVal, "none") {
+				input["parentId"] = nil
+			} else {
+				parentIssue, err := client.GetIssue(context.Background(), parentVal)
+				if err != nil {
+					output.Error(fmt.Sprintf("Failed to resolve parent issue '%s': %v", parentVal, err), plaintext, jsonOut)
+					os.Exit(1)
+				}
+				input["parentId"] = parentIssue.ID
+			}
+		}
+
 		// Check if any updates were specified
 		if len(input) == 0 {
 			output.Error("No updates specified. Use flags to specify what to update.", plaintext, jsonOut)
@@ -1066,9 +1177,310 @@ Examples:
 			output.JSON(issue)
 		} else if plaintext {
 			fmt.Printf("Updated issue %s\n", issue.Identifier)
+			fmt.Printf("Title: %s\n", issue.Title)
+			if issue.State != nil {
+				fmt.Printf("State: %s\n", issue.State.Name)
+			}
+			if issue.Assignee != nil {
+				fmt.Printf("Assignee: %s\n", issue.Assignee.Name)
+			}
 		} else {
-			output.Success(fmt.Sprintf("Updated issue %s", issue.Identifier), plaintext, jsonOut)
+			fmt.Printf("%s Updated issue %s\n",
+				color.New(color.FgGreen).Sprint("✓"),
+				color.New(color.FgCyan, color.Bold).Sprint(issue.Identifier))
+			fmt.Printf("  Title: %s\n", issue.Title)
+			if issue.State != nil {
+				fmt.Printf("  State: %s\n", color.New(color.FgGreen).Sprint(issue.State.Name))
+			}
+			if issue.Assignee != nil {
+				fmt.Printf("  Assignee: %s\n", color.New(color.FgCyan).Sprint(issue.Assignee.Name))
+			} else {
+				fmt.Printf("  Assignee: %s\n", color.New(color.FgYellow).Sprint("Unassigned"))
+			}
 		}
+	},
+}
+
+var issueActivityCmd = &cobra.Command{
+	Use:   "activity [issue-id]",
+	Short: "Show issue activity timeline",
+	Long: `Show a chronological timeline of all activity on an issue including
+state changes, assignee changes, priority changes, project/cycle changes,
+label additions/removals, linked attachments, and recent comments.
+
+Examples:
+  linear-cli issue activity LIN-123
+  linear-cli issue activity LIN-123 --limit 100`,
+	Args: cobra.ExactArgs(1),
+	Run: func(cmd *cobra.Command, args []string) {
+		plaintext := viper.GetBool("plaintext")
+		jsonOut := viper.GetBool("json")
+
+		authHeader, err := auth.GetAuthHeader()
+		if err != nil {
+			output.Error("Not authenticated. Run 'linear-cli auth' first.", plaintext, jsonOut)
+			os.Exit(1)
+		}
+
+		client := api.NewClient(authHeader)
+		limit, _ := cmd.Flags().GetInt("limit")
+
+		issue, err := client.GetIssueActivity(context.Background(), args[0], limit)
+		if err != nil {
+			output.Error(fmt.Sprintf("Failed to fetch issue activity: %v", err), plaintext, jsonOut)
+			os.Exit(1)
+		}
+
+		if jsonOut {
+			output.JSON(map[string]interface{}{
+				"issue":       issue.Identifier,
+				"title":       issue.Title,
+				"history":     issue.History,
+				"attachments": issue.Attachments,
+				"relations":   issue.Relations,
+				"comments":    issue.Comments,
+			})
+			return
+		}
+
+		if plaintext {
+			fmt.Printf("# Activity: %s - %s\n\n", issue.Identifier, issue.Title)
+
+			if issue.State != nil {
+				fmt.Printf("Current State: %s\n", issue.State.Name)
+			}
+			if issue.Assignee != nil {
+				fmt.Printf("Current Assignee: %s\n", issue.Assignee.Name)
+			}
+			fmt.Printf("URL: %s\n\n", issue.URL)
+
+			// History entries
+			if issue.History != nil && len(issue.History.Nodes) > 0 {
+				fmt.Println("## History")
+				for _, entry := range issue.History.Nodes {
+					actorName := "System"
+					if entry.Actor != nil {
+						actorName = entry.Actor.Name
+					}
+
+					fmt.Printf("\n### %s by %s\n", entry.CreatedAt.Format("2006-01-02 15:04"), actorName)
+
+					if entry.FromState != nil && entry.ToState != nil {
+						fmt.Printf("- State: %s -> %s\n", entry.FromState.Name, entry.ToState.Name)
+					}
+					if entry.FromAssignee != nil && entry.ToAssignee != nil {
+						fmt.Printf("- Assignee: %s -> %s\n", entry.FromAssignee.Name, entry.ToAssignee.Name)
+					} else if entry.FromAssignee != nil && entry.ToAssignee == nil {
+						fmt.Printf("- Unassigned from %s\n", entry.FromAssignee.Name)
+					} else if entry.FromAssignee == nil && entry.ToAssignee != nil {
+						fmt.Printf("- Assigned to %s\n", entry.ToAssignee.Name)
+					}
+					if entry.FromPriority != nil && entry.ToPriority != nil {
+						fmt.Printf("- Priority: %s -> %s\n", priorityToString(*entry.FromPriority), priorityToString(*entry.ToPriority))
+					}
+					if entry.FromTitle != nil && entry.ToTitle != nil {
+						fmt.Printf("- Title: \"%s\" -> \"%s\"\n", *entry.FromTitle, *entry.ToTitle)
+					}
+					if entry.FromCycle != nil && entry.ToCycle != nil {
+						fmt.Printf("- Cycle: %s -> %s\n", entry.FromCycle.Name, entry.ToCycle.Name)
+					} else if entry.FromCycle == nil && entry.ToCycle != nil {
+						fmt.Printf("- Added to cycle: %s\n", entry.ToCycle.Name)
+					} else if entry.FromCycle != nil && entry.ToCycle == nil {
+						fmt.Printf("- Removed from cycle: %s\n", entry.FromCycle.Name)
+					}
+					if entry.FromProject != nil && entry.ToProject != nil {
+						fmt.Printf("- Project: %s -> %s\n", entry.FromProject.Name, entry.ToProject.Name)
+					} else if entry.FromProject == nil && entry.ToProject != nil {
+						fmt.Printf("- Added to project: %s\n", entry.ToProject.Name)
+					} else if entry.FromProject != nil && entry.ToProject == nil {
+						fmt.Printf("- Removed from project: %s\n", entry.FromProject.Name)
+					}
+					if len(entry.AddedLabelIds) > 0 {
+						fmt.Printf("- Added %d label(s)\n", len(entry.AddedLabelIds))
+					}
+					if len(entry.RemovedLabelIds) > 0 {
+						fmt.Printf("- Removed %d label(s)\n", len(entry.RemovedLabelIds))
+					}
+				}
+			}
+
+			// Attachments
+			if issue.Attachments != nil && len(issue.Attachments.Nodes) > 0 {
+				fmt.Printf("\n## Attachments\n")
+				for _, att := range issue.Attachments.Nodes {
+					creator := ""
+					if att.Creator != nil {
+						creator = fmt.Sprintf(" by %s", att.Creator.Name)
+					}
+					fmt.Printf("- [%s](%s)%s (%s)\n", att.Title, att.URL, creator, att.CreatedAt.Format("2006-01-02"))
+				}
+			}
+
+			// Relations
+			if issue.Relations != nil && len(issue.Relations.Nodes) > 0 {
+				fmt.Printf("\n## Relations\n")
+				for _, rel := range issue.Relations.Nodes {
+					if rel.RelatedIssue != nil {
+						fmt.Printf("- %s: %s - %s\n", rel.Type, rel.RelatedIssue.Identifier, rel.RelatedIssue.Title)
+					}
+				}
+			}
+
+			// Comments summary
+			if issue.Comments != nil && len(issue.Comments.Nodes) > 0 {
+				fmt.Printf("\n## Recent Comments (%d shown)\n", len(issue.Comments.Nodes))
+				for _, comment := range issue.Comments.Nodes {
+					userName := "Unknown"
+					if comment.User != nil {
+						userName = comment.User.Name
+					}
+					body := comment.Body
+					if len(body) > 100 {
+						body = body[:97] + "..."
+					}
+					fmt.Printf("- %s by %s: %s\n", comment.CreatedAt.Format("2006-01-02 15:04"), userName, body)
+				}
+			}
+
+			return
+		}
+
+		// Rich display
+		fmt.Println()
+		fmt.Printf("%s %s %s\n",
+			color.New(color.FgCyan, color.Bold).Sprint("Activity:"),
+			color.New(color.FgCyan, color.Bold).Sprint(issue.Identifier),
+			color.New(color.FgWhite, color.Bold).Sprint(issue.Title))
+		fmt.Println(strings.Repeat("─", 60))
+
+		if issue.State != nil {
+			fmt.Printf("Current State: %s\n", color.New(color.FgGreen).Sprint(issue.State.Name))
+		}
+		if issue.Assignee != nil {
+			fmt.Printf("Assignee: %s\n", color.New(color.FgCyan).Sprint(issue.Assignee.Name))
+		}
+
+		// History entries
+		if issue.History != nil && len(issue.History.Nodes) > 0 {
+			fmt.Printf("\n%s\n", color.New(color.FgYellow, color.Bold).Sprint("Timeline:"))
+			for _, entry := range issue.History.Nodes {
+				actorName := "System"
+				if entry.Actor != nil {
+					actorName = entry.Actor.Name
+				}
+
+				timestamp := color.New(color.FgWhite, color.Faint).Sprint(entry.CreatedAt.Format("2006-01-02 15:04"))
+				actor := color.New(color.FgCyan).Sprint(actorName)
+
+				changes := []string{}
+
+				if entry.FromState != nil && entry.ToState != nil {
+					changes = append(changes, fmt.Sprintf("State: %s -> %s",
+						color.New(color.FgRed).Sprint(entry.FromState.Name),
+						color.New(color.FgGreen).Sprint(entry.ToState.Name)))
+				}
+				if entry.FromAssignee != nil && entry.ToAssignee != nil {
+					changes = append(changes, fmt.Sprintf("Assignee: %s -> %s", entry.FromAssignee.Name, entry.ToAssignee.Name))
+				} else if entry.FromAssignee != nil && entry.ToAssignee == nil {
+					changes = append(changes, fmt.Sprintf("Unassigned from %s", entry.FromAssignee.Name))
+				} else if entry.FromAssignee == nil && entry.ToAssignee != nil {
+					changes = append(changes, fmt.Sprintf("Assigned to %s", entry.ToAssignee.Name))
+				}
+				if entry.FromPriority != nil && entry.ToPriority != nil {
+					changes = append(changes, fmt.Sprintf("Priority: %s -> %s", priorityToString(*entry.FromPriority), priorityToString(*entry.ToPriority)))
+				}
+				if entry.FromTitle != nil && entry.ToTitle != nil {
+					changes = append(changes, fmt.Sprintf("Title changed"))
+				}
+				if entry.FromCycle != nil && entry.ToCycle != nil {
+					changes = append(changes, fmt.Sprintf("Cycle: %s -> %s", entry.FromCycle.Name, entry.ToCycle.Name))
+				} else if entry.FromCycle == nil && entry.ToCycle != nil {
+					changes = append(changes, fmt.Sprintf("Added to cycle: %s", entry.ToCycle.Name))
+				} else if entry.FromCycle != nil && entry.ToCycle == nil {
+					changes = append(changes, fmt.Sprintf("Removed from cycle: %s", entry.FromCycle.Name))
+				}
+				if entry.FromProject != nil && entry.ToProject != nil {
+					changes = append(changes, fmt.Sprintf("Project: %s -> %s", entry.FromProject.Name, entry.ToProject.Name))
+				} else if entry.FromProject == nil && entry.ToProject != nil {
+					changes = append(changes, fmt.Sprintf("Added to project: %s", entry.ToProject.Name))
+				} else if entry.FromProject != nil && entry.ToProject == nil {
+					changes = append(changes, fmt.Sprintf("Removed from project: %s", entry.FromProject.Name))
+				}
+				if len(entry.AddedLabelIds) > 0 {
+					changes = append(changes, fmt.Sprintf("Added %d label(s)", len(entry.AddedLabelIds)))
+				}
+				if len(entry.RemovedLabelIds) > 0 {
+					changes = append(changes, fmt.Sprintf("Removed %d label(s)", len(entry.RemovedLabelIds)))
+				}
+
+				if len(changes) > 0 {
+					fmt.Printf("  %s %s\n", timestamp, actor)
+					for _, change := range changes {
+						fmt.Printf("    - %s\n", change)
+					}
+				}
+			}
+		}
+
+		// Attachments
+		if issue.Attachments != nil && len(issue.Attachments.Nodes) > 0 {
+			fmt.Printf("\n%s\n", color.New(color.FgYellow, color.Bold).Sprint("Attachments:"))
+			for _, att := range issue.Attachments.Nodes {
+				fmt.Printf("  %s %s - %s\n",
+					color.New(color.FgWhite, color.Faint).Sprint(att.CreatedAt.Format("2006-01-02")),
+					color.New(color.FgCyan).Sprint(att.Title),
+					color.New(color.FgBlue, color.Underline).Sprint(att.URL))
+			}
+		}
+
+		// Relations
+		if issue.Relations != nil && len(issue.Relations.Nodes) > 0 {
+			fmt.Printf("\n%s\n", color.New(color.FgYellow, color.Bold).Sprint("Relations:"))
+			for _, rel := range issue.Relations.Nodes {
+				if rel.RelatedIssue != nil {
+					relationType := rel.Type
+					switch relationType {
+					case "blocks":
+						relationType = "Blocks"
+					case "blocked":
+						relationType = "Blocked by"
+					case "related":
+						relationType = "Related to"
+					case "duplicate":
+						relationType = "Duplicate of"
+					}
+					fmt.Printf("  %s %s - %s\n",
+						color.New(color.FgMagenta).Sprint(relationType+":"),
+						color.New(color.FgCyan).Sprint(rel.RelatedIssue.Identifier),
+						rel.RelatedIssue.Title)
+				}
+			}
+		}
+
+		// Comments summary
+		if issue.Comments != nil && len(issue.Comments.Nodes) > 0 {
+			fmt.Printf("\n%s\n", color.New(color.FgYellow, color.Bold).Sprint("Recent Comments:"))
+			for _, comment := range issue.Comments.Nodes {
+				userName := "Unknown"
+				if comment.User != nil {
+					userName = comment.User.Name
+				}
+				body := comment.Body
+				lines := strings.Split(body, "\n")
+				if len(lines) > 0 {
+					body = lines[0]
+				}
+				if len(body) > 60 {
+					body = body[:57] + "..."
+				}
+				fmt.Printf("  %s %s: %s\n",
+					color.New(color.FgWhite, color.Faint).Sprint(comment.CreatedAt.Format("2006-01-02 15:04")),
+					color.New(color.FgCyan).Sprint(userName),
+					body)
+			}
+		}
+
+		fmt.Println()
 	},
 }
 
@@ -1080,6 +1492,7 @@ func init() {
 	issueCmd.AddCommand(issueAssignCmd)
 	issueCmd.AddCommand(issueCreateCmd)
 	issueCmd.AddCommand(issueUpdateCmd)
+	issueCmd.AddCommand(issueActivityCmd)
 
 	// Issue list flags
 	issueListCmd.Flags().StringP("assignee", "a", "", "Filter by assignee (email or 'me')")
@@ -1108,6 +1521,8 @@ func init() {
 	issueCreateCmd.Flags().StringP("team", "t", "", "Team key (required)")
 	issueCreateCmd.Flags().Int("priority", 3, "Priority (0=None, 1=Urgent, 2=High, 3=Normal, 4=Low)")
 	issueCreateCmd.Flags().BoolP("assign-me", "m", false, "Assign to yourself")
+	issueCreateCmd.Flags().String("project", "", "Project ID to associate with")
+	issueCreateCmd.Flags().String("milestone", "", "Milestone ID or name (requires --project)")
 	_ = issueCreateCmd.MarkFlagRequired("title")
 	_ = issueCreateCmd.MarkFlagRequired("team")
 
@@ -1118,4 +1533,63 @@ func init() {
 	issueUpdateCmd.Flags().StringP("state", "s", "", "State name (e.g., 'Todo', 'In Progress', 'Done')")
 	issueUpdateCmd.Flags().Int("priority", -1, "Priority (0=None, 1=Urgent, 2=High, 3=Normal, 4=Low)")
 	issueUpdateCmd.Flags().String("due-date", "", "Due date (YYYY-MM-DD format, or empty to remove)")
+	issueUpdateCmd.Flags().String("milestone", "", "Milestone ID or name (or 'none' to unset)")
+	issueUpdateCmd.Flags().String("parent", "", "Parent issue identifier (or 'none' to unset)")
+
+	// Issue create parent flag
+	issueCreateCmd.Flags().String("parent", "", "Parent issue identifier")
+
+	// Issue activity flags
+	issueActivityCmd.Flags().IntP("limit", "l", 50, "Number of history entries to fetch")
+}
+
+// resolveMilestone resolves a milestone value (ID or name) for an existing issue.
+// It fetches the issue to find its project, then resolves the milestone within that project.
+func resolveMilestone(client *api.Client, issueID string, milestoneVal string, plaintext, jsonOut bool) (string, error) {
+	// First try using it directly as an ID — if it looks like a UUID
+	if strings.Contains(milestoneVal, "-") && len(milestoneVal) > 20 {
+		return milestoneVal, nil
+	}
+
+	// It's a name — need to find the issue's project and search milestones
+	issue, err := client.GetIssue(context.Background(), issueID)
+	if err != nil {
+		return "", fmt.Errorf("failed to get issue: %v", err)
+	}
+
+	if issue.Project == nil {
+		return "", fmt.Errorf("issue %s is not associated with a project; milestones are per-project", issue.Identifier)
+	}
+
+	return resolveMilestoneByProject(client, issue.Project.ID, milestoneVal, plaintext, jsonOut)
+}
+
+// resolveMilestoneByProject resolves a milestone value (ID or name) within a specific project.
+func resolveMilestoneByProject(client *api.Client, projectID string, milestoneVal string, plaintext, jsonOut bool) (string, error) {
+	// If it looks like a UUID, use it directly
+	if strings.Contains(milestoneVal, "-") && len(milestoneVal) > 20 {
+		return milestoneVal, nil
+	}
+
+	// Search by name
+	milestones, err := client.GetProjectMilestones(context.Background(), projectID, 50, "")
+	if err != nil {
+		return "", fmt.Errorf("failed to list project milestones: %v", err)
+	}
+
+	for _, ms := range milestones.Nodes {
+		if strings.EqualFold(ms.Name, milestoneVal) {
+			return ms.ID, nil
+		}
+	}
+
+	// Not found — show available milestones
+	var names []string
+	for _, ms := range milestones.Nodes {
+		names = append(names, ms.Name)
+	}
+	if len(names) > 0 {
+		return "", fmt.Errorf("milestone '%s' not found. Available milestones: %s", milestoneVal, strings.Join(names, ", "))
+	}
+	return "", fmt.Errorf("milestone '%s' not found and no milestones exist on this project", milestoneVal)
 }

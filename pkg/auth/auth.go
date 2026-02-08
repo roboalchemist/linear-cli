@@ -9,7 +9,7 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/dorkitude/linctl/pkg/api"
+	"github.com/dorkitude/linear-cli/pkg/api"
 	"github.com/fatih/color"
 )
 
@@ -24,13 +24,22 @@ type AuthConfig struct {
 	APIKey string `json:"api_key,omitempty"`
 }
 
-// getConfigPath returns the path to the auth config file
+// getConfigPath returns the path to the auth config file.
+// Uses ~/.linear-cli-auth.json, falling back to legacy ~/.linctl-auth.json if it exists.
 func getConfigPath() (string, error) {
 	homeDir, err := os.UserHomeDir()
 	if err != nil {
 		return "", err
 	}
-	return filepath.Join(homeDir, ".linctl-auth.json"), nil
+	newPath := filepath.Join(homeDir, ".linear-cli-auth.json")
+	if _, err := os.Stat(newPath); err == nil {
+		return newPath, nil
+	}
+	legacyPath := filepath.Join(homeDir, ".linctl-auth.json")
+	if _, err := os.Stat(legacyPath); err == nil {
+		return legacyPath, nil
+	}
+	return newPath, nil
 }
 
 // saveAuth saves authentication credentials

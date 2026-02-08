@@ -1,5 +1,6 @@
-# 🚀 linctl - Linear CLI Tool
+# 🚀 linear-cli - Linear CLI Tool
 
+> **Fork notice:** `linear-cli` is a fork of [`linctl`](https://github.com/dorkitude/linctl), the original Linear CLI tool. This fork adds initiative management, attachment CRUDL, issue activity timelines, and renames the binary for clarity.
 
 A comprehensive command-line interface for Linear's API, built with agents in mind (but nice for humans too).
 
@@ -12,55 +13,72 @@ A comprehensive command-line interface for Linear's API, built with agents in mi
   - Cycle (sprint) and project associations
   - Attachments and recent comments preview
   - Due dates, snoozed status, and completion tracking
-  - Full-text search via `linctl issue search`
+  - Full-text search via `linear-cli issue search`
 - 👥 **Team Management**: View teams, get team details, and list team members
 - 🚀 **Project Tracking**: Comprehensive project information
   - Progress visualization with issue statistics
   - Team and member associations
-  - Initiative hierarchy
+  - Milestone management (create, list, update, delete)
   - Recent issues preview
   - Timeline tracking (created, updated, completed dates)
 - 👤 **User Management**: List all users, view user details, and current user info
+- 📄 **Document Management**: List, view, search, create, update, and delete documents
+  - Full-text search across all documents
+  - Project and team associations
+  - Full markdown content display
+- 🔍 **Custom Views**: Run saved filters to query matching issues or projects
+  - List, create, update, and delete custom views
+  - Execute views to see matching issues or projects
+  - Support for shared and team-scoped views
+- 🎯 **Initiative Management**: CRUDL for high-level strategic objectives
+  - List, create, update, delete initiatives
+  - View linked projects and sub-initiatives
+  - Filter by status (Planned, Active, Completed)
+- 📎 **Attachment Management**: Full CRUDL for issue attachments
+  - Create, list, update, delete attachments
+  - Smart URL linking (auto-detects GitHub PRs, Slack threads, etc.)
+- 📊 **Issue Activity Timeline**: Chronological view of all issue changes
+  - State, assignee, priority, project, cycle changes
+  - Label additions/removals, linked attachments, comments
 - 💬 **Comments**: List and create comments on issues with time-aware formatting
-- 📎 **Attachments**: View file uploads and attachments on issues
 - 🔗 **Webhooks**: Configure and manage webhooks
 - 🎨 **Multiple Output Formats**: Table, plaintext, and JSON output
 - ⚡ **Performance**: Fast and lightweight CLI tool
 - 🔄 **Flexible Sorting**: Sort lists by Linear's default order, creation date, or update date
 - 📅 **Time-based Filtering**: Filter lists by creation date with intuitive time expressions
-- 📚 **Built-in Documentation**: Access full documentation with `linctl docs`
+- 📚 **Built-in Documentation**: Access full documentation with `linear-cli docs`
 - 🧪 **Smoke Testing**: Automated smoke tests for all read-only commands
 
 ## 🛠️ Installation
 
 ### Homebrew (macOS/Linux)
 ```bash
-brew tap dorkitude/linctl
-brew install linctl
-linctl docs      # Render the README.md
+brew tap dorkitude/linear-cli
+brew install linear-cli
+linear-cli docs      # Render the README.md
 ```
 
 ### From Source
 ```bash
-git clone https://github.com/dorkitude/linctl.git
-cd linctl
+git clone https://github.com/dorkitude/linear-cli.git
+cd linear-cli
 make deps        # Install dependencies
 make build       # Build the binary
 make install     # Install to /usr/local/bin (requires sudo)
-linctl docs      # Render the README.md
+linear-cli docs      # Render the README.md
 ```
 
 ### For Development
 ```bash
-git clone https://github.com/dorkitude/linctl.git
-cd linctl
+git clone https://github.com/dorkitude/linear-cli.git
+cd linear-cli
 make deps        # Install dependencies
 go run main.go   # Run directly without building
 make dev         # Or build and run in development mode
 make test        # Run all tests
 make lint        # Run linter
 make fmt         # Format code
-linctl docs      # Render the README.md
+linear-cli docs      # Render the README.md
 ```
 
 ## Important: Default Filters
@@ -83,121 +101,257 @@ This improves performance and prevents overwhelming data loads. To see older ite
 ### 1. Authentication
 ```bash
 # Interactive authentication
-linctl auth
+linear-cli auth
 
 # Check authentication status
-linctl auth status
+linear-cli auth status
 
 # Show current user
-linctl whoami
+linear-cli whoami
 
 # View full documentation
-linctl docs | less
+linear-cli docs | less
 ```
 
 ### 2. Issue Management
 ```bash
 # List all issues
-linctl issue list
+linear-cli issue list
 
 # List issues assigned to you
-linctl issue list --assignee me
+linear-cli issue list --assignee me
 
 # List issues in a specific state
-linctl issue list --state "In Progress"
+linear-cli issue list --state "In Progress"
 
 # List issues sorted by update date
-linctl issue list --sort updated
+linear-cli issue list --sort updated
 
 # Search issues using Linear's full-text index (shares the same filters as list)
-linctl issue search "login bug" --team ENG
-linctl issue search "customer:" --include-completed --include-archived
+linear-cli issue search "login bug" --team ENG
+linear-cli issue search "customer:" --include-completed --include-archived
 
 # List recent issues (last 2 weeks instead of default 6 months)
-linctl issue list --newer-than 2_weeks_ago
+linear-cli issue list --newer-than 2_weeks_ago
 
 # List ALL issues ever created (override 6-month default)
-linctl issue list --newer-than all_time
+linear-cli issue list --newer-than all_time
 
 # List today's issues
-linctl issue list --newer-than 1_day_ago
+linear-cli issue list --newer-than 1_day_ago
 
 # Get issue details (now includes git branch, cycle, project, attachments, and comments)
-linctl issue get LIN-123
+linear-cli issue get LIN-123
 
 # Create a new issue
-linctl issue create --title "Bug fix" --team ENG
+linear-cli issue create --title "Bug fix" --team ENG
 
 # Assign issue to yourself
-linctl issue assign LIN-123
+linear-cli issue assign LIN-123
 
 # Update issue fields
-linctl issue update LIN-123 --title "New title"
-linctl issue update LIN-123 --description "Updated description"
-linctl issue update LIN-123 --assignee john.doe@company.com
-linctl issue update LIN-123 --assignee me  # Assign to yourself
-linctl issue update LIN-123 --assignee unassigned  # Remove assignee
-linctl issue update LIN-123 --state "In Progress"
-linctl issue update LIN-123 --priority 1  # 0=None, 1=Urgent, 2=High, 3=Normal, 4=Low
-linctl issue update LIN-123 --due-date "2024-12-31"
-linctl issue update LIN-123 --due-date ""  # Remove due date
+linear-cli issue update LIN-123 --title "New title"
+linear-cli issue update LIN-123 --description "Updated description"
+linear-cli issue update LIN-123 --assignee john.doe@company.com
+linear-cli issue update LIN-123 --assignee me  # Assign to yourself
+linear-cli issue update LIN-123 --assignee unassigned  # Remove assignee
+linear-cli issue update LIN-123 --state "In Progress"
+linear-cli issue update LIN-123 --priority 1  # 0=None, 1=Urgent, 2=High, 3=Normal, 4=Low
+linear-cli issue update LIN-123 --due-date "2024-12-31"
+linear-cli issue update LIN-123 --due-date ""  # Remove due date
 
 # Update multiple fields at once
-linctl issue update LIN-123 --title "Critical Bug" --assignee me --priority 1
+linear-cli issue update LIN-123 --title "Critical Bug" --assignee me --priority 1
+
+# Set or remove parent issue
+linear-cli issue update LIN-123 --parent LIN-100
+linear-cli issue update LIN-123 --parent none
+linear-cli issue create --title "Sub-task" --team ENG --parent LIN-100
+```
+
+### Issue Relations
+```bash
+# List all relationships for an issue
+linear-cli issue relation list LIN-123
+
+# Add relations
+linear-cli issue relation add LIN-123 --type blocks --target LIN-456
+linear-cli issue relation add LIN-123 --type blocked-by --target LIN-456
+linear-cli issue relation add LIN-123 --type related --target LIN-456
+linear-cli issue relation add LIN-123 --type duplicate --target LIN-456
+
+# Set parent/sub-issue
+linear-cli issue relation add LIN-123 --type parent --target LIN-100
+linear-cli issue relation add LIN-123 --type sub-issue --target LIN-789
+
+# Remove relations
+linear-cli issue relation remove LIN-123 --type blocks --target LIN-456
+linear-cli issue relation remove LIN-123 --type parent --target LIN-100
+
+# Update a relation's type (use relation ID from --json output)
+linear-cli issue relation update RELATION-UUID --type related
+```
+
+### Issue Attachments
+```bash
+# List attachments for an issue
+linear-cli issue attachment list LIN-123
+
+# Create a manual attachment
+linear-cli issue attachment create LIN-123 --url "https://example.com/spec" --title "Spec Doc"
+
+# Smart link (auto-detects GitHub PR, Slack, Notion, etc.)
+linear-cli issue attachment link LIN-123 --url "https://github.com/org/repo/pull/42"
+
+# Update an attachment
+linear-cli issue attachment update ATTACHMENT-ID --title "New Title"
+
+# Delete an attachment
+linear-cli issue attachment delete ATTACHMENT-ID
+```
+
+### Issue Activity Timeline
+```bash
+# Show full activity timeline for an issue
+linear-cli issue activity LIN-123
+
+# Show more history entries
+linear-cli issue activity LIN-123 --limit 100
+
+# JSON output for scripting
+linear-cli issue activity LIN-123 --json
 ```
 
 ### 3. Project Management
 ```bash
 # List all projects (shows IDs)
-linctl project list
+linear-cli project list
 
 # Filter projects by team
-linctl project list --team ENG
+linear-cli project list --team ENG
 
 # List projects created in the last month (instead of default 6 months)
-linctl project list --newer-than 1_month_ago
+linear-cli project list --newer-than 1_month_ago
 
 # List ALL projects regardless of age
-linctl project list --newer-than all_time
+linear-cli project list --newer-than all_time
 
 # Get project details (use ID from list command)
-linctl project get 65a77a62-ec5e-491e-b1d9-84aebee01b33
+linear-cli project get 65a77a62-ec5e-491e-b1d9-84aebee01b33
+
+# Add teams to a project (required for cross-team issue assignment)
+linear-cli project add-team PROJECT-ID ENG
+linear-cli project add-team PROJECT-ID ENG DESIGN OPS
+
+# Remove teams from a project
+linear-cli project remove-team PROJECT-ID ENG
+```
+
+### Milestone Management (within Projects)
+```bash
+# List milestones for a project
+linear-cli project milestone list PROJECT-ID
+
+# Get milestone details (including issues)
+linear-cli project milestone get MILESTONE-ID
+
+# Create a milestone
+linear-cli project milestone create PROJECT-ID --name "Beta Release"
+linear-cli project milestone create PROJECT-ID --name "GA" --target-date "2025-06-01" --description "General availability"
+
+# Update a milestone
+linear-cli project milestone update MILESTONE-ID --name "New Name"
+linear-cli project milestone update MILESTONE-ID --target-date "2025-07-01"
+
+# Delete a milestone
+linear-cli project milestone delete MILESTONE-ID
+
+# Assign a milestone to an issue (by name or ID)
+linear-cli issue update LIN-123 --milestone "Beta Release"
+linear-cli issue update LIN-123 --milestone none  # Remove milestone
+
+# Create an issue with a milestone
+linear-cli issue create --title "Fix bug" --team ENG --project PROJECT-ID --milestone "Beta Release"
+```
+
+### Project Status Updates
+```bash
+# List status updates for a project
+linear-cli project status list PROJECT-ID
+
+# Get a specific status update
+linear-cli project status get UPDATE-ID
+
+# Create a status update (health: onTrack, atRisk, offTrack)
+linear-cli project status create PROJECT-ID --body "Sprint on track" --health onTrack
+linear-cli project status create PROJECT-ID --body "Blocked on API" --health atRisk
+
+# Update a status update
+linear-cli project status update UPDATE-ID --body "Updated text"
+linear-cli project status update UPDATE-ID --health offTrack
+
+# Archive (soft-delete) a status update
+linear-cli project status delete UPDATE-ID
 ```
 
 ### 4. Team Management
 ```bash
 # List all teams
-linctl team list
+linear-cli team list
 
 # Get team details
-linctl team get ENG
+linear-cli team get ENG
 
 # List team members
-linctl team members ENG
+linear-cli team members ENG
 ```
 
 ### 5. User Management
 ```bash
 # List all users
-linctl user list
+linear-cli user list
 
 # Show only active users
-linctl user list --active
+linear-cli user list --active
 
 # Get user details by email
-linctl user get john@example.com
+linear-cli user get john@example.com
 
 # Show your own profile
-linctl user me
+linear-cli user me
 ```
 
-### 6. Comments
+### 6. Documents
+```bash
+# List all documents
+linear-cli document list
+
+# List documents for a project
+linear-cli document list --project PROJECT-ID
+
+# Search documents
+linear-cli document search "onboarding spec"
+
+# View a document with full content
+linear-cli document get DOC-ID
+
+# Create a document
+linear-cli document create --title "API Spec" --content "# Overview" --project PROJECT-ID
+
+# Update a document
+linear-cli document update DOC-ID --title "Updated Title"
+
+# Delete a document
+linear-cli document delete DOC-ID
+```
+
+### 7. Comments
 ```bash
 # List comments on an issue
-linctl comment list LIN-123
+linear-cli comment list LIN-123
 
 # Add a comment to an issue
-linctl comment create LIN-123 --body "Fixed the authentication bug"
+linear-cli comment create LIN-123 --body "Fixed the authentication bug"
 ```
 
 ## 📖 Command Reference
@@ -210,18 +364,18 @@ linctl comment create LIN-123 --body "Fixed the authentication bug"
 
 ### Authentication Commands
 ```bash
-linctl auth               # Interactive authentication
-linctl auth login         # Same as above
-linctl auth status        # Check authentication status
-linctl auth logout        # Clear stored credentials
-linctl whoami            # Show current user
+linear-cli auth               # Interactive authentication
+linear-cli auth login         # Same as above
+linear-cli auth status        # Check authentication status
+linear-cli auth logout        # Clear stored credentials
+linear-cli whoami            # Show current user
 ```
 
 ### Issue Commands
 ```bash
 # List issues with filters
-linctl issue list [flags]
-linctl issue ls [flags]     # Short alias
+linear-cli issue list [flags]
+linear-cli issue ls [flags]     # Short alias
 
 # Flags:
   -a, --assignee string     Filter by assignee (email or 'me')
@@ -234,25 +388,26 @@ linctl issue ls [flags]     # Short alias
   -n, --newer-than string  Show items created after this time (default: 6_months_ago, use 'all_time' for no filter)
 
 # Get issue details (shows parent and sub-issues)
-linctl issue get <issue-id>
-linctl issue show <issue-id>  # Alias
+linear-cli issue get <issue-id>
+linear-cli issue show <issue-id>  # Alias
 
 # Create issue
-linctl issue create [flags]
-linctl issue new [flags]      # Alias
+linear-cli issue create [flags]
+linear-cli issue new [flags]      # Alias
 # Flags:
   --title string           Issue title (required)
   -d, --description string Issue description
   -t, --team string        Team key (required)
   --priority int       Priority 0-4 (default 3)
   -m, --assign-me          Assign to yourself
+  --parent string          Parent issue identifier
 
 # Assign issue to yourself
-linctl issue assign <issue-id>
+linear-cli issue assign <issue-id>
 
 # Update issue
-linctl issue update <issue-id> [flags]
-linctl issue edit <issue-id> [flags]    # Alias
+linear-cli issue update <issue-id> [flags]
+linear-cli issue edit <issue-id> [flags]    # Alias
 # Flags:
   --title string           New title
   -d, --description string New description
@@ -260,40 +415,57 @@ linctl issue edit <issue-id> [flags]    # Alias
   -s, --state string       State name (e.g., 'Todo', 'In Progress', 'Done')
   --priority int           Priority (0=None, 1=Urgent, 2=High, 3=Normal, 4=Low)
   --due-date string        Due date (YYYY-MM-DD format, or empty to remove)
+  --milestone string       Milestone ID or name (or 'none' to unset)
+  --parent string          Parent issue identifier (or 'none' to unset)
+
+# Issue Relations
+linear-cli issue relation list <issue-id>
+linear-cli issue relation ls <issue-id>       # Alias
+linear-cli issue relation add <issue-id> [flags]
+linear-cli issue relation create <issue-id> [flags]   # Alias
+linear-cli issue relation remove <issue-id> [flags]
+linear-cli issue relation rm <issue-id> [flags]       # Alias
+linear-cli issue relation update <relation-id> [flags]
+linear-cli issue relation edit <relation-id> [flags]  # Alias
+# Flags (add/remove):
+  --type string            Relation type: blocks, blocked-by, related, duplicate, parent, sub-issue
+  --target string          Target issue identifier
+# Flags (update):
+  --type string            New type: blocks, related, duplicate
 
 # Archive issue (coming soon)
-linctl issue archive <issue-id>
+linear-cli issue archive <issue-id>
 ```
 
 ### Team Commands
 ```bash
 # List all teams with issue counts
-linctl team list
-linctl team ls              # Alias
+linear-cli team list
+linear-cli team ls              # Alias
 # Flags:
   -l, --limit int          Maximum results (default 50)
   -o, --sort string        Sort order: linear (default), created, updated
 
 # Get team details
-linctl team get <team-key>
-linctl team show <team-key> # Alias
+linear-cli team get <team-key>
+linear-cli team show <team-key> # Alias
 
 # Examples:
-linctl team get ENG         # Shows Engineering team details
-linctl team get DESIGN      # Shows Design team details
+linear-cli team get ENG         # Shows Engineering team details
+linear-cli team get DESIGN      # Shows Design team details
 
 # List team members with roles and status
-linctl team members <team-key>
+linear-cli team members <team-key>
 
 # Examples:
-linctl team members ENG     # Lists all Engineering team members
+linear-cli team members ENG     # Lists all Engineering team members
 ```
 
 ### Project Commands
 ```bash
 # List projects
-linctl project list [flags]
-linctl project ls [flags]     # Alias
+linear-cli project list [flags]
+linear-cli project ls [flags]     # Alias
 # Flags:
   -t, --team string        Filter by team key
   -s, --state string       Filter by state (planned, started, paused, completed, canceled)
@@ -303,68 +475,294 @@ linctl project ls [flags]     # Alias
   -c, --include-completed  Include completed and canceled projects
 
 # Get project details
-linctl project get <project-id>
-linctl project show <project-id>  # Alias
+linear-cli project get <project-id>
+linear-cli project show <project-id>  # Alias
+
+# Add teams to a project (required for cross-team issue assignment)
+linear-cli project add-team <project-id> <team-key> [team-key...]
+
+# Remove teams from a project
+linear-cli project remove-team <project-id> <team-key> [team-key...]
+
+# Examples:
+linear-cli project add-team PROJECT-ID ENG DESIGN   # Add ENG and DESIGN teams
+linear-cli project remove-team PROJECT-ID OPS        # Remove OPS team
 
 # Create project (coming soon)
-linctl project create [flags]
+linear-cli project create [flags]
+```
+
+### Milestone Commands (under project)
+```bash
+# List milestones for a project
+linear-cli project milestone list <project-id> [flags]
+linear-cli project milestone ls <project-id> [flags]  # Alias
+# Flags:
+  -l, --limit int          Maximum results (default 50)
+
+# Get milestone details
+linear-cli project milestone get <milestone-id>
+linear-cli project milestone show <milestone-id>  # Alias
+
+# Create milestone
+linear-cli project milestone create <project-id> [flags]
+linear-cli project milestone new <project-id> [flags]    # Alias
+# Flags:
+  --name string            Milestone name (required)
+  -d, --description string Milestone description
+  --target-date string     Target date (YYYY-MM-DD)
+
+# Update milestone
+linear-cli project milestone update <milestone-id> [flags]
+linear-cli project milestone edit <milestone-id> [flags]  # Alias
+# Flags:
+  --name string            New name
+  -d, --description string New description
+  --target-date string     New target date (YYYY-MM-DD, or empty to remove)
+
+# Delete milestone
+linear-cli project milestone delete <milestone-id>
+```
+
+### Project Status Update Commands
+```bash
+# List status updates for a project
+linear-cli project status list <project-id> [flags]
+linear-cli project status ls <project-id> [flags]  # Alias
+# Flags:
+  -l, --limit int          Maximum results (default 20)
+
+# Get status update details
+linear-cli project status get <update-id>
+linear-cli project status show <update-id>  # Alias
+
+# Create status update
+linear-cli project status create <project-id> [flags]
+linear-cli project status new <project-id> [flags]    # Alias
+# Flags:
+  -b, --body string        Status update body text (required)
+  --health string           Project health: onTrack, atRisk, offTrack
+
+# Update status update
+linear-cli project status update <update-id> [flags]
+linear-cli project status edit <update-id> [flags]  # Alias
+# Flags:
+  -b, --body string        New body text
+  --health string           New health: onTrack, atRisk, offTrack
+
+# Archive (soft-delete) status update
+linear-cli project status delete <update-id>
+linear-cli project status archive <update-id>  # Alias
+linear-cli project status rm <update-id>       # Alias
 ```
 
 ### User Commands
 ```bash
 # List all users in workspace
-linctl user list [flags]
-linctl user ls [flags]      # Alias
+linear-cli user list [flags]
+linear-cli user ls [flags]      # Alias
 # Flags:
   -a, --active             Show only active users
   -l, --limit int          Maximum results (default 50)
   -o, --sort string        Sort order: linear (default), created, updated
 
 # Examples:
-linctl user list            # List all users
-linctl user list --active   # List only active users
+linear-cli user list            # List all users
+linear-cli user list --active   # List only active users
 
 # Get user details by email
-linctl user get <email>
-linctl user show <email>    # Alias
+linear-cli user get <email>
+linear-cli user show <email>    # Alias
 
 # Examples:
-linctl user get john@example.com
-linctl user get jane.doe@company.com
+linear-cli user get john@example.com
+linear-cli user get jane.doe@company.com
 
 # Show current authenticated user
-linctl user me              # Shows your profile with admin status
+linear-cli user me              # Shows your profile with admin status
+```
+
+### Document Commands
+```bash
+# List documents
+linear-cli document list [flags]
+linear-cli document ls [flags]     # Alias
+# Flags:
+  --project string           Filter by project ID
+  -t, --team string          Filter by team key
+  -l, --limit int            Maximum results (default 50)
+  -o, --sort string          Sort order: linear (default), created, updated
+  -n, --newer-than string    Show documents created after this time (default: 6_months_ago)
+
+# Get document details (shows full content)
+linear-cli document get <document-id>
+linear-cli document show <document-id>  # Alias
+
+# Search documents
+linear-cli document search <query> [flags]
+linear-cli document find <query> [flags]  # Alias
+# Flags:
+  -t, --team string          Filter by team ID
+  -l, --limit int            Maximum results (default 50)
+  -o, --sort string          Sort order: linear (default), created, updated
+  --include-comments         Include document comments in search
+
+# Create document
+linear-cli document create [flags]
+linear-cli document new [flags]    # Alias
+# Flags:
+  --title string             Document title (required)
+  --content string           Document content (markdown)
+  --project string           Project ID to associate with
+  -t, --team string          Team key to associate with
+  --icon string              Document icon (emoji)
+  --color string             Document icon color (hex)
+
+# Update document
+linear-cli document update <document-id> [flags]
+linear-cli document edit <document-id> [flags]  # Alias
+# Flags:
+  --title string             New title
+  --content string           New content (markdown)
+  --icon string              New icon (emoji)
+  --color string             New icon color (hex)
+
+# Delete document
+linear-cli document delete <document-id>
 ```
 
 ### Comment Commands
 ```bash
 # List all comments for an issue
-linctl comment list <issue-id> [flags]
-linctl comment ls <issue-id> [flags]    # Alias
+linear-cli comment list <issue-id> [flags]
+linear-cli comment ls <issue-id> [flags]    # Alias
 # Flags:
   -l, --limit int          Maximum results (default 50)
   -o, --sort string        Sort order: linear (default), created, updated
 
 # Examples:
-linctl comment list LIN-123      # Shows all comments with timestamps
-linctl comment list LIN-456 -l 10 # Show latest 10 comments
+linear-cli comment list LIN-123      # Shows all comments with timestamps
+linear-cli comment list LIN-456 -l 10 # Show latest 10 comments
 
 # Add comment to issue
-linctl comment create <issue-id> --body "Comment text"
-linctl comment add <issue-id> -b "Comment text"    # Alias
-linctl comment new <issue-id> -b "Comment text"    # Alias
+linear-cli comment create <issue-id> --body "Comment text"
+linear-cli comment add <issue-id> -b "Comment text"    # Alias
+linear-cli comment new <issue-id> -b "Comment text"    # Alias
 
 # Examples:
-linctl comment create LIN-123 --body "I've started working on this"
-linctl comment add LIN-123 -b "Fixed in commit abc123"
-linctl comment create LIN-456 --body "@john please review this PR"
+linear-cli comment create LIN-123 --body "I've started working on this"
+linear-cli comment add LIN-123 -b "Fixed in commit abc123"
+linear-cli comment create LIN-456 --body "@john please review this PR"
+```
+
+### 8. Initiatives
+```bash
+# List all initiatives
+linear-cli initiative list
+
+# List by status
+linear-cli initiative list --status Active
+
+# Include completed
+linear-cli initiative list --include-completed
+
+# Get initiative details (with linked projects and sub-initiatives)
+linear-cli initiative get INITIATIVE-ID
+
+# Create an initiative
+linear-cli initiative create --name "Q1 Goals" --description "Company objectives for Q1"
+linear-cli initiative create --name "Mobile Launch" --status Active --target-date "2025-06-01"
+
+# Update an initiative
+linear-cli initiative update INITIATIVE-ID --status Completed
+linear-cli initiative update INITIATIVE-ID --name "Q2 Goals" --target-date "2025-09-01"
+
+# Delete an initiative
+linear-cli initiative delete INITIATIVE-ID
+```
+
+### 9. Custom Views (Saved Filters)
+```bash
+# List all custom views
+linear-cli view list
+linear-cli view list --shared          # Only shared views
+linear-cli view list --model issue     # Only issue views
+linear-cli view list --team ENG        # Only views for a team
+
+# Get view details (shows filter configuration)
+linear-cli view get VIEW-ID
+
+# Run a view — execute its saved filters and see matching items
+linear-cli view run VIEW-ID
+linear-cli view run VIEW-ID --limit 100
+linear-cli view run VIEW-ID --json
+
+# Create a custom view
+linear-cli view create --name "My Bugs" --model issue
+linear-cli view create --name "Active Projects" --model project --shared
+linear-cli view create --name "Urgent Issues" --filter-json '{"priority":{"eq":1}}'
+linear-cli view create --name "Team WIP" --team ENG --filter-json '{"state":{"type":{"eq":"started"}}}'
+
+# Update a view
+linear-cli view update VIEW-ID --name "Renamed View"
+linear-cli view update VIEW-ID --shared
+linear-cli view update VIEW-ID --filter-json '{"priority":{"in":[1,2]}}'
+
+# Delete a view
+linear-cli view delete VIEW-ID
+```
+
+### Custom View Commands
+```bash
+# List custom views
+linear-cli view list [flags]
+linear-cli view ls [flags]     # Alias
+# Flags:
+  -l, --limit int          Maximum results (default 50)
+  --shared                 Show only shared views
+  -m, --model string       Filter by model type (issue, project)
+  -t, --team string        Filter by team key
+
+# Get view details
+linear-cli view get <view-id>
+linear-cli view show <view-id>  # Alias
+
+# Run (execute) a view
+linear-cli view run <view-id> [flags]
+linear-cli view exec <view-id> [flags]  # Alias
+# Flags:
+  -l, --limit int          Maximum results (default 50)
+
+# Create view
+linear-cli view create [flags]
+linear-cli view new [flags]    # Alias
+# Flags:
+  --name string            View name (required)
+  -d, --description string View description
+  -m, --model string       Model type: issue (default), project
+  -t, --team string        Team key
+  --shared                 Make the view shared
+  --filter-json string     Raw JSON filter (IssueFilter or ProjectFilter schema)
+
+# Update view
+linear-cli view update <view-id> [flags]
+linear-cli view edit <view-id> [flags]  # Alias
+# Flags:
+  --name string            New name
+  -d, --description string New description
+  --shared                 Set shared status
+  --filter-json string     New raw JSON filter
+
+# Delete view
+linear-cli view delete <view-id>
+linear-cli view rm <view-id>   # Alias
 ```
 
 ## 🎨 Output Formats
 
 ### Table Format (Default)
 ```bash
-linctl issue list
+linear-cli issue list
 ```
 ```
 ID       Title                State        Assignee    Team  Priority
@@ -374,7 +772,7 @@ LIN-124  Update documentation Done         jane@co.com DOC   Normal
 
 ### Plaintext Format
 ```bash
-linctl issue list --plaintext
+linear-cli issue list --plaintext
 ```
 ```
 # Issues
@@ -404,7 +802,7 @@ Steps to reproduce:
 
 ### JSON Format
 ```bash
-linctl issue list --json
+linear-cli issue list --json
 ```
 ```json
 [
@@ -421,7 +819,7 @@ linctl issue list --json
 
 ## ⚙️ Configuration
 
-Configuration is stored in `~/.linctl.yaml`:
+Configuration is stored in `~/.linear-cli.yaml`:
 
 ```yaml
 # Default output format
@@ -436,14 +834,14 @@ api:
   retries: 3
 ```
 
-Authentication credentials are stored securely in `~/.linctl-auth.json`.
+Authentication credentials are stored securely in `~/.linear-cli-auth.json`.
 
 ## 🔒 Authentication
 
 ### Personal API Key (Recommended)
 1. Go to [Linear Settings > API](https://linear.app/settings/api)
 2. Create a new Personal API Key
-3. Run `linctl auth` and paste your key
+3. Run `linear-cli auth` and paste your key
 
 ## 📅 Time-based Filtering
 
@@ -455,14 +853,14 @@ The `--newer-than` (or `-n`) flag is available on `issue list` and `project list
 
 ```bash
 # Default behavior (last 6 months)
-linctl issue list
+linear-cli issue list
 
 # Show items from a specific time period
-linctl issue list --newer-than 2_weeks_ago
-linctl project list --newer-than 1_month_ago
+linear-cli issue list --newer-than 2_weeks_ago
+linear-cli project list --newer-than 1_month_ago
 
 # Show ALL items regardless of age
-linctl issue list --newer-than all_time
+linear-cli issue list --newer-than all_time
 ```
 
 ### Supported Time Formats
@@ -481,37 +879,37 @@ linctl issue list --newer-than all_time
 
 | Time Expression | Description | Example Command |
 |----------------|-------------|-----------------|
-| *(no flag)* | Last 6 months (default) | `linctl issue list` |
-| `1_day_ago` | Last 24 hours | `linctl issue list --newer-than 1_day_ago` |
-| `1_week_ago` | Last 7 days | `linctl issue list --newer-than 1_week_ago` |
-| `2_weeks_ago` | Last 14 days | `linctl issue list --newer-than 2_weeks_ago` |
-| `1_month_ago` | Last month | `linctl issue list --newer-than 1_month_ago` |
-| `3_months_ago` | Last quarter | `linctl issue list --newer-than 3_months_ago` |
-| `6_months_ago` | Last 6 months | `linctl issue list --newer-than 6_months_ago` |
-| `1_year_ago` | Last year | `linctl issue list --newer-than 1_year_ago` |
-| `all_time` | No date filter | `linctl issue list --newer-than all_time` |
-| `2025-07-01` | Since specific date | `linctl issue list --newer-than 2025-07-01` |
+| *(no flag)* | Last 6 months (default) | `linear-cli issue list` |
+| `1_day_ago` | Last 24 hours | `linear-cli issue list --newer-than 1_day_ago` |
+| `1_week_ago` | Last 7 days | `linear-cli issue list --newer-than 1_week_ago` |
+| `2_weeks_ago` | Last 14 days | `linear-cli issue list --newer-than 2_weeks_ago` |
+| `1_month_ago` | Last month | `linear-cli issue list --newer-than 1_month_ago` |
+| `3_months_ago` | Last quarter | `linear-cli issue list --newer-than 3_months_ago` |
+| `6_months_ago` | Last 6 months | `linear-cli issue list --newer-than 6_months_ago` |
+| `1_year_ago` | Last year | `linear-cli issue list --newer-than 1_year_ago` |
+| `all_time` | No date filter | `linear-cli issue list --newer-than all_time` |
+| `2025-07-01` | Since specific date | `linear-cli issue list --newer-than 2025-07-01` |
 
 ### Common Use Cases
 
 ```bash
 # Recent activity - issues from last week
-linctl issue list --newer-than 1_week_ago
+linear-cli issue list --newer-than 1_week_ago
 
 # Sprint planning - issues from current month
-linctl issue list --newer-than 1_month_ago --state "Todo"
+linear-cli issue list --newer-than 1_month_ago --state "Todo"
 
 # Quarterly review - all projects from last 3 months
-linctl project list --newer-than 3_months_ago
+linear-cli project list --newer-than 3_months_ago
 
 # Historical analysis - ALL issues ever created
-linctl issue list --newer-than all_time --sort created
+linear-cli issue list --newer-than all_time --sort created
 
 # Today's issues
-linctl issue list --newer-than 1_day_ago
+linear-cli issue list --newer-than 1_day_ago
 
 # Combine with other filters
-linctl issue list --newer-than 2_weeks_ago --assignee me --sort updated
+linear-cli issue list --newer-than 2_weeks_ago --assignee me --sort updated
 ```
 
 ## 🔄 Sorting Options
@@ -525,25 +923,25 @@ All list commands support sorting with the `--sort` or `-o` flag:
 ### Examples
 ```bash
 # Get recently updated issues
-linctl issue list --sort updated
+linear-cli issue list --sort updated
 
 # Get oldest projects first
-linctl project list --sort created
+linear-cli project list --sort created
 
 # Get recently joined users
-linctl user list --sort created --active
+linear-cli user list --sort created --active
 
 # Get latest comments on an issue
-linctl comment list LIN-123 --sort created
+linear-cli comment list LIN-123 --sort created
 
 # Combine sorting with filters
-linctl issue list --assignee me --state "In Progress" --sort updated
+linear-cli issue list --assignee me --state "In Progress" --sort updated
 
 # Combine time filtering with sorting
-linctl issue list --newer-than 1_week_ago --sort updated
+linear-cli issue list --newer-than 1_week_ago --sort updated
 
 # Get all projects sorted by creation date
-linctl project list --newer-than all_time --sort created
+linear-cli project list --newer-than all_time --sort created
 ```
 
 ### Performance Tips
@@ -554,7 +952,7 @@ linctl project list --newer-than all_time --sort created
 
 ## 🧪 Testing
 
-linctl includes comprehensive unit and integration tests to ensure reliability.
+linear-cli includes comprehensive unit and integration tests to ensure reliability.
 
 ### Running Tests
 ```bash
@@ -592,33 +990,33 @@ Use `--plaintext` or `--json` flags for scripting:
 #!/bin/bash
 
 # Get all urgent issues in JSON format
-urgent_issues=$(linctl issue list --priority 1 --json)
+urgent_issues=$(linear-cli issue list --priority 1 --json)
 
 # Parse with jq
 echo "$urgent_issues" | jq '.[] | select(.assignee == "me") | .id'
 
 # Plaintext output for simple parsing
-linctl issue list --assignee me --plaintext | cut -f1 | tail -n +2
+linear-cli issue list --assignee me --plaintext | cut -f1 | tail -n +2
 
 # Get issue count for different time periods
-echo "Last week: $(linctl issue list --newer-than 1_week_ago --json | jq '. | length')"
-echo "Last month: $(linctl issue list --newer-than 1_month_ago --json | jq '. | length')"
-echo "All time: $(linctl issue list --newer-than all_time --json | jq '. | length')"
+echo "Last week: $(linear-cli issue list --newer-than 1_week_ago --json | jq '. | length')"
+echo "Last month: $(linear-cli issue list --newer-than 1_month_ago --json | jq '. | length')"
+echo "All time: $(linear-cli issue list --newer-than all_time --json | jq '. | length')"
 
 # Create and assign issue in one command
-linctl issue create --title "Fix bug" --team ENG --assign-me --json
+linear-cli issue create --title "Fix bug" --team ENG --assign-me --json
 
 # Get all projects for a team
-linctl project list --team ENG --json | jq '.[] | {name, progress}'
+linear-cli project list --team ENG --json | jq '.[] | {name, progress}'
 
 # List all admin users
-linctl user list --json | jq '.[] | select(.admin == true) | {name, email}'
+linear-cli user list --json | jq '.[] | select(.admin == true) | {name, email}'
 
 # Get team member count
-linctl team members ENG --json | jq '. | length'
+linear-cli team members ENG --json | jq '. | length'
 
 # Export issue comments
-linctl comment list LIN-123 --json > issue-comments.json
+linear-cli comment list LIN-123 --json > issue-comments.json
 ```
 
 ## 📡 Real-World Examples
@@ -626,41 +1024,41 @@ linctl comment list LIN-123 --json > issue-comments.json
 ### Team Workflows
 ```bash
 # Find which team a user belongs to
-for team in $(linctl team list --json | jq -r '.[].key'); do
+for team in $(linear-cli team list --json | jq -r '.[].key'); do
   echo "Checking team: $team"
-  linctl team members $team --json | jq '.[] | select(.email == "john@example.com")'
+  linear-cli team members $team --json | jq '.[] | select(.email == "john@example.com")'
 done
 
 # List all private teams
-linctl team list --json | jq '.[] | select(.private == true) | {key, name}'
+linear-cli team list --json | jq '.[] | select(.private == true) | {key, name}'
 
 # Get teams with more than 50 issues
-linctl team list --json | jq '.[] | select(.issueCount > 50) | {key, name, issueCount}'
+linear-cli team list --json | jq '.[] | select(.issueCount > 50) | {key, name, issueCount}'
 ```
 
 ### User Management
 ```bash
 # Find inactive users
-linctl user list --json | jq '.[] | select(.active == false) | {name, email}'
+linear-cli user list --json | jq '.[] | select(.active == false) | {name, email}'
 
 # Check if you're an admin
-linctl user me --json | jq '.admin'
+linear-cli user me --json | jq '.admin'
 
 # List users who are admins but not the current user
-linctl user list --json | jq '.[] | select(.admin == true and .isMe == false) | .email'
+linear-cli user list --json | jq '.[] | select(.admin == true and .isMe == false) | .email'
 ```
 
 ### Issue Comments
 ```bash
 # Add a comment mentioning the issue is blocked
-linctl comment create LIN-123 --body "Blocked by LIN-456. Waiting for API changes."
+linear-cli comment create LIN-123 --body "Blocked by LIN-456. Waiting for API changes."
 
 # Get all comments by a specific user
-linctl comment list LIN-123 --json | jq '.[] | select(.user.email == "john@example.com") | .body'
+linear-cli comment list LIN-123 --json | jq '.[] | select(.user.email == "john@example.com") | .body'
 
 # Count comments per issue
 for issue in LIN-123 LIN-124 LIN-125; do
-  count=$(linctl comment list $issue --json | jq '. | length')
+  count=$(linear-cli comment list $issue --json | jq '. | length')
   echo "$issue: $count comments"
 done
 ```
@@ -668,13 +1066,13 @@ done
 ### Project Tracking
 ```bash
 # List projects nearing completion (>80% progress)
-linctl project list --json | jq '.[] | select(.progress > 0.8) | {name, progress}'
+linear-cli project list --json | jq '.[] | select(.progress > 0.8) | {name, progress}'
 
 # Get all paused projects
-linctl project list --state paused
+linear-cli project list --state paused
 
 # Show project timeline
-linctl project get PROJECT-ID --json | jq '{name, startDate, targetDate, progress}'
+linear-cli project get PROJECT-ID --json | jq '{name, startDate, targetDate, progress}'
 ```
 
 ### Daily Standup Helper
@@ -682,12 +1080,12 @@ linctl project get PROJECT-ID --json | jq '{name, startDate, targetDate, progres
 #!/bin/bash
 # Show my recent activity
 echo "=== My Issues ==="
-linctl issue list --assignee me --limit 10
+linear-cli issue list --assignee me --limit 10
 
 echo -e "\n=== Recent Comments ==="
-for issue in $(linctl issue list --assignee me --json | jq -r '.[].identifier'); do
+for issue in $(linear-cli issue list --assignee me --json | jq -r '.[].identifier'); do
   echo "Comments on $issue:"
-  linctl comment list $issue --limit 3
+  linear-cli comment list $issue --limit 3
 done
 ```
 
@@ -696,11 +1094,11 @@ done
 ### Authentication Issues
 ```bash
 # Check authentication status
-linctl auth status
+linear-cli auth status
 
 # Re-authenticate
-linctl auth logout
-linctl auth
+linear-cli auth logout
+linear-cli auth
 ```
 
 ### API Rate Limits
@@ -708,7 +1106,7 @@ Linear has the following rate limits:
 - Personal API Keys: 5,000 requests/hour
 
 ### Common Errors
-- `Not authenticated`: Run `linctl auth` first
+- `Not authenticated`: Run `linear-cli auth` first
 - `Team not found`: Use team key (e.g., "ENG") not display name
 - `Invalid priority`: Use numbers 0-4 (0=None, 1=Urgent, 2=High, 3=Normal, 4=Low)
 
@@ -737,9 +1135,10 @@ MIT License - see [LICENSE](LICENSE) file for details.
 ## 🔗 Links
 
 - [Linear API Documentation](https://developers.linear.app/)
-- [GitHub Repository](https://github.com/dorkitude/linctl)
-- [Issue Tracker](https://github.com/dorkitude/linctl/issues)
+- [GitHub Repository](https://github.com/dorkitude/linear-cli)
+- [Issue Tracker](https://github.com/dorkitude/linear-cli/issues)
+- [Original Project (linctl)](https://github.com/dorkitude/linctl) - the upstream project this was forked from
 
 ---
 
-**Built with ❤️ using Go, Cobra, and the Linear API**
+**Forked from [linctl](https://github.com/dorkitude/linctl). Built with Go, Cobra, and the Linear API.**

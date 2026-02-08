@@ -7,9 +7,9 @@ import (
 	"strings"
 	"time"
 
-	"github.com/dorkitude/linctl/pkg/api"
-	"github.com/dorkitude/linctl/pkg/auth"
-	"github.com/dorkitude/linctl/pkg/output"
+	"github.com/dorkitude/linear-cli/pkg/api"
+	"github.com/dorkitude/linear-cli/pkg/auth"
+	"github.com/dorkitude/linear-cli/pkg/output"
 	"github.com/fatih/color"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
@@ -22,8 +22,8 @@ var commentCmd = &cobra.Command{
 	Long: `Manage comments on Linear issues including listing and creating comments.
 
 Examples:
-  linctl comment list LIN-123        # List comments for an issue
-  linctl comment create LIN-123 --body "This is fixed"  # Add a comment`,
+  linear-cli comment list LIN-123        # List comments for an issue
+  linear-cli comment create LIN-123 --body "This is fixed"  # Add a comment`,
 }
 
 var commentListCmd = &cobra.Command{
