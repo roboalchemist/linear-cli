@@ -377,9 +377,10 @@ var documentCreateCmd = &cobra.Command{
 			input["projectId"] = projectID
 		}
 
-		if issueID != "" {
-			input["issueId"] = issueID
-		}
+		// NOTE: issueId is intentionally NOT added to create input.
+		// Linear API's documentCreate mutation doesn't support issueId despite
+		// the schema advertising it. We work around this by creating the document
+		// first, then updating it to link the issue.
 
 		if teamKey != "" {
 			// Resolve team key to ID
@@ -403,6 +404,19 @@ var documentCreateCmd = &cobra.Command{
 		if err != nil {
 			output.Error(fmt.Sprintf("Failed to create document: %v", err), plaintext, jsonOut)
 			os.Exit(1)
+		}
+
+		// If issue ID was provided, update the document to link it
+		// (workaround for Linear API limitation where documentCreate doesn't accept issueId)
+		if issueID != "" {
+			updateInput := map[string]interface{}{
+				"issueId": issueID,
+			}
+			doc, err = client.UpdateDocument(context.Background(), doc.ID, updateInput)
+			if err != nil {
+				output.Error(fmt.Sprintf("Failed to link document to issue: %v", err), plaintext, jsonOut)
+				os.Exit(1)
+			}
 		}
 
 		if jsonOut {
