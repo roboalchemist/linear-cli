@@ -82,7 +82,14 @@ var projectListCmd = &cobra.Command{
 				output.Error(fmt.Sprintf("Failed to find team '%s': %v", teamKey, err), plaintext, jsonOut)
 				os.Exit(1)
 			}
-			filter["team"] = map[string]interface{}{"id": team.ID}
+			// ProjectFilter uses accessibleTeams (TeamCollectionFilter) since
+			// projects can belong to multiple teams. We filter for projects
+			// where at least some of the accessible teams match the given team ID.
+			filter["accessibleTeams"] = map[string]interface{}{
+				"some": map[string]interface{}{
+					"id": map[string]interface{}{"eq": team.ID},
+				},
+			}
 		}
 		if state != "" {
 			filter["state"] = map[string]interface{}{"eq": state}

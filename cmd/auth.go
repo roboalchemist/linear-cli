@@ -83,17 +83,28 @@ var statusCmd = &cobra.Command{
 			os.Exit(1)
 		}
 
+		authSource := auth.GetAuthSource()
+		sourceLabel := "config file"
+		if authSource == "env:LINEAR_API_KEY" {
+			sourceLabel = "LINEAR_API_KEY env var"
+		} else if authSource == "env:LINCTL_API_KEY" {
+			sourceLabel = "LINCTL_API_KEY env var"
+		}
+
 		if jsonOut {
 			output.JSON(map[string]interface{}{
 				"authenticated": true,
 				"user":          user,
+				"auth_source":   authSource,
 			})
 		} else if plaintext {
 			fmt.Printf("Authenticated as: %s (%s)\n", user.Name, user.Email)
+			fmt.Printf("Auth source: %s\n", sourceLabel)
 		} else {
 			fmt.Println(color.New(color.FgGreen).Sprint("✅ Authenticated"))
 			fmt.Printf("User: %s\n", color.New(color.FgCyan).Sprint(user.Name))
 			fmt.Printf("Email: %s\n", color.New(color.FgCyan).Sprint(user.Email))
+			fmt.Printf("Source: %s\n", color.New(color.FgYellow).Sprint(sourceLabel))
 		}
 	},
 }

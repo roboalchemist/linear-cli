@@ -987,6 +987,38 @@ var issueCreateCmd = &cobra.Command{
 			}
 		}
 
+		// Handle label flag
+		labelNames, _ := cmd.Flags().GetStringSlice("label")
+		if len(labelNames) > 0 {
+			// Fetch all labels from the workspace
+			allLabels, err := client.GetLabels(context.Background(), nil, 250, "")
+			if err != nil {
+				output.Error(fmt.Sprintf("Failed to fetch labels: %v", err), plaintext, jsonOut)
+				os.Exit(1)
+			}
+
+			var labelIDs []string
+			for _, name := range labelNames {
+				var found bool
+				for _, label := range allLabels.Nodes {
+					if strings.EqualFold(label.Name, name) {
+						labelIDs = append(labelIDs, label.ID)
+						found = true
+						break
+					}
+				}
+				if !found {
+					var available []string
+					for _, label := range allLabels.Nodes {
+						available = append(available, label.Name)
+					}
+					output.Error(fmt.Sprintf("Label '%s' not found. Available labels: %s", name, strings.Join(available, ", ")), plaintext, jsonOut)
+					os.Exit(1)
+				}
+			}
+			input["labelIds"] = labelIDs
+		}
+
 		// Create issue
 		issue, err := client.CreateIssue(context.Background(), input)
 		if err != nil {
@@ -1167,6 +1199,11 @@ Examples:
 			if parentVal == "" || strings.EqualFold(parentVal, "none") {
 				input["parentId"] = nil
 			} else {
+				// Prevent self-reference
+				if strings.EqualFold(parentVal, args[0]) {
+					output.Error("An issue cannot be its own parent", plaintext, jsonOut)
+					os.Exit(1)
+				}
 				parentIssue, err := client.GetIssue(context.Background(), parentVal)
 				if err != nil {
 					output.Error(fmt.Sprintf("Failed to resolve parent issue '%s': %v", parentVal, err), plaintext, jsonOut)
@@ -1822,6 +1859,7 @@ func init() {
 	issueCreateCmd.Flags().BoolP("assign-me", "m", false, "Assign to yourself")
 	issueCreateCmd.Flags().String("project", "", "Project ID to associate with")
 	issueCreateCmd.Flags().String("milestone", "", "Milestone ID or name (requires --project)")
+	issueCreateCmd.Flags().StringSliceP("label", "L", nil, "Label name (repeatable, case-insensitive)")
 	_ = issueCreateCmd.MarkFlagRequired("title")
 	_ = issueCreateCmd.MarkFlagRequired("team")
 

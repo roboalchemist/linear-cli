@@ -81,8 +81,35 @@ func loadAuth() (*AuthConfig, error) {
 	return &config, nil
 }
 
-// GetAuthHeader returns the authorization header value
+// GetAuthSource returns the source of the current authentication.
+// Possible values: "env:LINEAR_API_KEY", "env:LINCTL_API_KEY", "config", or "" if not authenticated.
+func GetAuthSource() string {
+	if key := os.Getenv("LINEAR_API_KEY"); key != "" {
+		return "env:LINEAR_API_KEY"
+	}
+	if key := os.Getenv("LINCTL_API_KEY"); key != "" {
+		return "env:LINCTL_API_KEY"
+	}
+	config, err := loadAuth()
+	if err == nil && config.APIKey != "" {
+		return "config"
+	}
+	return ""
+}
+
+// GetAuthHeader returns the authorization header value.
+// It checks for credentials in this order:
+//  1. LINEAR_API_KEY environment variable
+//  2. LINCTL_API_KEY environment variable (legacy alias)
+//  3. Config file (~/.linear-cli-auth.json or ~/.linctl-auth.json)
 func GetAuthHeader() (string, error) {
+	if key := os.Getenv("LINEAR_API_KEY"); key != "" {
+		return key, nil
+	}
+	if key := os.Getenv("LINCTL_API_KEY"); key != "" {
+		return key, nil
+	}
+
 	config, err := loadAuth()
 	if err != nil {
 		return "", err
