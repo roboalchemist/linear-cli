@@ -48,6 +48,22 @@ var issueListCmd = &cobra.Command{
 
 		client := api.NewClient(authHeader)
 
+		// Check if --view flag is set (execute custom view instead of filter)
+		viewID, _ := cmd.Flags().GetString("view")
+		if viewID != "" {
+			limit, _ := cmd.Flags().GetInt("limit")
+			if limit == 0 {
+				limit = 50
+			}
+			issues, err := client.GetCustomViewIssues(context.Background(), viewID, limit, "")
+			if err != nil {
+				output.Error(fmt.Sprintf("Failed to execute view: %v", err), plaintext, jsonOut)
+				os.Exit(1)
+			}
+			renderIssueCollection(issues, plaintext, jsonOut, "No issues in this view", "issues", "# View Results")
+			return
+		}
+
 		// Build filter from flags
 		filter := buildIssueFilter(cmd)
 
@@ -1484,6 +1500,284 @@ Examples:
 	},
 }
 
+// resolveStateByType finds the workflow state matching a type with lowest position for the issue's team
+func resolveStateByType(client *api.Client, issueID string, stateType string) (string, string, error) {
+	issue, err := client.GetIssue(context.Background(), issueID)
+	if err != nil {
+		return "", "", fmt.Errorf("failed to get issue: %v", err)
+	}
+	states, err := client.GetTeamStates(context.Background(), issue.Team.Key)
+	if err != nil {
+		return "", "", fmt.Errorf("failed to get team states: %v", err)
+	}
+	var bestID, bestName string
+	bestPosition := float64(999999)
+	for _, state := range states {
+		if state.Type == stateType && state.Position < bestPosition {
+			bestID = state.ID
+			bestName = state.Name
+			bestPosition = state.Position
+		}
+	}
+	if bestID == "" {
+		return "", "", fmt.Errorf("no state of type '%s' found for team %s", stateType, issue.Team.Key)
+	}
+	return bestID, bestName, nil
+}
+
+var issueStartCmd = &cobra.Command{
+	Use:   "start ISSUE-ID",
+	Short: "Start working on an issue (set In Progress + assign to me)",
+	Long: `Shortcut to set an issue to "In Progress" and assign it to yourself.
+
+Examples:
+  linear-cli issue start ROB-25`,
+	Args: cobra.ExactArgs(1),
+	Run: func(cmd *cobra.Command, args []string) {
+		plaintext := viper.GetBool("plaintext")
+		jsonOut := viper.GetBool("json")
+		issueID := args[0]
+
+		authHeader, err := auth.GetAuthHeader()
+		if err != nil {
+			output.Error("Not authenticated. Run 'linear-cli auth' first.", plaintext, jsonOut)
+			os.Exit(1)
+		}
+
+		client := api.NewClient(authHeader)
+
+		// Get current user
+		viewer, err := client.GetViewer(context.Background())
+		if err != nil {
+			output.Error(fmt.Sprintf("Failed to get current user: %v", err), plaintext, jsonOut)
+			os.Exit(1)
+		}
+
+		// Find the "started" type state (In Progress)
+		stateID, stateName, err := resolveStateByType(client, issueID, "started")
+		if err != nil {
+			output.Error(err.Error(), plaintext, jsonOut)
+			os.Exit(1)
+		}
+
+		input := map[string]interface{}{
+			"stateId":    stateID,
+			"assigneeId": viewer.ID,
+		}
+
+		issue, err := client.UpdateIssue(context.Background(), issueID, input)
+		if err != nil {
+			output.Error(fmt.Sprintf("Failed to start issue: %v", err), plaintext, jsonOut)
+			os.Exit(1)
+		}
+
+		if jsonOut {
+			output.JSON(issue)
+		} else if plaintext {
+			fmt.Printf("Started %s (%s, assigned to %s)\n", issue.Identifier, stateName, viewer.Name)
+		} else {
+			fmt.Printf("%s Started %s → %s (assigned to %s)\n",
+				color.New(color.FgGreen).Sprint("✓"),
+				color.New(color.FgCyan, color.Bold).Sprint(issue.Identifier),
+				color.New(color.FgYellow).Sprint(stateName),
+				color.New(color.FgCyan).Sprint(viewer.Name))
+		}
+	},
+}
+
+var issueDoneCmd = &cobra.Command{
+	Use:   "done ISSUE-ID",
+	Short: "Mark an issue as done",
+	Long: `Shortcut to set an issue to the "Done" (completed) state.
+
+Examples:
+  linear-cli issue done ROB-25`,
+	Args: cobra.ExactArgs(1),
+	Run: func(cmd *cobra.Command, args []string) {
+		plaintext := viper.GetBool("plaintext")
+		jsonOut := viper.GetBool("json")
+		issueID := args[0]
+
+		authHeader, err := auth.GetAuthHeader()
+		if err != nil {
+			output.Error("Not authenticated. Run 'linear-cli auth' first.", plaintext, jsonOut)
+			os.Exit(1)
+		}
+
+		client := api.NewClient(authHeader)
+
+		// Find the "completed" type state (Done)
+		stateID, stateName, err := resolveStateByType(client, issueID, "completed")
+		if err != nil {
+			output.Error(err.Error(), plaintext, jsonOut)
+			os.Exit(1)
+		}
+
+		input := map[string]interface{}{
+			"stateId": stateID,
+		}
+
+		issue, err := client.UpdateIssue(context.Background(), issueID, input)
+		if err != nil {
+			output.Error(fmt.Sprintf("Failed to complete issue: %v", err), plaintext, jsonOut)
+			os.Exit(1)
+		}
+
+		if jsonOut {
+			output.JSON(issue)
+		} else if plaintext {
+			fmt.Printf("Completed %s (%s)\n", issue.Identifier, stateName)
+		} else {
+			fmt.Printf("%s Completed %s → %s\n",
+				color.New(color.FgGreen).Sprint("✓"),
+				color.New(color.FgCyan, color.Bold).Sprint(issue.Identifier),
+				color.New(color.FgGreen).Sprint(stateName))
+		}
+	},
+}
+
+var issueTriageCmd = &cobra.Command{
+	Use:   "triage TEAM-KEY",
+	Short: "List untriaged issues for a team",
+	Long: `Show issues in the Triage or Backlog state that need attention.
+This maps to the daily triage workflow in Linear.
+
+Examples:
+  linear-cli issue triage ROB`,
+	Args: cobra.ExactArgs(1),
+	Run: func(cmd *cobra.Command, args []string) {
+		plaintext := viper.GetBool("plaintext")
+		jsonOut := viper.GetBool("json")
+		teamKey := args[0]
+
+		authHeader, err := auth.GetAuthHeader()
+		if err != nil {
+			output.Error("Not authenticated. Run 'linear-cli auth' first.", plaintext, jsonOut)
+			os.Exit(1)
+		}
+
+		client := api.NewClient(authHeader)
+		limit, _ := cmd.Flags().GetInt("limit")
+
+		// Build filter for triage/backlog states with no assignee
+		filter := map[string]interface{}{
+			"team": map[string]interface{}{
+				"key": map[string]interface{}{"eq": teamKey},
+			},
+			"state": map[string]interface{}{
+				"type": map[string]interface{}{"in": []string{"triage", "backlog"}},
+			},
+		}
+
+		issues, err := client.GetIssues(context.Background(), filter, limit, "", "")
+		if err != nil {
+			output.Error(fmt.Sprintf("Failed to get triage issues: %v", err), plaintext, jsonOut)
+			os.Exit(1)
+		}
+
+		if jsonOut {
+			output.JSON(issues.Nodes)
+			return
+		}
+
+		if len(issues.Nodes) == 0 {
+			if plaintext {
+				fmt.Println("No issues to triage")
+			} else {
+				fmt.Printf("\n%s No issues to triage for team %s\n",
+					color.New(color.FgGreen).Sprint("✓"),
+					color.New(color.FgCyan).Sprint(teamKey))
+			}
+			return
+		}
+
+		if plaintext {
+			fmt.Printf("# Triage: %s\n", teamKey)
+			fmt.Println("ID\tTitle\tState\tPriority\tCreated")
+			for _, i := range issues.Nodes {
+				state := ""
+				if i.State != nil {
+					state = i.State.Name
+				}
+				fmt.Printf("%s\t%s\t%s\t%s\t%s\n",
+					i.Identifier, i.Title, state, i.PriorityLabel,
+					i.CreatedAt.Format("2006-01-02"))
+			}
+		} else {
+			fmt.Printf("\n%s Triage for team %s (%d issues)\n\n",
+				color.New(color.FgMagenta, color.Bold).Sprint("📋"),
+				color.New(color.FgCyan).Sprint(teamKey),
+				len(issues.Nodes))
+
+			headers := []string{"ID", "Title", "State", "Priority", "Created"}
+			rows := [][]string{}
+			for _, i := range issues.Nodes {
+				state := ""
+				stateColor := color.New(color.FgWhite)
+				if i.State != nil {
+					state = i.State.Name
+					switch i.State.Type {
+					case "triage":
+						stateColor = color.New(color.FgMagenta)
+					case "backlog":
+						stateColor = color.New(color.FgCyan)
+					}
+				}
+				rows = append(rows, []string{
+					color.New(color.FgCyan).Sprint(i.Identifier),
+					truncateString(i.Title, 60),
+					stateColor.Sprint(state),
+					i.PriorityLabel,
+					i.CreatedAt.Format("2006-01-02"),
+				})
+			}
+			output.Table(output.TableData{
+				Headers: headers,
+				Rows:    rows,
+			}, plaintext, jsonOut)
+		}
+	},
+}
+
+var issueArchiveCmd = &cobra.Command{
+	Use:     "archive ISSUE-ID",
+	Aliases: []string{"delete", "rm"},
+	Short:   "Archive an issue",
+	Long: `Archive an issue (soft delete). Archived issues can be restored in the Linear UI.
+
+Examples:
+  linear-cli issue archive ROB-25`,
+	Args: cobra.ExactArgs(1),
+	Run: func(cmd *cobra.Command, args []string) {
+		plaintext := viper.GetBool("plaintext")
+		jsonOut := viper.GetBool("json")
+		issueID := args[0]
+
+		authHeader, err := auth.GetAuthHeader()
+		if err != nil {
+			output.Error("Not authenticated. Run 'linear-cli auth' first.", plaintext, jsonOut)
+			os.Exit(1)
+		}
+
+		client := api.NewClient(authHeader)
+
+		// Resolve the issue first to get its UUID
+		issue, err := client.GetIssue(context.Background(), issueID)
+		if err != nil {
+			output.Error(fmt.Sprintf("Failed to get issue: %v", err), plaintext, jsonOut)
+			os.Exit(1)
+		}
+
+		_, err = client.ArchiveIssue(context.Background(), issue.ID)
+		if err != nil {
+			output.Error(fmt.Sprintf("Failed to archive issue: %v", err), plaintext, jsonOut)
+			os.Exit(1)
+		}
+
+		output.Success(fmt.Sprintf("Archived %s", issueID), plaintext, jsonOut)
+	},
+}
+
 func init() {
 	rootCmd.AddCommand(issueCmd)
 	issueCmd.AddCommand(issueListCmd)
@@ -1493,6 +1787,10 @@ func init() {
 	issueCmd.AddCommand(issueCreateCmd)
 	issueCmd.AddCommand(issueUpdateCmd)
 	issueCmd.AddCommand(issueActivityCmd)
+	issueCmd.AddCommand(issueStartCmd)
+	issueCmd.AddCommand(issueDoneCmd)
+	issueCmd.AddCommand(issueTriageCmd)
+	issueCmd.AddCommand(issueArchiveCmd)
 
 	// Issue list flags
 	issueListCmd.Flags().StringP("assignee", "a", "", "Filter by assignee (email or 'me')")
@@ -1503,6 +1801,7 @@ func init() {
 	issueListCmd.Flags().BoolP("include-completed", "c", false, "Include completed and canceled issues")
 	issueListCmd.Flags().StringP("sort", "o", "linear", "Sort order: linear (default), created, updated")
 	issueListCmd.Flags().StringP("newer-than", "n", "", "Show issues created after this time (default: 6_months_ago, use 'all_time' for no filter)")
+	issueListCmd.Flags().String("view", "", "Execute a custom view by ID (overrides other filters)")
 
 	// Issue search flags
 	issueSearchCmd.Flags().StringP("assignee", "a", "", "Filter by assignee (email or 'me')")
@@ -1541,6 +1840,9 @@ func init() {
 
 	// Issue activity flags
 	issueActivityCmd.Flags().IntP("limit", "l", 50, "Number of history entries to fetch")
+
+	// Issue triage flags
+	issueTriageCmd.Flags().IntP("limit", "l", 50, "Maximum number of issues to show")
 }
 
 // resolveMilestone resolves a milestone value (ID or name) for an existing issue.

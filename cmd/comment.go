@@ -15,15 +15,16 @@ import (
 	"github.com/spf13/viper"
 )
 
-// commentCmd represents the comment command
+// commentCmd represents the comment command (nested under issue)
 var commentCmd = &cobra.Command{
 	Use:   "comment",
 	Short: "Manage issue comments",
 	Long: `Manage comments on Linear issues including listing and creating comments.
 
 Examples:
-  linear-cli comment list LIN-123        # List comments for an issue
-  linear-cli comment create LIN-123 --body "This is fixed"  # Add a comment`,
+  linear-cli issue comment list LIN-123                      # List comments for an issue
+  linear-cli issue comment create LIN-123 --body "Fixed"     # Add a comment
+  linear-cli comment list LIN-123                            # Also works (shortcut)`,
 }
 
 var commentListCmd = &cobra.Command{
@@ -210,10 +211,79 @@ func formatTimeAgo(t time.Time) string {
 	}
 }
 
+var commentUpdateCmd = &cobra.Command{
+	Use:     "update COMMENT-ID",
+	Aliases: []string{"edit"},
+	Short:   "Update a comment",
+	Long:    `Update the body of an existing comment.`,
+	Args:    cobra.ExactArgs(1),
+	Run: func(cmd *cobra.Command, args []string) {
+		plaintext := viper.GetBool("plaintext")
+		jsonOut := viper.GetBool("json")
+		commentID := args[0]
+
+		authHeader, err := auth.GetAuthHeader()
+		if err != nil {
+			output.Error(fmt.Sprintf("Authentication failed: %v", err), plaintext, jsonOut)
+			os.Exit(1)
+		}
+
+		client := api.NewClient(authHeader)
+		body, _ := cmd.Flags().GetString("body")
+		if body == "" {
+			output.Error("Comment body is required (--body)", plaintext, jsonOut)
+			os.Exit(1)
+		}
+
+		comment, err := client.UpdateComment(context.Background(), commentID, body)
+		if err != nil {
+			output.Error(fmt.Sprintf("Failed to update comment: %v", err), plaintext, jsonOut)
+			os.Exit(1)
+		}
+
+		if jsonOut {
+			output.JSON(comment)
+		} else {
+			output.Success("Updated comment", plaintext, jsonOut)
+		}
+	},
+}
+
+var commentDeleteCmd = &cobra.Command{
+	Use:     "delete COMMENT-ID",
+	Aliases: []string{"rm"},
+	Short:   "Delete a comment",
+	Long:    `Delete an existing comment.`,
+	Args:    cobra.ExactArgs(1),
+	Run: func(cmd *cobra.Command, args []string) {
+		plaintext := viper.GetBool("plaintext")
+		jsonOut := viper.GetBool("json")
+		commentID := args[0]
+
+		authHeader, err := auth.GetAuthHeader()
+		if err != nil {
+			output.Error(fmt.Sprintf("Authentication failed: %v", err), plaintext, jsonOut)
+			os.Exit(1)
+		}
+
+		client := api.NewClient(authHeader)
+		err = client.DeleteComment(context.Background(), commentID)
+		if err != nil {
+			output.Error(fmt.Sprintf("Failed to delete comment: %v", err), plaintext, jsonOut)
+			os.Exit(1)
+		}
+
+		output.Success("Deleted comment", plaintext, jsonOut)
+	},
+}
+
 func init() {
-	rootCmd.AddCommand(commentCmd)
+	// Primary home: nested under issue command
+	issueCmd.AddCommand(commentCmd)
 	commentCmd.AddCommand(commentListCmd)
 	commentCmd.AddCommand(commentCreateCmd)
+	commentCmd.AddCommand(commentUpdateCmd)
+	commentCmd.AddCommand(commentDeleteCmd)
 
 	// List command flags
 	commentListCmd.Flags().IntP("limit", "l", 50, "Maximum number of comments to return")
@@ -222,4 +292,8 @@ func init() {
 	// Create command flags
 	commentCreateCmd.Flags().StringP("body", "b", "", "Comment body (required)")
 	_ = commentCreateCmd.MarkFlagRequired("body")
+
+	// Update command flags
+	commentUpdateCmd.Flags().StringP("body", "b", "", "New comment body (required)")
+	_ = commentUpdateCmd.MarkFlagRequired("body")
 }

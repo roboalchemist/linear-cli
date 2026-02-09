@@ -547,6 +547,95 @@ var initiativeDeleteCmd = &cobra.Command{
 	},
 }
 
+var initiativeProjectsCmd = &cobra.Command{
+	Use:     "projects INITIATIVE-ID",
+	Aliases: []string{"project"},
+	Short:   "List projects under an initiative",
+	Long:    `List all projects that belong to a specific initiative.`,
+	Args:    cobra.ExactArgs(1),
+	Run: func(cmd *cobra.Command, args []string) {
+		plaintext := viper.GetBool("plaintext")
+		jsonOut := viper.GetBool("json")
+		initiativeID := args[0]
+
+		authHeader, err := auth.GetAuthHeader()
+		if err != nil {
+			output.Error(fmt.Sprintf("Authentication failed: %v", err), plaintext, jsonOut)
+			os.Exit(1)
+		}
+
+		client := api.NewClient(authHeader)
+		limit, _ := cmd.Flags().GetInt("limit")
+
+		projects, err := client.GetInitiativeProjects(context.Background(), initiativeID, limit, "")
+		if err != nil {
+			output.Error(fmt.Sprintf("Failed to get initiative projects: %v", err), plaintext, jsonOut)
+			os.Exit(1)
+		}
+
+		if jsonOut {
+			output.JSON(projects.Nodes)
+			return
+		}
+
+		if len(projects.Nodes) == 0 {
+			if plaintext {
+				fmt.Println("No projects found")
+			} else {
+				fmt.Printf("\n%s No projects in this initiative\n", color.New(color.FgYellow).Sprint("ℹ️"))
+			}
+			return
+		}
+
+		if plaintext {
+			fmt.Println("# Projects")
+			fmt.Println("ID\tName\tState\tProgress\tLead")
+			for _, p := range projects.Nodes {
+				lead := ""
+				if p.Lead != nil {
+					lead = p.Lead.Name
+				}
+				fmt.Printf("%s\t%s\t%s\t%.0f%%\t%s\n",
+					p.ID, p.Name, p.State, p.Progress*100, lead)
+			}
+		} else {
+			headers := []string{"ID", "Name", "State", "Progress", "Lead"}
+			rows := [][]string{}
+
+			for _, p := range projects.Nodes {
+				lead := ""
+				if p.Lead != nil {
+					lead = p.Lead.Name
+				}
+				stateColor := color.New(color.FgWhite)
+				switch p.State {
+				case "started":
+					stateColor = color.New(color.FgYellow)
+				case "completed":
+					stateColor = color.New(color.FgGreen)
+				case "canceled":
+					stateColor = color.New(color.FgRed)
+				case "planned":
+					stateColor = color.New(color.FgCyan)
+				}
+
+				rows = append(rows, []string{
+					p.ID[:8],
+					color.New(color.FgWhite, color.Bold).Sprint(p.Name),
+					stateColor.Sprint(p.State),
+					fmt.Sprintf("%.0f%%", p.Progress*100),
+					lead,
+				})
+			}
+
+			output.Table(output.TableData{
+				Headers: headers,
+				Rows:    rows,
+			}, plaintext, jsonOut)
+		}
+	},
+}
+
 func init() {
 	rootCmd.AddCommand(initiativeCmd)
 	initiativeCmd.AddCommand(initiativeListCmd)
@@ -554,6 +643,10 @@ func init() {
 	initiativeCmd.AddCommand(initiativeCreateCmd)
 	initiativeCmd.AddCommand(initiativeUpdateCmd)
 	initiativeCmd.AddCommand(initiativeDeleteCmd)
+	initiativeCmd.AddCommand(initiativeProjectsCmd)
+
+	// Initiative projects flags
+	initiativeProjectsCmd.Flags().IntP("limit", "l", 50, "Maximum number of projects to return")
 
 	// List flags
 	initiativeListCmd.Flags().StringP("status", "s", "", "Filter by status (Planned, Active, Completed)")

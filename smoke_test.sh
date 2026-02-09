@@ -138,10 +138,10 @@ if [ -n "$issue_id" ]; then
     run_test "issue get" "go run main.go issue get $issue_id"
     run_test "issue get (plaintext)" "go run main.go issue get $issue_id -p" "# $issue_id"
     
-    # Test comment list for this issue
+    # Test comment list for this issue (nested under issue)
     echo -e "\n${YELLOW}Testing comment commands...${NC}"
-    run_test "comment list" "go run main.go comment list $issue_id"
-    run_test "comment list (plaintext)" "go run main.go comment list $issue_id -p"
+    run_test "issue comment list" "go run main.go issue comment list $issue_id"
+    run_test "issue comment list (plaintext)" "go run main.go issue comment list $issue_id -p"
 fi
 
 # Test document commands
@@ -217,7 +217,7 @@ run_test "view list (json)" "go run main.go view list -j"
 
 # Get first view ID for additional tests
 view_output=$(go run main.go view list --json 2>/dev/null || true)
-view_id=$(echo "$view_output" | grep -E -o '"id":\s*"[a-f0-9-]+"' | head -1 | grep -E -o '[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}')
+view_id=$(echo "$view_output" | grep -E -o '"id":\s*"[a-f0-9-]+"' | head -1 | grep -E -o '[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}' || true)
 if [ -n "$view_id" ]; then
     run_test "view get" "go run main.go view get $view_id"
     run_test "view get (plaintext)" "go run main.go view get $view_id -p" "# "
@@ -249,6 +249,42 @@ if [ -n "$issue_id" ]; then
     run_test "issue attachment list (plaintext)" "go run main.go issue attachment list $issue_id -p"
     run_test "issue attachment list (json)" "go run main.go issue attachment list $issue_id -j"
 fi
+
+# Test new commands: cycle, label, team states, issue triage, project issues
+echo -e "\n${YELLOW}Testing cycle commands...${NC}"
+run_test "cycle list" "go run main.go cycle list"
+run_test "cycle list (json)" "go run main.go cycle list -j"
+run_test "cycle list (plaintext)" "go run main.go cycle list -p"
+run_test "cycle help" "go run main.go cycle --help" "Available Commands:"
+
+echo -e "\n${YELLOW}Testing label commands...${NC}"
+run_test "label list" "go run main.go label list"
+run_test "label list (json)" "go run main.go label list -j" "\"name\""
+run_test "label list (plaintext)" "go run main.go label list -p"
+run_test "label help" "go run main.go label --help" "Available Commands:"
+
+echo -e "\n${YELLOW}Testing team states command...${NC}"
+if [ -n "$team_key" ]; then
+    run_test "team states" "go run main.go team states $team_key"
+    run_test "team states (json)" "go run main.go team states $team_key -j" "\"type\""
+    run_test "team states (plaintext)" "go run main.go team states $team_key -p"
+fi
+
+echo -e "\n${YELLOW}Testing issue triage command...${NC}"
+if [ -n "$team_key" ]; then
+    run_test "issue triage" "go run main.go issue triage $team_key"
+    run_test "issue triage (json)" "go run main.go issue triage $team_key -j"
+    run_test "issue triage (plaintext)" "go run main.go issue triage $team_key -p"
+fi
+
+echo -e "\n${YELLOW}Testing quick-action help...${NC}"
+run_test "issue start help" "go run main.go issue start --help" "In Progress"
+run_test "issue done help" "go run main.go issue done --help" "Done"
+run_test "issue triage help" "go run main.go issue triage --help" "triage"
+
+echo -e "\n${YELLOW}Testing hierarchy navigation help...${NC}"
+run_test "project issues help" "go run main.go project issues --help" "issues"
+run_test "initiative projects help" "go run main.go initiative projects --help" "projects"
 
 # Test unknown command handling
 echo -e "\n${YELLOW}Testing error handling...${NC}"

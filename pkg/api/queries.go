@@ -153,7 +153,8 @@ type Users struct {
 }
 
 type Labels struct {
-	Nodes []Label `json:"nodes"`
+	Nodes    []Label  `json:"nodes"`
+	PageInfo PageInfo `json:"pageInfo"`
 }
 
 type Label struct {
@@ -166,15 +167,22 @@ type Label struct {
 
 // Cycle represents a Linear cycle (sprint)
 type Cycle struct {
-	ID           string     `json:"id"`
-	Number       int        `json:"number"`
-	Name         string     `json:"name"`
-	Description  *string    `json:"description"`
-	StartsAt     string     `json:"startsAt"`
-	EndsAt       string     `json:"endsAt"`
-	Progress     float64    `json:"progress"`
-	CompletedAt  *time.Time `json:"completedAt"`
-	ScopeHistory []float64  `json:"scopeHistory"`
+	ID              string     `json:"id"`
+	Number          int        `json:"number"`
+	Name            string     `json:"name"`
+	Description     *string    `json:"description"`
+	StartsAt        string     `json:"startsAt"`
+	EndsAt          string     `json:"endsAt"`
+	Progress        float64    `json:"progress"`
+	CompletedAt     *time.Time `json:"completedAt"`
+	ScopeHistory    []float64  `json:"scopeHistory"`
+	Team            *Team      `json:"team"`
+	Issues          *Issues    `json:"issues"`
+}
+
+type Cycles struct {
+	Nodes    []Cycle  `json:"nodes"`
+	PageInfo PageInfo `json:"pageInfo"`
 }
 
 // Attachment represents a file attachment or link
@@ -3625,4 +3633,654 @@ func (c *Client) GetIssueActivity(ctx context.Context, issueID string, historyFi
 	}
 
 	return &response.Issue, nil
+}
+
+// GetCycles returns cycles with optional filter
+func (c *Client) GetCycles(ctx context.Context, filter map[string]interface{}, first int, after string) (*Cycles, error) {
+	query := `
+		query Cycles($filter: CycleFilter, $first: Int, $after: String) {
+			cycles(filter: $filter, first: $first, after: $after, orderBy: createdAt) {
+				nodes {
+					id
+					number
+					name
+					description
+					startsAt
+					endsAt
+					progress
+					completedAt
+					team {
+						id
+						key
+						name
+					}
+				}
+				pageInfo {
+					hasNextPage
+					endCursor
+				}
+			}
+		}
+	`
+
+	variables := map[string]interface{}{
+		"first": first,
+	}
+	if after != "" {
+		variables["after"] = after
+	}
+	if len(filter) > 0 {
+		variables["filter"] = filter
+	}
+
+	var response struct {
+		Cycles Cycles `json:"cycles"`
+	}
+
+	err := c.Execute(ctx, query, variables, &response)
+	if err != nil {
+		return nil, err
+	}
+
+	return &response.Cycles, nil
+}
+
+// GetCycle returns a single cycle by ID
+func (c *Client) GetCycle(ctx context.Context, id string) (*Cycle, error) {
+	query := `
+		query Cycle($id: String!) {
+			cycle(id: $id) {
+				id
+				number
+				name
+				description
+				startsAt
+				endsAt
+				progress
+				completedAt
+				team {
+					id
+					key
+					name
+				}
+				issues {
+					nodes {
+						id
+						identifier
+						title
+						priority
+						state {
+							id
+							name
+							type
+							color
+						}
+						assignee {
+							id
+							name
+							email
+						}
+					}
+				}
+			}
+		}
+	`
+
+	variables := map[string]interface{}{
+		"id": id,
+	}
+
+	var response struct {
+		Cycle Cycle `json:"cycle"`
+	}
+
+	err := c.Execute(ctx, query, variables, &response)
+	if err != nil {
+		return nil, err
+	}
+
+	return &response.Cycle, nil
+}
+
+// CreateCycle creates a new cycle for a team
+func (c *Client) CreateCycle(ctx context.Context, input map[string]interface{}) (*Cycle, error) {
+	query := `
+		mutation CreateCycle($input: CycleCreateInput!) {
+			cycleCreate(input: $input) {
+				cycle {
+					id
+					number
+					name
+					description
+					startsAt
+					endsAt
+					progress
+					team {
+						id
+						key
+						name
+					}
+				}
+				success
+			}
+		}
+	`
+
+	variables := map[string]interface{}{
+		"input": input,
+	}
+
+	var response struct {
+		CycleCreate struct {
+			Cycle   Cycle `json:"cycle"`
+			Success bool  `json:"success"`
+		} `json:"cycleCreate"`
+	}
+
+	err := c.Execute(ctx, query, variables, &response)
+	if err != nil {
+		return nil, err
+	}
+
+	return &response.CycleCreate.Cycle, nil
+}
+
+// UpdateTeam updates a team's settings
+func (c *Client) UpdateTeam(ctx context.Context, id string, input map[string]interface{}) (*Team, error) {
+	query := `
+		mutation UpdateTeam($id: String!, $input: TeamUpdateInput!) {
+			teamUpdate(id: $id, input: $input) {
+				team {
+					id
+					key
+					name
+					cyclesEnabled
+				}
+				success
+			}
+		}
+	`
+
+	variables := map[string]interface{}{
+		"id":    id,
+		"input": input,
+	}
+
+	var response struct {
+		TeamUpdate struct {
+			Team    Team `json:"team"`
+			Success bool `json:"success"`
+		} `json:"teamUpdate"`
+	}
+
+	err := c.Execute(ctx, query, variables, &response)
+	if err != nil {
+		return nil, err
+	}
+
+	return &response.TeamUpdate.Team, nil
+}
+
+// GetLabels returns labels with optional team filter
+func (c *Client) GetLabels(ctx context.Context, filter map[string]interface{}, first int, after string) (*Labels, error) {
+	query := `
+		query Labels($filter: IssueLabelFilter, $first: Int, $after: String) {
+			issueLabels(filter: $filter, first: $first, after: $after) {
+				nodes {
+					id
+					name
+					description
+					color
+					parent {
+						id
+						name
+					}
+				}
+				pageInfo {
+					hasNextPage
+					endCursor
+				}
+			}
+		}
+	`
+
+	variables := map[string]interface{}{
+		"first": first,
+	}
+	if after != "" {
+		variables["after"] = after
+	}
+	if len(filter) > 0 {
+		variables["filter"] = filter
+	}
+
+	var response struct {
+		IssueLabels Labels `json:"issueLabels"`
+	}
+
+	err := c.Execute(ctx, query, variables, &response)
+	if err != nil {
+		return nil, err
+	}
+
+	return &response.IssueLabels, nil
+}
+
+// CreateLabel creates a new label
+func (c *Client) CreateLabel(ctx context.Context, input map[string]interface{}) (*Label, error) {
+	query := `
+		mutation CreateLabel($input: IssueLabelCreateInput!) {
+			issueLabelCreate(input: $input) {
+				issueLabel {
+					id
+					name
+					description
+					color
+				}
+				success
+			}
+		}
+	`
+
+	variables := map[string]interface{}{
+		"input": input,
+	}
+
+	var response struct {
+		IssueLabelCreate struct {
+			IssueLabel Label `json:"issueLabel"`
+			Success    bool  `json:"success"`
+		} `json:"issueLabelCreate"`
+	}
+
+	err := c.Execute(ctx, query, variables, &response)
+	if err != nil {
+		return nil, err
+	}
+
+	return &response.IssueLabelCreate.IssueLabel, nil
+}
+
+// GetInitiativeProjects returns projects for a specific initiative
+func (c *Client) GetInitiativeProjects(ctx context.Context, initiativeID string, first int, after string) (*Projects, error) {
+	query := `
+		query InitiativeProjects($id: String!, $first: Int, $after: String) {
+			initiative(id: $id) {
+				projects(first: $first, after: $after) {
+					nodes {
+						id
+						name
+						state
+						progress
+						startDate
+						targetDate
+						lead {
+							id
+							name
+						}
+						teams {
+							nodes {
+								id
+								key
+								name
+							}
+						}
+					}
+					pageInfo {
+						hasNextPage
+						endCursor
+					}
+				}
+			}
+		}
+	`
+
+	variables := map[string]interface{}{
+		"id":    initiativeID,
+		"first": first,
+	}
+	if after != "" {
+		variables["after"] = after
+	}
+
+	var response struct {
+		Initiative struct {
+			Projects Projects `json:"projects"`
+		} `json:"initiative"`
+	}
+
+	err := c.Execute(ctx, query, variables, &response)
+	if err != nil {
+		return nil, err
+	}
+
+	return &response.Initiative.Projects, nil
+}
+
+// GetProjectIssues returns issues for a specific project
+func (c *Client) GetProjectIssues(ctx context.Context, projectID string, first int, after string) (*Issues, error) {
+	query := `
+		query ProjectIssues($id: String!, $first: Int, $after: String) {
+			project(id: $id) {
+				issues(first: $first, after: $after) {
+					nodes {
+						id
+						identifier
+						title
+						priority
+						priorityLabel
+						createdAt
+						updatedAt
+						state {
+							id
+							name
+							type
+							color
+						}
+						assignee {
+							id
+							name
+							email
+						}
+					}
+					pageInfo {
+						hasNextPage
+						endCursor
+					}
+				}
+			}
+		}
+	`
+
+	variables := map[string]interface{}{
+		"id":    projectID,
+		"first": first,
+	}
+	if after != "" {
+		variables["after"] = after
+	}
+
+	var response struct {
+		Project struct {
+			Issues Issues `json:"issues"`
+		} `json:"project"`
+	}
+
+	err := c.Execute(ctx, query, variables, &response)
+	if err != nil {
+		return nil, err
+	}
+
+	return &response.Project.Issues, nil
+}
+
+// UpdateComment updates an existing comment
+func (c *Client) UpdateComment(ctx context.Context, commentID string, body string) (*Comment, error) {
+	query := `
+		mutation UpdateComment($id: String!, $input: CommentUpdateInput!) {
+			commentUpdate(id: $id, input: $input) {
+				comment {
+					id
+					body
+					createdAt
+					updatedAt
+					editedAt
+					user {
+						id
+						name
+						email
+					}
+				}
+				success
+			}
+		}
+	`
+	variables := map[string]interface{}{
+		"id":    commentID,
+		"input": map[string]interface{}{"body": body},
+	}
+	var response struct {
+		CommentUpdate struct {
+			Comment Comment `json:"comment"`
+			Success bool    `json:"success"`
+		} `json:"commentUpdate"`
+	}
+	err := c.Execute(ctx, query, variables, &response)
+	if err != nil {
+		return nil, err
+	}
+	return &response.CommentUpdate.Comment, nil
+}
+
+// DeleteComment deletes a comment
+func (c *Client) DeleteComment(ctx context.Context, commentID string) error {
+	query := `
+		mutation DeleteComment($id: String!) {
+			commentDelete(id: $id) {
+				success
+			}
+		}
+	`
+	variables := map[string]interface{}{"id": commentID}
+	var response struct {
+		CommentDelete struct {
+			Success bool `json:"success"`
+		} `json:"commentDelete"`
+	}
+	err := c.Execute(ctx, query, variables, &response)
+	return err
+}
+
+// UpdateLabel updates an existing label
+func (c *Client) UpdateLabel(ctx context.Context, id string, input map[string]interface{}) (*Label, error) {
+	query := `
+		mutation UpdateLabel($id: String!, $input: IssueLabelUpdateInput!) {
+			issueLabelUpdate(id: $id, input: $input) {
+				issueLabel {
+					id
+					name
+					description
+					color
+				}
+				success
+			}
+		}
+	`
+	variables := map[string]interface{}{
+		"id":    id,
+		"input": input,
+	}
+	var response struct {
+		IssueLabelUpdate struct {
+			IssueLabel Label `json:"issueLabel"`
+			Success    bool  `json:"success"`
+		} `json:"issueLabelUpdate"`
+	}
+	err := c.Execute(ctx, query, variables, &response)
+	if err != nil {
+		return nil, err
+	}
+	return &response.IssueLabelUpdate.IssueLabel, nil
+}
+
+// DeleteLabel deletes a label
+func (c *Client) DeleteLabel(ctx context.Context, id string) error {
+	query := `
+		mutation DeleteLabel($id: String!) {
+			issueLabelDelete(id: $id) {
+				success
+			}
+		}
+	`
+	variables := map[string]interface{}{"id": id}
+	var response struct {
+		IssueLabelDelete struct {
+			Success bool `json:"success"`
+		} `json:"issueLabelDelete"`
+	}
+	err := c.Execute(ctx, query, variables, &response)
+	return err
+}
+
+// ArchiveIssue archives an issue (soft delete)
+func (c *Client) ArchiveIssue(ctx context.Context, issueID string) (*Issue, error) {
+	query := `
+		mutation ArchiveIssue($id: String!) {
+			issueArchive(id: $id) {
+				success
+			}
+		}
+	`
+	variables := map[string]interface{}{"id": issueID}
+	var response struct {
+		IssueArchive struct {
+			Success bool `json:"success"`
+		} `json:"issueArchive"`
+	}
+	err := c.Execute(ctx, query, variables, &response)
+	if err != nil {
+		return nil, err
+	}
+	return nil, nil
+}
+
+// CreateProject creates a new project
+func (c *Client) CreateProject(ctx context.Context, input map[string]interface{}) (*Project, error) {
+	query := `
+		mutation CreateProject($input: ProjectCreateInput!) {
+			projectCreate(input: $input) {
+				project {
+					id
+					name
+					description
+					state
+					progress
+					startDate
+					targetDate
+					url
+					slugId
+					lead {
+						id
+						name
+					}
+					teams {
+						nodes {
+							id
+							key
+							name
+						}
+					}
+				}
+				success
+			}
+		}
+	`
+	variables := map[string]interface{}{
+		"input": input,
+	}
+	var response struct {
+		ProjectCreate struct {
+			Project Project `json:"project"`
+			Success bool    `json:"success"`
+		} `json:"projectCreate"`
+	}
+	err := c.Execute(ctx, query, variables, &response)
+	if err != nil {
+		return nil, err
+	}
+	return &response.ProjectCreate.Project, nil
+}
+
+// ArchiveProject archives a project
+func (c *Client) ArchiveProject(ctx context.Context, id string) error {
+	query := `
+		mutation ArchiveProject($id: String!) {
+			projectArchive(id: $id) {
+				success
+			}
+		}
+	`
+	variables := map[string]interface{}{"id": id}
+	var response struct {
+		ProjectArchive struct {
+			Success bool `json:"success"`
+		} `json:"projectArchive"`
+	}
+	return c.Execute(ctx, query, variables, &response)
+}
+
+// DeleteProject permanently deletes a project
+func (c *Client) DeleteProject(ctx context.Context, id string) error {
+	query := `
+		mutation DeleteProject($id: String!) {
+			projectDelete(id: $id) {
+				success
+			}
+		}
+	`
+	variables := map[string]interface{}{"id": id}
+	var response struct {
+		ProjectDelete struct {
+			Success bool `json:"success"`
+		} `json:"projectDelete"`
+	}
+	return c.Execute(ctx, query, variables, &response)
+}
+
+// UpdateCycle updates an existing cycle
+func (c *Client) UpdateCycle(ctx context.Context, id string, input map[string]interface{}) (*Cycle, error) {
+	query := `
+		mutation UpdateCycle($id: String!, $input: CycleUpdateInput!) {
+			cycleUpdate(id: $id, input: $input) {
+				cycle {
+					id
+					number
+					name
+					description
+					startsAt
+					endsAt
+					progress
+					team {
+						id
+						key
+						name
+					}
+				}
+				success
+			}
+		}
+	`
+	variables := map[string]interface{}{
+		"id":    id,
+		"input": input,
+	}
+	var response struct {
+		CycleUpdate struct {
+			Cycle   Cycle `json:"cycle"`
+			Success bool  `json:"success"`
+		} `json:"cycleUpdate"`
+	}
+	err := c.Execute(ctx, query, variables, &response)
+	if err != nil {
+		return nil, err
+	}
+	return &response.CycleUpdate.Cycle, nil
+}
+
+// ArchiveCycle archives a cycle
+func (c *Client) ArchiveCycle(ctx context.Context, id string) error {
+	query := `
+		mutation ArchiveCycle($id: String!) {
+			cycleArchive(id: $id) {
+				success
+			}
+		}
+	`
+	variables := map[string]interface{}{"id": id}
+	var response struct {
+		CycleArchive struct {
+			Success bool `json:"success"`
+		} `json:"cycleArchive"`
+	}
+	return c.Execute(ctx, query, variables, &response)
 }

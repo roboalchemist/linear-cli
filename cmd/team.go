@@ -286,11 +286,88 @@ var teamMembersCmd = &cobra.Command{
 	},
 }
 
+var teamStatesCmd = &cobra.Command{
+	Use:     "states TEAM-KEY",
+	Aliases: []string{"workflows"},
+	Short:   "List workflow states for a team",
+	Long: `List all workflow states (e.g., Triage, Backlog, Todo, In Progress, Done) for a team.
+Useful for discovering valid values for the --state flag on issue commands.`,
+	Args: cobra.ExactArgs(1),
+	Run: func(cmd *cobra.Command, args []string) {
+		plaintext := viper.GetBool("plaintext")
+		jsonOut := viper.GetBool("json")
+		teamKey := args[0]
+
+		authHeader, err := auth.GetAuthHeader()
+		if err != nil {
+			output.Error(fmt.Sprintf("Authentication failed: %v", err), plaintext, jsonOut)
+			os.Exit(1)
+		}
+
+		client := api.NewClient(authHeader)
+
+		states, err := client.GetTeamStates(context.Background(), teamKey)
+		if err != nil {
+			output.Error(fmt.Sprintf("Failed to get team states: %v", err), plaintext, jsonOut)
+			os.Exit(1)
+		}
+
+		if jsonOut {
+			output.JSON(states)
+		} else if plaintext {
+			fmt.Println("Name\tType\tColor")
+			for _, s := range states {
+				fmt.Printf("%s\t%s\t%s\n", s.Name, s.Type, s.Color)
+			}
+		} else {
+			headers := []string{"Name", "Type", "Color"}
+			rows := [][]string{}
+
+			for _, s := range states {
+				typeColor := color.New(color.FgWhite)
+				switch s.Type {
+				case "triage":
+					typeColor = color.New(color.FgMagenta)
+				case "backlog":
+					typeColor = color.New(color.FgCyan)
+				case "unstarted":
+					typeColor = color.New(color.FgWhite)
+				case "started":
+					typeColor = color.New(color.FgYellow)
+				case "completed":
+					typeColor = color.New(color.FgGreen)
+				case "canceled":
+					typeColor = color.New(color.FgRed)
+				}
+
+				rows = append(rows, []string{
+					typeColor.Sprint(s.Name),
+					typeColor.Sprint(s.Type),
+					s.Color,
+				})
+			}
+
+			output.Table(output.TableData{
+				Headers: headers,
+				Rows:    rows,
+			}, plaintext, jsonOut)
+
+			if !plaintext && !jsonOut {
+				fmt.Printf("\n%s %d workflow states for team %s\n",
+					color.New(color.FgGreen).Sprint("✓"),
+					len(states),
+					color.New(color.FgCyan).Sprint(teamKey))
+			}
+		}
+	},
+}
+
 func init() {
 	rootCmd.AddCommand(teamCmd)
 	teamCmd.AddCommand(teamListCmd)
 	teamCmd.AddCommand(teamGetCmd)
 	teamCmd.AddCommand(teamMembersCmd)
+	teamCmd.AddCommand(teamStatesCmd)
 
 	// List command flags
 	teamListCmd.Flags().IntP("limit", "l", 50, "Maximum number of teams to return")
