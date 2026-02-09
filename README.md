@@ -1,6 +1,6 @@
 # linear-cli
 
-A command-line interface for the [Linear API](https://developers.linear.app/), built for both humans and AI agents.
+A command-line interface for the [Linear API](https://developers.linear.app/), built for both humans and AI agents. Forked from [linctl](https://github.com/dorkitude/linear-cli) by [Kyle Wild](https://github.com/dorkitude).
 
 ## Features
 
