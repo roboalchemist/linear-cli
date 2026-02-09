@@ -3,7 +3,6 @@ package cmd
 import (
 	"fmt"
 	"os"
-	"strings"
 
 	"github.com/fatih/color"
 	"github.com/spf13/cobra"
@@ -22,46 +21,11 @@ var version = "dev"
 
 // generateHeader creates a nice header box with proper Unicode box drawing
 func generateHeader() string {
-	lines := []string{
-		"🚀 linear-cli",
-		"Linear CLI - Built with ❤️",
-	}
-
-	// Find the longest line
-	maxLen := 0
-	for _, line := range lines {
-		if len(line) > maxLen {
-			maxLen = len(line)
-		}
-	}
-
-	// Add padding
-	width := maxLen + 8
-
-	// Build the box
-	var result strings.Builder
-
-	// Top border
-	result.WriteString("┌")
-	result.WriteString(strings.Repeat("─", width))
-	result.WriteString("┐\n")
-
-	// Content lines
-	for _, line := range lines {
-		padding := (width - len(line)) / 2
-		result.WriteString("│")
-		result.WriteString(strings.Repeat(" ", padding))
-		result.WriteString(line)
-		result.WriteString(strings.Repeat(" ", width-padding-len(line)))
-		result.WriteString("│\n")
-	}
-
-	// Bottom border
-	result.WriteString("└")
-	result.WriteString(strings.Repeat("─", width))
-	result.WriteString("┘")
-
-	return result.String()
+	return "" +
+		"┌────────────────────────────────┐\n" +
+		"│        🚀 linear-cli          │\n" +
+		"│   Linear CLI - Built with ❤️  │\n" +
+		"└────────────────────────────────┘"
 }
 
 // rootCmd represents the base command when called without any subcommands
