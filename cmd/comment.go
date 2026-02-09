@@ -172,12 +172,18 @@ var commentCreateCmd = &cobra.Command{
 	},
 }
 
-// safeUserName returns the user's name or "System" if user is nil
+// safeUserName returns the user's name, falling back to email, then "System"
 func safeUserName(user *api.User) string {
-	if user == nil || user.Name == "" {
+	if user == nil {
 		return "System"
 	}
-	return user.Name
+	if name := strings.TrimSpace(user.Name); name != "" {
+		return name
+	}
+	if email := strings.TrimSpace(user.Email); email != "" {
+		return email
+	}
+	return "System"
 }
 
 // formatTimeAgo formats a time as a human-readable "time ago" string

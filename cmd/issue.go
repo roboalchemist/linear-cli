@@ -1196,10 +1196,10 @@ Examples:
 		// Handle parent update
 		if cmd.Flags().Changed("parent") {
 			parentVal, _ := cmd.Flags().GetString("parent")
-			if parentVal == "" || strings.EqualFold(parentVal, "none") {
+			if parentVal == "" || strings.EqualFold(parentVal, "none") || strings.EqualFold(parentVal, "null") {
 				input["parentId"] = nil
 			} else {
-				// Prevent self-reference
+				// Prevent self-reference (check raw input)
 				if strings.EqualFold(parentVal, args[0]) {
 					output.Error("An issue cannot be its own parent", plaintext, jsonOut)
 					os.Exit(1)
@@ -1207,6 +1207,12 @@ Examples:
 				parentIssue, err := client.GetIssue(context.Background(), parentVal)
 				if err != nil {
 					output.Error(fmt.Sprintf("Failed to resolve parent issue '%s': %v", parentVal, err), plaintext, jsonOut)
+					os.Exit(1)
+				}
+				// Also prevent self-reference after resolution (catches UUID vs identifier mismatch)
+				currentIssue, getErr := client.GetIssue(context.Background(), args[0])
+				if getErr == nil && (parentIssue.ID == currentIssue.ID) {
+					output.Error("An issue cannot be its own parent", plaintext, jsonOut)
 					os.Exit(1)
 				}
 				input["parentId"] = parentIssue.ID
