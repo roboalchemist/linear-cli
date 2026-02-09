@@ -767,8 +767,6 @@ func buildIssueFilter(cmd *cobra.Command) map[string]interface{} {
 
 	if assignee, _ := cmd.Flags().GetString("assignee"); assignee != "" {
 		if assignee == "me" {
-			// We'll need to get the current user's ID
-			// For now, we'll use a special marker
 			filter["assignee"] = map[string]interface{}{"isMe": map[string]interface{}{"eq": true}}
 		} else {
 			filter["assignee"] = map[string]interface{}{"email": map[string]interface{}{"eq": assignee}}
