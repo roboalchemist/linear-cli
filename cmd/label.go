@@ -5,9 +5,9 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/dorkitude/linear-cli/pkg/api"
-	"github.com/dorkitude/linear-cli/pkg/auth"
-	"github.com/dorkitude/linear-cli/pkg/output"
+	"github.com/roboalchemist/linear-cli/pkg/api"
+	"github.com/roboalchemist/linear-cli/pkg/auth"
+	"github.com/roboalchemist/linear-cli/pkg/output"
 	"github.com/fatih/color"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"

@@ -1,15 +1,15 @@
 class LinearCli < Formula
   desc "Comprehensive command-line interface for Linear's API"
-  homepage "https://github.com/dorkitude/linear-cli"
-  url "https://github.com/dorkitude/linear-cli/archive/refs/tags/v0.1.0.tar.gz"
+  homepage "https://github.com/roboalchemist/linear-cli"
+  url "https://github.com/roboalchemist/linear-cli/archive/refs/tags/v0.1.0.tar.gz"
   sha256 "7aea99cc1bee2f097020930e0cc9e7a575340ab4969e81d673299a60ad586874"
   license "MIT"
-  head "https://github.com/dorkitude/linear-cli.git", branch: "master"
+  head "https://github.com/roboalchemist/linear-cli.git", branch: "master"
 
   depends_on "go" => :build
 
   def install
-    system "go", "build", *std_go_args(ldflags: "-s -w -X github.com/dorkitude/linear-cli/cmd.version=#{version}")
+    system "go", "build", *std_go_args(ldflags: "-s -w -X github.com/roboalchemist/linear-cli/cmd.version=#{version}")
   end
 
   test do

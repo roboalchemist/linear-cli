@@ -9,7 +9,7 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/dorkitude/linear-cli/pkg/api"
+	"github.com/roboalchemist/linear-cli/pkg/api"
 	"github.com/fatih/color"
 )
 

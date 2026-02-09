@@ -3,7 +3,7 @@ package main
 import (
 	_ "embed"
 
-	"github.com/dorkitude/linear-cli/cmd"
+	"github.com/roboalchemist/linear-cli/cmd"
 )
 
 //go:embed README.md

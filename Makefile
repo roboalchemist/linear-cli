@@ -7,7 +7,7 @@ BINARY_NAME=linear-cli
 GO_FILES=$(shell find . -type f -name '*.go' | grep -v vendor/)
 VERSION=$(shell git describe --tags --exact-match 2>/dev/null || git rev-parse --short HEAD)
 # Inject version into cmd.version (overrides default at build time)
-LDFLAGS=-ldflags "-X github.com/dorkitude/linear-cli/cmd.version=$(VERSION)"
+LDFLAGS=-ldflags "-X github.com/roboalchemist/linear-cli/cmd.version=$(VERSION)"
 
 # Default target
 all: build

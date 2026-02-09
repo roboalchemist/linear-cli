@@ -16,13 +16,13 @@ A command-line interface for the [Linear API](https://developers.linear.app/), b
 
 ### Homebrew
 ```bash
-brew tap dorkitude/linear-cli
+brew tap roboalchemist/linear-cli
 brew install linear-cli
 ```
 
 ### From Source
 ```bash
-git clone https://github.com/dorkitude/linear-cli.git
+git clone https://github.com/roboalchemist/linear-cli.git
 cd linear-cli
 make build && make install
 ```
@@ -310,4 +310,4 @@ MIT - see [LICENSE](LICENSE)
 
 - [Linear API Documentation](https://developers.linear.app/)
 - [GraphQL Schema Explorer](https://studio.apollographql.com/public/Linear-API/variant/current/schema/reference)
-- [GitHub Repository](https://github.com/dorkitude/linear-cli)
+- [GitHub Repository](https://github.com/roboalchemist/linear-cli)

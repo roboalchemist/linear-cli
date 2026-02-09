@@ -42,7 +42,7 @@ jobs:
           set -e
           git config --global user.name "${{ github.actor }}"
           git config --global user.email "${{ github.actor }}@users.noreply.github.com"
-          git clone https://github.com/dorkitude/homebrew-linear-cli.git
+          git clone https://github.com/roboalchemist/homebrew-linear-cli.git
           cd homebrew-linear-cli
           BRANCH="bump-linear-cli-${TAG#v}"
           git checkout -b "$BRANCH"
@@ -52,7 +52,7 @@ jobs:
           rm -f Formula/linear-cli.rb.bak
           git add Formula/linear-cli.rb
           git commit -m "linear-cli: bump to ${TAG}"
-          git push "https://${GH_TOKEN}@github.com/dorkitude/homebrew-linear-cli.git" HEAD:"$BRANCH"
+          git push "https://${GH_TOKEN}@github.com/roboalchemist/homebrew-linear-cli.git" HEAD:"$BRANCH"
 
       - name: Open PR on tap repo
         env:

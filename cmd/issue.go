@@ -6,10 +6,10 @@ import (
 	"os"
 	"strings"
 
-	"github.com/dorkitude/linear-cli/pkg/api"
-	"github.com/dorkitude/linear-cli/pkg/auth"
-	"github.com/dorkitude/linear-cli/pkg/output"
-	"github.com/dorkitude/linear-cli/pkg/utils"
+	"github.com/roboalchemist/linear-cli/pkg/api"
+	"github.com/roboalchemist/linear-cli/pkg/auth"
+	"github.com/roboalchemist/linear-cli/pkg/output"
+	"github.com/roboalchemist/linear-cli/pkg/utils"
 	"github.com/fatih/color"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
@@ -1048,7 +1048,7 @@ var issueUpdateCmd = &cobra.Command{
 Examples:
   linear-cli issue update LIN-123 --title "New title"
   linear-cli issue update LIN-123 --description "Updated description"
-  linear-cli issue update LIN-123 --assignee john.doe@company.com
+  linear-cli issue update LIN-123 --assignee user@example.com
   linear-cli issue update LIN-123 --state "In Progress"
   linear-cli issue update LIN-123 --priority 1
   linear-cli issue update LIN-123 --due-date "2024-12-31"

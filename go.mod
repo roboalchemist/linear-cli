@@ -1,4 +1,4 @@
-module github.com/dorkitude/linear-cli
+module github.com/roboalchemist/linear-cli
 
 go 1.23.0
 
