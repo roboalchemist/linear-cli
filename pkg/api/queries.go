@@ -4367,3 +4367,366 @@ func (c *Client) GetNotifications(ctx context.Context, first int, after string, 
 	}
 	return &response.Notifications, nil
 }
+
+// Favorite represents a Linear favorite (sidebar shortcut)
+type Favorite struct {
+	ID         string     `json:"id"`
+	Type       string     `json:"type"`
+	Title      string     `json:"title"`
+	Detail     string     `json:"detail"`
+	FolderName string     `json:"folderName"`
+	SortOrder  float64    `json:"sortOrder"`
+	Color      string     `json:"color"`
+	Icon       string     `json:"icon"`
+	URL        string     `json:"url"`
+	CreatedAt  time.Time  `json:"createdAt"`
+	UpdatedAt  time.Time  `json:"updatedAt"`
+	ArchivedAt *time.Time `json:"archivedAt"`
+	// Parent folder reference
+	Parent *Favorite `json:"parent"`
+	// Children (for folders)
+	Children *Favorites `json:"children"`
+	// Owner
+	Owner *User `json:"owner"`
+	// Referenced entities (nullable)
+	Issue       *Issue       `json:"issue"`
+	Project     *Project     `json:"project"`
+	Cycle       *Cycle       `json:"cycle"`
+	CustomView  *CustomView  `json:"customView"`
+	Document    *Document    `json:"document"`
+	Initiative  *Initiative  `json:"initiative"`
+	Label       *Label       `json:"label"`
+	User        *User        `json:"user"`
+	PullRequest *PullRequest `json:"pullRequest"`
+}
+
+// PullRequest represents a Linear pull request (simplified)
+type PullRequest struct {
+	ID     string `json:"id"`
+	Title  string `json:"title"`
+	Number int    `json:"number"`
+	URL    string `json:"url"`
+}
+
+// Favorites represents a paginated list of favorites
+type Favorites struct {
+	Nodes    []Favorite `json:"nodes"`
+	PageInfo PageInfo   `json:"pageInfo"`
+}
+
+// GetFavorites returns the current user's favorites
+func (c *Client) GetFavorites(ctx context.Context, first int, after string) (*Favorites, error) {
+	query := `
+		query Favorites($first: Int, $after: String) {
+			favorites(first: $first, after: $after) {
+				nodes {
+					id
+					type
+					title
+					detail
+					folderName
+					sortOrder
+					color
+					icon
+					url
+					createdAt
+					updatedAt
+					archivedAt
+					parent {
+						id
+						title
+						folderName
+					}
+					issue {
+						id
+						identifier
+						title
+					}
+					project {
+						id
+						name
+						state
+					}
+					cycle {
+						id
+						name
+						number
+					}
+					customView {
+						id
+						name
+						modelName
+					}
+					document {
+						id
+						title
+					}
+					initiative {
+						id
+						name
+					}
+					label {
+						id
+						name
+						color
+					}
+					user {
+						id
+						name
+						email
+					}
+				}
+				pageInfo {
+					hasNextPage
+					endCursor
+				}
+			}
+		}
+	`
+
+	variables := map[string]interface{}{
+		"first": first,
+	}
+	if after != "" {
+		variables["after"] = after
+	}
+
+	var response struct {
+		Favorites Favorites `json:"favorites"`
+	}
+
+	err := c.Execute(ctx, query, variables, &response)
+	if err != nil {
+		return nil, err
+	}
+
+	return &response.Favorites, nil
+}
+
+// GetFavorite returns a single favorite by ID
+func (c *Client) GetFavorite(ctx context.Context, id string) (*Favorite, error) {
+	query := `
+		query Favorite($id: String!) {
+			favorite(id: $id) {
+				id
+				type
+				title
+				detail
+				folderName
+				sortOrder
+				color
+				icon
+				url
+				createdAt
+				updatedAt
+				archivedAt
+				parent {
+					id
+					title
+					folderName
+				}
+				children {
+					nodes {
+						id
+						type
+						title
+						sortOrder
+					}
+				}
+				issue {
+					id
+					identifier
+					title
+				}
+				project {
+					id
+					name
+					state
+				}
+				cycle {
+					id
+					name
+					number
+				}
+				customView {
+					id
+					name
+					modelName
+				}
+				document {
+					id
+					title
+				}
+				initiative {
+					id
+					name
+				}
+				label {
+					id
+					name
+					color
+				}
+				user {
+					id
+					name
+					email
+				}
+			}
+		}
+	`
+
+	variables := map[string]interface{}{
+		"id": id,
+	}
+
+	var response struct {
+		Favorite Favorite `json:"favorite"`
+	}
+
+	err := c.Execute(ctx, query, variables, &response)
+	if err != nil {
+		return nil, err
+	}
+
+	return &response.Favorite, nil
+}
+
+// CreateFavorite creates a new favorite
+func (c *Client) CreateFavorite(ctx context.Context, input map[string]interface{}) (*Favorite, error) {
+	query := `
+		mutation FavoriteCreate($input: FavoriteCreateInput!) {
+			favoriteCreate(input: $input) {
+				success
+				favorite {
+					id
+					type
+					title
+					detail
+					folderName
+					sortOrder
+					color
+					icon
+					url
+					createdAt
+					issue {
+						id
+						identifier
+						title
+					}
+					project {
+						id
+						name
+					}
+					cycle {
+						id
+						name
+						number
+					}
+					customView {
+						id
+						name
+					}
+					document {
+						id
+						title
+					}
+					initiative {
+						id
+						name
+					}
+					label {
+						id
+						name
+					}
+				}
+			}
+		}
+	`
+
+	variables := map[string]interface{}{
+		"input": input,
+	}
+
+	var response struct {
+		FavoriteCreate struct {
+			Success  bool     `json:"success"`
+			Favorite Favorite `json:"favorite"`
+		} `json:"favoriteCreate"`
+	}
+
+	err := c.Execute(ctx, query, variables, &response)
+	if err != nil {
+		return nil, err
+	}
+
+	return &response.FavoriteCreate.Favorite, nil
+}
+
+// UpdateFavorite updates an existing favorite
+func (c *Client) UpdateFavorite(ctx context.Context, id string, input map[string]interface{}) (*Favorite, error) {
+	query := `
+		mutation FavoriteUpdate($id: String!, $input: FavoriteUpdateInput!) {
+			favoriteUpdate(id: $id, input: $input) {
+				success
+				favorite {
+					id
+					type
+					title
+					detail
+					folderName
+					sortOrder
+					color
+					icon
+					url
+					parent {
+						id
+						title
+					}
+				}
+			}
+		}
+	`
+
+	variables := map[string]interface{}{
+		"id":    id,
+		"input": input,
+	}
+
+	var response struct {
+		FavoriteUpdate struct {
+			Success  bool     `json:"success"`
+			Favorite Favorite `json:"favorite"`
+		} `json:"favoriteUpdate"`
+	}
+
+	err := c.Execute(ctx, query, variables, &response)
+	if err != nil {
+		return nil, err
+	}
+
+	return &response.FavoriteUpdate.Favorite, nil
+}
+
+// DeleteFavorite removes a favorite
+func (c *Client) DeleteFavorite(ctx context.Context, id string) error {
+	query := `
+		mutation FavoriteDelete($id: String!) {
+			favoriteDelete(id: $id) {
+				success
+			}
+		}
+	`
+
+	variables := map[string]interface{}{
+		"id": id,
+	}
+
+	var response struct {
+		FavoriteDelete struct {
+			Success bool `json:"success"`
+		} `json:"favoriteDelete"`
+	}
+
+	err := c.Execute(ctx, query, variables, &response)
+	return err
+}
