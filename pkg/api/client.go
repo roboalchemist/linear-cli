@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"strconv"
 	"time"
 )
 
@@ -15,9 +16,10 @@ const (
 )
 
 type Client struct {
-	httpClient *http.Client
-	authHeader string
-	baseURL    string
+	httpClient    *http.Client
+	authHeader    string
+	baseURL       string
+	LastRateLimit *RateLimit // Updated after each request
 }
 
 type GraphQLRequest struct {
@@ -84,6 +86,9 @@ func (c *Client) Execute(ctx context.Context, query string, variables map[string
 	}
 	defer func() { _ = resp.Body.Close() }()
 
+	// Capture rate limit headers
+	c.LastRateLimit = parseRateLimit(resp)
+
 	body, err := io.ReadAll(resp.Body)
 	if err != nil {
 		return fmt.Errorf("failed to read response: %w", err)
@@ -138,6 +143,9 @@ func (c *Client) ExecuteRaw(ctx context.Context, query string, variables map[str
 	}
 	defer func() { _ = resp.Body.Close() }()
 
+	// Capture rate limit headers
+	c.LastRateLimit = parseRateLimit(resp)
+
 	body, err := io.ReadAll(resp.Body)
 	if err != nil {
 		return nil, fmt.Errorf("failed to read response: %w", err)
@@ -159,19 +167,62 @@ func (c *Client) ExecuteRaw(ctx context.Context, query string, variables map[str
 	return gqlResp.Data, nil
 }
 
-// Rate limiting helper
-func (c *Client) GetRateLimit(ctx context.Context) (*RateLimit, error) {
-	// This would query Linear's rate limiting info
-	// For now, we'll return a placeholder
-	return &RateLimit{
-		Limit:     5000,
-		Remaining: 4999,
-		Reset:     time.Now().Add(time.Hour),
-	}, nil
+// RateLimit holds rate limit info parsed from Linear API response headers
+type RateLimit struct {
+	// Request limits
+	RequestLimit     int       `json:"requestLimit"`
+	RequestRemaining int       `json:"requestRemaining"`
+	RequestReset     time.Time `json:"requestReset"`
+	// Complexity limits
+	Complexity          int       `json:"complexity"`
+	ComplexityLimit     int       `json:"complexityLimit"`
+	ComplexityRemaining int       `json:"complexityRemaining"`
+	ComplexityReset     time.Time `json:"complexityReset"`
 }
 
-type RateLimit struct {
-	Limit     int       `json:"limit"`
-	Remaining int       `json:"remaining"`
-	Reset     time.Time `json:"reset"`
+// parseRateLimit extracts rate limit info from HTTP response headers
+func parseRateLimit(resp *http.Response) *RateLimit {
+	rl := &RateLimit{}
+	rl.RequestLimit = headerInt(resp, "X-RateLimit-Requests-Limit")
+	rl.RequestRemaining = headerInt(resp, "X-RateLimit-Requests-Remaining")
+	rl.RequestReset = headerTime(resp, "X-RateLimit-Requests-Reset")
+	rl.Complexity = headerInt(resp, "X-Complexity")
+	rl.ComplexityLimit = headerInt(resp, "X-RateLimit-Complexity-Limit")
+	rl.ComplexityRemaining = headerInt(resp, "X-RateLimit-Complexity-Remaining")
+	rl.ComplexityReset = headerTime(resp, "X-RateLimit-Complexity-Reset")
+	return rl
+}
+
+func headerInt(resp *http.Response, key string) int {
+	v := resp.Header.Get(key)
+	if v == "" {
+		return 0
+	}
+	n, _ := strconv.Atoi(v)
+	return n
+}
+
+func headerTime(resp *http.Response, key string) time.Time {
+	v := resp.Header.Get(key)
+	if v == "" {
+		return time.Time{}
+	}
+	ms, err := strconv.ParseInt(v, 10, 64)
+	if err != nil {
+		return time.Time{}
+	}
+	return time.UnixMilli(ms)
+}
+
+// GetRateLimit makes a lightweight request and returns the current rate limit status
+func (c *Client) GetRateLimit(ctx context.Context) (*RateLimit, error) {
+	// Use a minimal query to get rate limit headers
+	err := c.Execute(ctx, `query { viewer { id } }`, nil, nil)
+	if err != nil {
+		return nil, err
+	}
+	if c.LastRateLimit == nil {
+		return nil, fmt.Errorf("no rate limit info available")
+	}
+	return c.LastRateLimit, nil
 }

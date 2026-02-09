@@ -1,9 +1,12 @@
 package cmd
 
 import (
+	"context"
 	"fmt"
 	"os"
+	"time"
 
+	"github.com/dorkitude/linear-cli/pkg/api"
 	"github.com/dorkitude/linear-cli/pkg/auth"
 	"github.com/dorkitude/linear-cli/pkg/output"
 	"github.com/fatih/color"
@@ -145,11 +148,79 @@ var whoamiCmd = &cobra.Command{
 	},
 }
 
+var rateLimitCmd = &cobra.Command{
+	Use:   "rate-limit",
+	Short: "Show API rate limit status",
+	Long:  `Check current Linear API rate limit usage (requests and complexity).`,
+	Run: func(cmd *cobra.Command, args []string) {
+		plaintext := viper.GetBool("plaintext")
+		jsonOut := viper.GetBool("json")
+
+		authHeader, err := auth.GetAuthHeader()
+		if err != nil {
+			output.Error("Not authenticated. Run 'linear-cli auth' first.", plaintext, jsonOut)
+			os.Exit(1)
+		}
+
+		client := api.NewClient(authHeader)
+		rl, err := client.GetRateLimit(context.Background())
+		if err != nil {
+			output.Error(fmt.Sprintf("Failed to get rate limit: %v", err), plaintext, jsonOut)
+			os.Exit(1)
+		}
+
+		if jsonOut {
+			output.JSON(rl)
+			return
+		}
+
+		reqResetIn := time.Until(rl.RequestReset).Round(time.Second)
+		cplxResetIn := time.Until(rl.ComplexityReset).Round(time.Second)
+
+		if plaintext {
+			fmt.Printf("Requests: %d/%d remaining (resets in %s)\n",
+				rl.RequestRemaining, rl.RequestLimit, reqResetIn)
+			fmt.Printf("Complexity: %d/%d remaining (resets in %s)\n",
+				rl.ComplexityRemaining, rl.ComplexityLimit, cplxResetIn)
+			fmt.Printf("Last query complexity: %d\n", rl.Complexity)
+		} else {
+			fmt.Printf("\n%s API Rate Limits\n\n",
+				color.New(color.FgCyan, color.Bold).Sprint("📊"))
+
+			reqPct := float64(rl.RequestRemaining) / float64(max(rl.RequestLimit, 1)) * 100
+			cplxPct := float64(rl.ComplexityRemaining) / float64(max(rl.ComplexityLimit, 1)) * 100
+
+			reqColor := color.New(color.FgGreen)
+			if reqPct < 20 {
+				reqColor = color.New(color.FgRed)
+			} else if reqPct < 50 {
+				reqColor = color.New(color.FgYellow)
+			}
+
+			cplxColor := color.New(color.FgGreen)
+			if cplxPct < 20 {
+				cplxColor = color.New(color.FgRed)
+			} else if cplxPct < 50 {
+				cplxColor = color.New(color.FgYellow)
+			}
+
+			fmt.Printf("  Requests:   %s / %d  (resets in %s)\n",
+				reqColor.Sprintf("%d", rl.RequestRemaining),
+				rl.RequestLimit, reqResetIn)
+			fmt.Printf("  Complexity: %s / %d  (resets in %s)\n",
+				cplxColor.Sprintf("%d", rl.ComplexityRemaining),
+				rl.ComplexityLimit, cplxResetIn)
+			fmt.Printf("  Last query: %d complexity points\n", rl.Complexity)
+		}
+	},
+}
+
 func init() {
 	rootCmd.AddCommand(authCmd)
 	authCmd.AddCommand(loginCmd)
 	authCmd.AddCommand(statusCmd)
 	authCmd.AddCommand(logoutCmd)
+	authCmd.AddCommand(rateLimitCmd)
 
 	// Add whoami as a top-level command too
 	rootCmd.AddCommand(whoamiCmd)
