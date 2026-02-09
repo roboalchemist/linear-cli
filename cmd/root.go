@@ -22,17 +22,17 @@ var version = "dev"
 // generateHeader creates a nice header box with proper Unicode box drawing
 func generateHeader() string {
 	return "" +
-		"┌────────────────────────────────┐\n" +
-		"│        🚀 linear-cli          │\n" +
-		"│   Linear CLI - Built with ❤️  │\n" +
-		"└────────────────────────────────┘"
+		"┌───────────────────────────┐\n" +
+		"│       linear-cli          │\n" +
+		"│   CLI for the Linear API  │\n" +
+		"└───────────────────────────┘"
 }
 
 // rootCmd represents the base command when called without any subcommands
 var rootCmd = &cobra.Command{
 	Use:     "linear-cli",
 	Short:   "A comprehensive Linear CLI tool",
-	Long:    color.New(color.FgCyan).Sprintf("%s\nA comprehensive CLI tool for Linear's API featuring:\n• Issue management (create, list, update, archive)\n• Project tracking and collaboration  \n• Team and user management\n• Comments and attachments\n• Webhook configuration\n• Table/plaintext/JSON output formats\n", generateHeader()),
+	Long:    color.New(color.FgCyan).Sprintf("%s\nA CLI for Linear's API featuring:\n• Issues, projects, cycles, labels, documents, initiatives, views\n• Comments, attachments, relations, milestones, status updates\n• Team and user management\n• Raw GraphQL queries\n• Table/plaintext/JSON output formats\n", generateHeader()),
 	Version: version,
 }
 
