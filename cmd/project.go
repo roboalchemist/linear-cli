@@ -861,9 +861,13 @@ var projectCreateCmd = &cobra.Command{
 	Short:   "Create a new project",
 	Long: `Create a new project in Linear.
 
+The description can be provided inline via --description or read from a markdown file via --file.
+Use --file - to read from stdin.
+
 Examples:
   linear-cli project create --name "My Project" --team-ids TEAM-UUID
-  linear-cli project create --name "My Project" --description "Details" --state started`,
+  linear-cli project create --name "My Project" --description "Details" --state started
+  linear-cli project create --name "My Project" --file project-brief.md`,
 	Run: func(cmd *cobra.Command, args []string) {
 		plaintext := viper.GetBool("plaintext")
 		jsonOut := viper.GetBool("json")
@@ -879,9 +883,16 @@ Examples:
 		input := map[string]interface{}{
 			"name": name,
 		}
-		if cmd.Flags().Changed("description") {
-			d, _ := cmd.Flags().GetString("description")
-			input["description"] = d
+		// Resolve description from --description or --file
+		filePath, _ := cmd.Flags().GetString("file")
+		if cmd.Flags().Changed("description") || filePath != "" {
+			descFlag, _ := cmd.Flags().GetString("description")
+			desc, err := resolveBodyFromFlags(descFlag, cmd.Flags().Changed("description"), filePath, "description")
+			if err != nil {
+				output.Error(err.Error(), plaintext, jsonOut)
+				os.Exit(1)
+			}
+			input["description"] = desc
 		}
 		if cmd.Flags().Changed("state") {
 			s, _ := cmd.Flags().GetString("state")
@@ -920,7 +931,10 @@ var projectUpdateCmd = &cobra.Command{
 	Use:     "update PROJECT-ID",
 	Aliases: []string{"edit"},
 	Short:   "Update a project",
-	Long:    `Update a project's name, description, state, or dates.`,
+	Long: `Update a project's name, description, state, or dates.
+
+The description can be provided inline via --description or read from a markdown file via --file.
+Use --file - to read from stdin.`,
 	Args:    cobra.ExactArgs(1),
 	Run: func(cmd *cobra.Command, args []string) {
 		plaintext := viper.GetBool("plaintext")
@@ -939,9 +953,16 @@ var projectUpdateCmd = &cobra.Command{
 			n, _ := cmd.Flags().GetString("name")
 			input["name"] = n
 		}
-		if cmd.Flags().Changed("description") {
-			d, _ := cmd.Flags().GetString("description")
-			input["description"] = d
+		// Resolve description from --description or --file
+		filePath, _ := cmd.Flags().GetString("file")
+		if cmd.Flags().Changed("description") || filePath != "" {
+			descFlag, _ := cmd.Flags().GetString("description")
+			desc, err := resolveBodyFromFlags(descFlag, cmd.Flags().Changed("description"), filePath, "description")
+			if err != nil {
+				output.Error(err.Error(), plaintext, jsonOut)
+				os.Exit(1)
+			}
+			input["description"] = desc
 		}
 		if cmd.Flags().Changed("state") {
 			s, _ := cmd.Flags().GetString("state")
@@ -1152,6 +1173,7 @@ func init() {
 	// Project create flags
 	projectCreateCmd.Flags().String("name", "", "Project name (required)")
 	projectCreateCmd.Flags().StringP("description", "d", "", "Project description")
+	projectCreateCmd.Flags().StringP("file", "f", "", "Read description from a markdown file (use - for stdin)")
 	projectCreateCmd.Flags().StringSlice("team-ids", nil, "Team IDs to associate with")
 	projectCreateCmd.Flags().String("state", "planned", "State: planned, started, paused, completed, canceled")
 	projectCreateCmd.Flags().String("start-date", "", "Start date (YYYY-MM-DD)")
@@ -1161,6 +1183,7 @@ func init() {
 	// Project update flags
 	projectUpdateCmd.Flags().String("name", "", "New project name")
 	projectUpdateCmd.Flags().StringP("description", "d", "", "New description")
+	projectUpdateCmd.Flags().StringP("file", "f", "", "Read description from a markdown file (use - for stdin)")
 	projectUpdateCmd.Flags().String("state", "", "New state: planned, started, paused, completed, canceled")
 	projectUpdateCmd.Flags().String("start-date", "", "New start date (YYYY-MM-DD)")
 	projectUpdateCmd.Flags().String("target-date", "", "New target date (YYYY-MM-DD)")

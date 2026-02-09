@@ -368,7 +368,15 @@ var initiativeCreateCmd = &cobra.Command{
 	Use:     "create",
 	Aliases: []string{"new"},
 	Short:   "Create a new initiative",
-	Long:    `Create a new initiative in Linear.`,
+	Long: `Create a new initiative in Linear.
+
+The description can be provided inline via --description or read from a markdown file via --file.
+Use --file - to read from stdin.
+
+Examples:
+  linear-cli initiative create --name "Q1 Goals"
+  linear-cli initiative create --name "Q1 Goals" --description "Details"
+  linear-cli initiative create --name "Q1 Goals" --file initiative-brief.md`,
 	Run: func(cmd *cobra.Command, args []string) {
 		plaintext := viper.GetBool("plaintext")
 		jsonOut := viper.GetBool("json")
@@ -391,8 +399,15 @@ var initiativeCreateCmd = &cobra.Command{
 			"name": name,
 		}
 
-		if cmd.Flags().Changed("description") {
-			desc, _ := cmd.Flags().GetString("description")
+		// Resolve description from --description or --file
+		filePath, _ := cmd.Flags().GetString("file")
+		if cmd.Flags().Changed("description") || filePath != "" {
+			descFlag, _ := cmd.Flags().GetString("description")
+			desc, err := resolveBodyFromFlags(descFlag, cmd.Flags().Changed("description"), filePath, "description")
+			if err != nil {
+				output.Error(err.Error(), plaintext, jsonOut)
+				os.Exit(1)
+			}
 			input["description"] = desc
 		}
 		if cmd.Flags().Changed("status") {
@@ -440,10 +455,13 @@ var initiativeUpdateCmd = &cobra.Command{
 	Short:   "Update an initiative",
 	Long: `Update various fields of an initiative.
 
+The description can be provided inline via --description or read from a markdown file via --file.
+Use --file - to read from stdin.
+
 Examples:
   linear-cli initiative update ID --name "New name"
   linear-cli initiative update ID --status Active
-  linear-cli initiative update ID --target-date "2025-12-31"`,
+  linear-cli initiative update ID --file updated-brief.md`,
 	Args: cobra.ExactArgs(1),
 	Run: func(cmd *cobra.Command, args []string) {
 		plaintext := viper.GetBool("plaintext")
@@ -462,8 +480,15 @@ Examples:
 			name, _ := cmd.Flags().GetString("name")
 			input["name"] = name
 		}
-		if cmd.Flags().Changed("description") {
-			desc, _ := cmd.Flags().GetString("description")
+		// Resolve description from --description or --file
+		filePath, _ := cmd.Flags().GetString("file")
+		if cmd.Flags().Changed("description") || filePath != "" {
+			descFlag, _ := cmd.Flags().GetString("description")
+			desc, err := resolveBodyFromFlags(descFlag, cmd.Flags().Changed("description"), filePath, "description")
+			if err != nil {
+				output.Error(err.Error(), plaintext, jsonOut)
+				os.Exit(1)
+			}
 			input["description"] = desc
 		}
 		if cmd.Flags().Changed("status") {
@@ -657,6 +682,7 @@ func init() {
 	// Create flags
 	initiativeCreateCmd.Flags().String("name", "", "Initiative name (required)")
 	initiativeCreateCmd.Flags().StringP("description", "d", "", "Initiative description")
+	initiativeCreateCmd.Flags().StringP("file", "f", "", "Read description from a markdown file (use - for stdin)")
 	initiativeCreateCmd.Flags().StringP("status", "s", "", "Status (Planned, Active, Completed)")
 	initiativeCreateCmd.Flags().String("target-date", "", "Target date (YYYY-MM-DD)")
 	initiativeCreateCmd.Flags().String("color", "", "Initiative color (hex)")
@@ -666,6 +692,7 @@ func init() {
 	// Update flags
 	initiativeUpdateCmd.Flags().String("name", "", "New name")
 	initiativeUpdateCmd.Flags().StringP("description", "d", "", "New description")
+	initiativeUpdateCmd.Flags().StringP("file", "f", "", "Read description from a markdown file (use - for stdin)")
 	initiativeUpdateCmd.Flags().StringP("status", "s", "", "New status (Planned, Active, Completed)")
 	initiativeUpdateCmd.Flags().String("target-date", "", "New target date (YYYY-MM-DD, or empty to remove)")
 	initiativeUpdateCmd.Flags().String("color", "", "New color (hex)")
