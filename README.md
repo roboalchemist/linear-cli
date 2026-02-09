@@ -16,7 +16,7 @@ A command-line interface for the [Linear API](https://developers.linear.app/), b
 
 ### Homebrew
 ```bash
-brew tap roboalchemist/linear-cli
+brew tap roboalchemist/tap
 brew install linear-cli
 ```
 

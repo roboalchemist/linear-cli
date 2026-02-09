@@ -36,7 +36,7 @@ Follow this checklist to cut a new release and update Homebrew:
 
 3) Homebrew Tap Bump (auto)
 - This repo has a GitHub Action that auto-opens a PR to the tap on release publish.
-- Required secret: `HOMEBREW_TAP_TOKEN` (fine‑grained PAT with contents:write on `roboalchemist/homebrew-linear-cli`).
+- Required secret: `HOMEBREW_TAP_TOKEN` (fine‑grained PAT with contents:write on `roboalchemist/homebrew-tap`).
   - Add in GitHub: repo Settings → Secrets and variables → Actions → New repository secret.
 
 4) Homebrew Tap Bump (manual fallback)
@@ -47,15 +47,15 @@ TARBALL=https://github.com/roboalchemist/linear-cli/archive/refs/tags/${TAG}.tar
 curl -sL "$TARBALL" -o /tmp/linear-cli.tgz
 SHA=$(shasum -a 256 /tmp/linear-cli.tgz | awk '{print $1}')
 
-git clone https://github.com/roboalchemist/homebrew-linear-cli.git
-cd homebrew-linear-cli
+git clone https://github.com/roboalchemist/homebrew-tap.git
+cd homebrew-tap
 git checkout -b bump-linear-cli-${TAG#v}
 sed -i.bak -E "s|url \"[^\"]+\"|url \"$TARBALL\"|g" Formula/linear-cli.rb
 sed -i.bak -E "s|sha256 \"[0-9a-f]+\"|sha256 \"$SHA\"|g" Formula/linear-cli.rb
 rm -f Formula/linear-cli.rb.bak
 git commit -am "linear-cli: bump to ${TAG}"
 git push -u origin HEAD
-gh pr create --title "linear-cli: bump to ${TAG}" --body "Update formula to ${TAG}." --base master --head bump-linear-cli-${TAG#v}
+gh pr create --title "linear-cli: bump to ${TAG}" --body "Update formula to ${TAG}." --base main --head bump-linear-cli-${TAG#v}
 ```
 
 5) Validate

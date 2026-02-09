@@ -42,8 +42,8 @@ jobs:
           set -e
           git config --global user.name "${{ github.actor }}"
           git config --global user.email "${{ github.actor }}@users.noreply.github.com"
-          git clone https://github.com/roboalchemist/homebrew-linear-cli.git
-          cd homebrew-linear-cli
+          git clone https://github.com/roboalchemist/homebrew-tap.git
+          cd homebrew-tap
           BRANCH="bump-linear-cli-${TAG#v}"
           git checkout -b "$BRANCH"
           # Update Formula
@@ -52,16 +52,16 @@ jobs:
           rm -f Formula/linear-cli.rb.bak
           git add Formula/linear-cli.rb
           git commit -m "linear-cli: bump to ${TAG}"
-          git push "https://${GH_TOKEN}@github.com/roboalchemist/homebrew-linear-cli.git" HEAD:"$BRANCH"
+          git push "https://${GH_TOKEN}@github.com/roboalchemist/homebrew-tap.git" HEAD:"$BRANCH"
 
       - name: Open PR on tap repo
         env:
           GH_TOKEN: ${{ secrets.HOMEBREW_TAP_TOKEN }}
         run: |
-          cd homebrew-linear-cli
+          cd homebrew-tap
           BRANCH="bump-linear-cli-${TAG#v}"
           gh pr create \
             --title "linear-cli: bump to ${TAG}" \
             --body "Update formula to ${TAG}." \
-            --base master \
+            --base main \
             --head "$BRANCH"
