@@ -271,12 +271,12 @@ var milestoneCreateCmd = &cobra.Command{
 	Short:   "Create a new milestone",
 	Long: `Create a new milestone within a project.
 
-The description can be provided inline via --description or read from a markdown file via --file.
-Use --file - to read from stdin.
+The description can be provided inline via --description or read from a markdown file via --description-file.
+Use --description-file - to read from stdin.
 
 Examples:
   linear-cli project milestone create PROJECT-ID --name "Beta Release"
-  linear-cli project milestone create PROJECT-ID --name "Beta Release" --file milestone-desc.md`,
+  linear-cli project milestone create PROJECT-ID --name "Beta Release" --description-file milestone-desc.md`,
 	Args: cobra.ExactArgs(1),
 	Run: func(cmd *cobra.Command, args []string) {
 		plaintext := viper.GetBool("plaintext")
@@ -302,11 +302,11 @@ Examples:
 			"projectId": projectID,
 		}
 
-		// Resolve description from --description or --file
-		filePath, _ := cmd.Flags().GetString("file")
+		// Resolve description from --description or --description-file
+		filePath, _ := cmd.Flags().GetString("description-file")
 		if cmd.Flags().Changed("description") || filePath != "" {
 			descFlag, _ := cmd.Flags().GetString("description")
-			desc, err := resolveBodyFromFlags(descFlag, cmd.Flags().Changed("description"), filePath, "description")
+			desc, err := resolveBodyFromFlags(descFlag, cmd.Flags().Changed("description"), filePath, "description", "description-file")
 			if err != nil {
 				output.Error(err.Error(), plaintext, jsonOut)
 				os.Exit(1)
@@ -344,12 +344,12 @@ var milestoneUpdateCmd = &cobra.Command{
 	Short:   "Update a milestone",
 	Long: `Update various fields of a project milestone.
 
-The description can be provided inline via --description or read from a markdown file via --file.
-Use --file - to read from stdin.
+The description can be provided inline via --description or read from a markdown file via --description-file.
+Use --description-file - to read from stdin.
 
 Examples:
   linear-cli project milestone update MILESTONE-ID --name "New Name"
-  linear-cli project milestone update MILESTONE-ID --file updated-desc.md
+  linear-cli project milestone update MILESTONE-ID --description-file updated-desc.md
   linear-cli project milestone update MILESTONE-ID --target-date "2025-12-31"`,
 	Args: cobra.ExactArgs(1),
 	Run: func(cmd *cobra.Command, args []string) {
@@ -371,11 +371,11 @@ Examples:
 			input["name"] = name
 		}
 
-		// Resolve description from --description or --file
-		filePath, _ := cmd.Flags().GetString("file")
+		// Resolve description from --description or --description-file
+		filePath, _ := cmd.Flags().GetString("description-file")
 		if cmd.Flags().Changed("description") || filePath != "" {
 			descFlag, _ := cmd.Flags().GetString("description")
-			desc, err := resolveBodyFromFlags(descFlag, cmd.Flags().Changed("description"), filePath, "description")
+			desc, err := resolveBodyFromFlags(descFlag, cmd.Flags().Changed("description"), filePath, "description", "description-file")
 			if err != nil {
 				output.Error(err.Error(), plaintext, jsonOut)
 				os.Exit(1)
@@ -486,13 +486,13 @@ func init() {
 	// Create flags
 	milestoneCreateCmd.Flags().String("name", "", "Milestone name (required)")
 	milestoneCreateCmd.Flags().StringP("description", "d", "", "Milestone description")
-	milestoneCreateCmd.Flags().StringP("file", "f", "", "Read description from a markdown file (use - for stdin)")
+	milestoneCreateCmd.Flags().String("description-file", "", "Read description from a markdown file (use - for stdin)")
 	milestoneCreateCmd.Flags().String("target-date", "", "Target date (YYYY-MM-DD)")
 	_ = milestoneCreateCmd.MarkFlagRequired("name")
 
 	// Update flags
 	milestoneUpdateCmd.Flags().String("name", "", "New name")
 	milestoneUpdateCmd.Flags().StringP("description", "d", "", "New description")
-	milestoneUpdateCmd.Flags().StringP("file", "f", "", "Read description from a markdown file (use - for stdin)")
+	milestoneUpdateCmd.Flags().String("description-file", "", "Read description from a markdown file (use - for stdin)")
 	milestoneUpdateCmd.Flags().String("target-date", "", "New target date (YYYY-MM-DD, or empty to remove)")
 }

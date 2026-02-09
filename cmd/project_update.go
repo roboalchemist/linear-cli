@@ -223,24 +223,24 @@ var statusCreateCmd = &cobra.Command{
 	Short:   "Create a project status update",
 	Long: `Create a new status update on a project.
 
-The body can be provided inline via --body or read from a markdown file via --file.
-Use --file - to read from stdin.
+The body can be provided inline via --body or read from a markdown file via --body-file.
+Use --body-file - to read from stdin.
 
 Health values: onTrack, atRisk, offTrack
 
 Examples:
   linear-cli project status create PROJECT-ID --body "Sprint going well" --health onTrack
-  linear-cli project status create PROJECT-ID --file status-update.md --health atRisk
-  cat report.md | linear-cli project status create PROJECT-ID --file - --health onTrack`,
+  linear-cli project status create PROJECT-ID --body-file status-update.md --health atRisk
+  cat report.md | linear-cli project status create PROJECT-ID --body-file - --health onTrack`,
 	Args: cobra.ExactArgs(1),
 	Run: func(cmd *cobra.Command, args []string) {
 		plaintext := viper.GetBool("plaintext")
 		jsonOut := viper.GetBool("json")
 
-		// Resolve body from --body or --file
+		// Resolve body from --body or --body-file
 		bodyFlag, _ := cmd.Flags().GetString("body")
-		filePath, _ := cmd.Flags().GetString("file")
-		body, err := resolveBodyFromFlags(bodyFlag, cmd.Flags().Changed("body"), filePath, "body")
+		filePath, _ := cmd.Flags().GetString("body-file")
+		body, err := resolveBodyFromFlags(bodyFlag, cmd.Flags().Changed("body"), filePath, "body", "body-file")
 		if err != nil {
 			output.Error(err.Error(), plaintext, jsonOut)
 			os.Exit(1)
@@ -248,7 +248,7 @@ Examples:
 		health, _ := cmd.Flags().GetString("health")
 
 		if body == "" {
-			output.Error("Body is required (--body or --file)", plaintext, jsonOut)
+			output.Error("Body is required (--body or --body-file)", plaintext, jsonOut)
 			os.Exit(1)
 		}
 
@@ -313,12 +313,12 @@ var statusUpdateCmd = &cobra.Command{
 	Short:   "Update a project status update",
 	Long: `Update the body or health of an existing status update.
 
-The body can be provided inline via --body or read from a markdown file via --file.
-Use --file - to read from stdin.
+The body can be provided inline via --body or read from a markdown file via --body-file.
+Use --body-file - to read from stdin.
 
 Examples:
   linear-cli project status update UPDATE-ID --body "Updated status text"
-  linear-cli project status update UPDATE-ID --file updated-status.md
+  linear-cli project status update UPDATE-ID --body-file updated-status.md
   linear-cli project status update UPDATE-ID --health offTrack
   linear-cli project status update UPDATE-ID --body "New text" --health onTrack`,
 	Args: cobra.ExactArgs(1),
@@ -336,11 +336,11 @@ Examples:
 
 		input := make(map[string]interface{})
 
-		// Resolve body from --body or --file
-		filePath, _ := cmd.Flags().GetString("file")
+		// Resolve body from --body or --body-file
+		filePath, _ := cmd.Flags().GetString("body-file")
 		if cmd.Flags().Changed("body") || filePath != "" {
 			bodyFlag, _ := cmd.Flags().GetString("body")
-			body, err := resolveBodyFromFlags(bodyFlag, cmd.Flags().Changed("body"), filePath, "body")
+			body, err := resolveBodyFromFlags(bodyFlag, cmd.Flags().Changed("body"), filePath, "body", "body-file")
 			if err != nil {
 				output.Error(err.Error(), plaintext, jsonOut)
 				os.Exit(1)
@@ -458,13 +458,13 @@ func init() {
 	statusListCmd.Flags().IntP("limit", "l", 20, "Maximum number of updates to fetch")
 
 	// create flags
-	statusCreateCmd.Flags().StringP("body", "b", "", "Status update body text (required unless --file is used)")
-	statusCreateCmd.Flags().StringP("file", "f", "", "Read body from a markdown file (use - for stdin)")
+	statusCreateCmd.Flags().StringP("body", "b", "", "Status update body text (required unless --body-file is used)")
+	statusCreateCmd.Flags().String("body-file", "", "Read body from a markdown file (use - for stdin)")
 	statusCreateCmd.Flags().String("health", "", "Project health: onTrack, atRisk, offTrack")
 
 	// update flags
 	statusUpdateCmd.Flags().StringP("body", "b", "", "New body text")
-	statusUpdateCmd.Flags().StringP("file", "f", "", "Read body from a markdown file (use - for stdin)")
+	statusUpdateCmd.Flags().String("body-file", "", "Read body from a markdown file (use - for stdin)")
 	statusUpdateCmd.Flags().String("health", "", "New health: onTrack, atRisk, offTrack")
 
 	// Aliases so "linear-cli project update-status" also works — handled via Aliases on projectStatusCmd

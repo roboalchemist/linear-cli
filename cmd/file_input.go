@@ -27,10 +27,11 @@ func readContentFromFile(path string) (string, error) {
 
 // resolveBodyFromFlags resolves the text content from either a direct string flag or a file flag.
 // flagName is the name of the direct text flag (e.g. "body", "description", "content").
+// fileFlagName is the name of the file flag (e.g. "body-file", "description-file", "content-file").
 // Returns the resolved text and any error.
-func resolveBodyFromFlags(flagValue string, flagChanged bool, filePath string, flagName string) (string, error) {
+func resolveBodyFromFlags(flagValue string, flagChanged bool, filePath string, flagName string, fileFlagName string) (string, error) {
 	if flagChanged && filePath != "" {
-		return "", fmt.Errorf("cannot use both --%s and --file", flagName)
+		return "", fmt.Errorf("cannot use both --%s and --%s", flagName, fileFlagName)
 	}
 
 	if filePath != "" {

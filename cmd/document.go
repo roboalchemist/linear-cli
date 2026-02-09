@@ -341,13 +341,13 @@ var documentCreateCmd = &cobra.Command{
 	Short:   "Create a new document",
 	Long: `Create a new document in Linear.
 
-The content can be provided inline via --content or read from a markdown file via --file.
-Use --file - to read from stdin.
+The content can be provided inline via --content or read from a markdown file via --content-file.
+Use --content-file - to read from stdin.
 
 Examples:
   linear-cli document create --title "My Doc" --content "Some text"
-  linear-cli document create --title "My Doc" --file document.md
-  cat doc.md | linear-cli document create --title "My Doc" --file -`,
+  linear-cli document create --title "My Doc" --content-file document.md
+  cat doc.md | linear-cli document create --title "My Doc" --content-file -`,
 	Run: func(cmd *cobra.Command, args []string) {
 		plaintext := viper.GetBool("plaintext")
 		jsonOut := viper.GetBool("json")
@@ -362,8 +362,8 @@ Examples:
 
 		title, _ := cmd.Flags().GetString("title")
 		contentFlag, _ := cmd.Flags().GetString("content")
-		filePath, _ := cmd.Flags().GetString("file")
-		content, err := resolveBodyFromFlags(contentFlag, cmd.Flags().Changed("content"), filePath, "content")
+		filePath, _ := cmd.Flags().GetString("content-file")
+		content, err := resolveBodyFromFlags(contentFlag, cmd.Flags().Changed("content"), filePath, "content", "content-file")
 		if err != nil {
 			output.Error(err.Error(), plaintext, jsonOut)
 			os.Exit(1)
@@ -445,13 +445,13 @@ var documentUpdateCmd = &cobra.Command{
 	Short:   "Update a document",
 	Long: `Update fields of an existing document.
 
-The content can be provided inline via --content or read from a markdown file via --file.
-Use --file - to read from stdin.
+The content can be provided inline via --content or read from a markdown file via --content-file.
+Use --content-file - to read from stdin.
 
 Examples:
   linear-cli document update DOC-ID --title "New Title"
   linear-cli document update DOC-ID --content "Updated content"
-  linear-cli document update DOC-ID --file updated-doc.md
+  linear-cli document update DOC-ID --content-file updated-doc.md
   linear-cli document update DOC-ID --icon "📝" --color "#ff0000"`,
 	Args: cobra.ExactArgs(1),
 	Run: func(cmd *cobra.Command, args []string) {
@@ -473,10 +473,10 @@ Examples:
 			input["title"] = title
 		}
 
-		filePath, _ := cmd.Flags().GetString("file")
+		filePath, _ := cmd.Flags().GetString("content-file")
 		if cmd.Flags().Changed("content") || filePath != "" {
 			contentFlag, _ := cmd.Flags().GetString("content")
-			content, err := resolveBodyFromFlags(contentFlag, cmd.Flags().Changed("content"), filePath, "content")
+			content, err := resolveBodyFromFlags(contentFlag, cmd.Flags().Changed("content"), filePath, "content", "content-file")
 			if err != nil {
 				output.Error(err.Error(), plaintext, jsonOut)
 				os.Exit(1)
@@ -626,7 +626,7 @@ func init() {
 	// Create command flags
 	documentCreateCmd.Flags().String("title", "", "Document title (required)")
 	documentCreateCmd.Flags().String("content", "", "Document content (markdown)")
-	documentCreateCmd.Flags().StringP("file", "f", "", "Read content from a markdown file (use - for stdin)")
+	documentCreateCmd.Flags().String("content-file", "", "Read content from a markdown file (use - for stdin)")
 	documentCreateCmd.Flags().String("project", "", "Project ID to associate with")
 	documentCreateCmd.Flags().String("issue", "", "Issue ID to associate with")
 	documentCreateCmd.Flags().StringP("team", "t", "", "Team key to associate with")
@@ -637,7 +637,7 @@ func init() {
 	// Update command flags
 	documentUpdateCmd.Flags().String("title", "", "New title for the document")
 	documentUpdateCmd.Flags().String("content", "", "New content for the document (markdown)")
-	documentUpdateCmd.Flags().StringP("file", "f", "", "Read content from a markdown file (use - for stdin)")
+	documentUpdateCmd.Flags().String("content-file", "", "Read content from a markdown file (use - for stdin)")
 	documentUpdateCmd.Flags().String("icon", "", "New icon (emoji)")
 	documentUpdateCmd.Flags().String("color", "", "New icon color (hex)")
 	documentUpdateCmd.Flags().String("project", "", "Project ID to associate with")

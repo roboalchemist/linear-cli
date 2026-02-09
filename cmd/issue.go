@@ -891,13 +891,13 @@ var issueCreateCmd = &cobra.Command{
 	Short:   "Create a new issue",
 	Long: `Create a new issue in Linear.
 
-The description can be provided inline via --description or read from a markdown file via --file.
-Use --file - to read from stdin.
+The description can be provided inline via --description or read from a markdown file via --description-file.
+Use --description-file - to read from stdin.
 
 Examples:
   linear-cli issue create --title "Bug fix" --team ENG
   linear-cli issue create --title "Bug fix" --team ENG --description "Details here"
-  linear-cli issue create --title "Bug fix" --team ENG --file spec.md`,
+  linear-cli issue create --title "Bug fix" --team ENG --description-file spec.md`,
 	Run: func(cmd *cobra.Command, args []string) {
 		plaintext := viper.GetBool("plaintext")
 		jsonOut := viper.GetBool("json")
@@ -913,8 +913,8 @@ Examples:
 		// Get flags
 		title, _ := cmd.Flags().GetString("title")
 		descFlag, _ := cmd.Flags().GetString("description")
-		filePath, _ := cmd.Flags().GetString("file")
-		description, err := resolveBodyFromFlags(descFlag, cmd.Flags().Changed("description"), filePath, "description")
+		filePath, _ := cmd.Flags().GetString("description-file")
+		description, err := resolveBodyFromFlags(descFlag, cmd.Flags().Changed("description"), filePath, "description", "description-file")
 		if err != nil {
 			output.Error(err.Error(), plaintext, jsonOut)
 			os.Exit(1)
@@ -1059,13 +1059,13 @@ var issueUpdateCmd = &cobra.Command{
 	Short: "Update an issue",
 	Long: `Update various fields of an issue.
 
-The description can be provided inline via --description or read from a markdown file via --file.
-Use --file - to read from stdin.
+The description can be provided inline via --description or read from a markdown file via --description-file.
+Use --description-file - to read from stdin.
 
 Examples:
   linear-cli issue update LIN-123 --title "New title"
   linear-cli issue update LIN-123 --description "Updated description"
-  linear-cli issue update LIN-123 --file description.md
+  linear-cli issue update LIN-123 --description-file description.md
   linear-cli issue update LIN-123 --assignee user@example.com
   linear-cli issue update LIN-123 --state "In Progress"
   linear-cli issue update LIN-123 --priority 1
@@ -1093,11 +1093,11 @@ Examples:
 			input["title"] = title
 		}
 
-		// Handle description update (from --description or --file)
-		filePath, _ := cmd.Flags().GetString("file")
+		// Handle description update (from --description or --description-file)
+		filePath, _ := cmd.Flags().GetString("description-file")
 		if cmd.Flags().Changed("description") || filePath != "" {
 			descFlag, _ := cmd.Flags().GetString("description")
-			description, err := resolveBodyFromFlags(descFlag, cmd.Flags().Changed("description"), filePath, "description")
+			description, err := resolveBodyFromFlags(descFlag, cmd.Flags().Changed("description"), filePath, "description", "description-file")
 			if err != nil {
 				output.Error(err.Error(), plaintext, jsonOut)
 				os.Exit(1)
@@ -1882,7 +1882,7 @@ func init() {
 	// Issue create flags
 	issueCreateCmd.Flags().StringP("title", "", "", "Issue title (required)")
 	issueCreateCmd.Flags().StringP("description", "d", "", "Issue description")
-	issueCreateCmd.Flags().StringP("file", "f", "", "Read description from a markdown file (use - for stdin)")
+	issueCreateCmd.Flags().String("description-file", "", "Read description from a markdown file (use - for stdin)")
 	issueCreateCmd.Flags().StringP("team", "t", "", "Team key (required)")
 	issueCreateCmd.Flags().Int("priority", 3, "Priority (0=None, 1=Urgent, 2=High, 3=Normal, 4=Low)")
 	issueCreateCmd.Flags().BoolP("assign-me", "m", false, "Assign to yourself")
@@ -1895,7 +1895,7 @@ func init() {
 	// Issue update flags
 	issueUpdateCmd.Flags().String("title", "", "New title for the issue")
 	issueUpdateCmd.Flags().StringP("description", "d", "", "New description for the issue")
-	issueUpdateCmd.Flags().StringP("file", "f", "", "Read description from a markdown file (use - for stdin)")
+	issueUpdateCmd.Flags().String("description-file", "", "Read description from a markdown file (use - for stdin)")
 	issueUpdateCmd.Flags().StringP("assignee", "a", "", "Assignee (email, name, 'me', or 'unassigned')")
 	issueUpdateCmd.Flags().StringP("state", "s", "", "State name (e.g., 'Todo', 'In Progress', 'Done')")
 	issueUpdateCmd.Flags().Int("priority", -1, "Priority (0=None, 1=Urgent, 2=High, 3=Normal, 4=Low)")

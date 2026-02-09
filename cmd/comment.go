@@ -127,13 +127,13 @@ var commentCreateCmd = &cobra.Command{
 	Short:   "Create a comment on an issue",
 	Long: `Add a new comment to a specific issue.
 
-The comment body can be provided inline via --body or read from a markdown file via --file.
-Use --file - to read from stdin.
+The comment body can be provided inline via --body or read from a markdown file via --body-file.
+Use --body-file - to read from stdin.
 
 Examples:
   linear-cli issue comment create LIN-123 --body "Fixed the bug"
-  linear-cli issue comment create LIN-123 --file comment.md
-  cat notes.md | linear-cli issue comment create LIN-123 --file -`,
+  linear-cli issue comment create LIN-123 --body-file comment.md
+  cat notes.md | linear-cli issue comment create LIN-123 --body-file -`,
 	Args: cobra.ExactArgs(1),
 	Run: func(cmd *cobra.Command, args []string) {
 		plaintext := viper.GetBool("plaintext")
@@ -150,16 +150,16 @@ Examples:
 		// Create API client
 		client := api.NewClient(authHeader)
 
-		// Resolve comment body from --body or --file
+		// Resolve comment body from --body or --body-file
 		bodyFlag, _ := cmd.Flags().GetString("body")
-		filePath, _ := cmd.Flags().GetString("file")
-		body, err := resolveBodyFromFlags(bodyFlag, cmd.Flags().Changed("body"), filePath, "body")
+		filePath, _ := cmd.Flags().GetString("body-file")
+		body, err := resolveBodyFromFlags(bodyFlag, cmd.Flags().Changed("body"), filePath, "body", "body-file")
 		if err != nil {
 			output.Error(err.Error(), plaintext, jsonOut)
 			os.Exit(1)
 		}
 		if body == "" {
-			output.Error("Comment body is required (--body or --file)", plaintext, jsonOut)
+			output.Error("Comment body is required (--body or --body-file)", plaintext, jsonOut)
 			os.Exit(1)
 		}
 
@@ -245,12 +245,12 @@ var commentUpdateCmd = &cobra.Command{
 	Short:   "Update a comment",
 	Long: `Update the body of an existing comment.
 
-The comment body can be provided inline via --body or read from a markdown file via --file.
-Use --file - to read from stdin.
+The comment body can be provided inline via --body or read from a markdown file via --body-file.
+Use --body-file - to read from stdin.
 
 Examples:
   linear-cli issue comment update COMMENT-ID --body "Updated text"
-  linear-cli issue comment update COMMENT-ID --file updated.md`,
+  linear-cli issue comment update COMMENT-ID --body-file updated.md`,
 	Args: cobra.ExactArgs(1),
 	Run: func(cmd *cobra.Command, args []string) {
 		plaintext := viper.GetBool("plaintext")
@@ -265,16 +265,16 @@ Examples:
 
 		client := api.NewClient(authHeader)
 
-		// Resolve comment body from --body or --file
+		// Resolve comment body from --body or --body-file
 		bodyFlag, _ := cmd.Flags().GetString("body")
-		filePath, _ := cmd.Flags().GetString("file")
-		body, err := resolveBodyFromFlags(bodyFlag, cmd.Flags().Changed("body"), filePath, "body")
+		filePath, _ := cmd.Flags().GetString("body-file")
+		body, err := resolveBodyFromFlags(bodyFlag, cmd.Flags().Changed("body"), filePath, "body", "body-file")
 		if err != nil {
 			output.Error(err.Error(), plaintext, jsonOut)
 			os.Exit(1)
 		}
 		if body == "" {
-			output.Error("Comment body is required (--body or --file)", plaintext, jsonOut)
+			output.Error("Comment body is required (--body or --body-file)", plaintext, jsonOut)
 			os.Exit(1)
 		}
 
@@ -333,10 +333,10 @@ func init() {
 	commentListCmd.Flags().StringP("sort", "o", "linear", "Sort order: linear (default), created, updated")
 
 	// Create command flags
-	commentCreateCmd.Flags().StringP("body", "b", "", "Comment body (required unless --file is used)")
-	commentCreateCmd.Flags().StringP("file", "f", "", "Read body from a markdown file (use - for stdin)")
+	commentCreateCmd.Flags().StringP("body", "b", "", "Comment body (required unless --body-file is used)")
+	commentCreateCmd.Flags().String("body-file", "", "Read body from a markdown file (use - for stdin)")
 
 	// Update command flags
-	commentUpdateCmd.Flags().StringP("body", "b", "", "New comment body (required unless --file is used)")
-	commentUpdateCmd.Flags().StringP("file", "f", "", "Read body from a markdown file (use - for stdin)")
+	commentUpdateCmd.Flags().StringP("body", "b", "", "New comment body (required unless --body-file is used)")
+	commentUpdateCmd.Flags().String("body-file", "", "Read body from a markdown file (use - for stdin)")
 }
