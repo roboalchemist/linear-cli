@@ -29,8 +29,8 @@ go.work
 Thumbs.db
 
 # Build output
-linear-cli
-linctl
+/linear-cli
+/linctl
 dist/
 
 # Config files (may contain sensitive data)
