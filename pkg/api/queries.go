@@ -1420,6 +1420,27 @@ type Comments struct {
 	PageInfo PageInfo  `json:"pageInfo"`
 }
 
+// Notification represents a Linear notification (inbox item)
+type Notification struct {
+	ID             string     `json:"id"`
+	Type           string     `json:"type"`
+	CreatedAt      time.Time  `json:"createdAt"`
+	ReadAt         *time.Time `json:"readAt"`
+	SnoozedUntilAt *time.Time `json:"snoozedUntilAt"`
+	ArchivedAt     *time.Time `json:"archivedAt"`
+	Actor          *User      `json:"actor"`
+	// IssueNotification fields
+	Issue        *Issue `json:"issue"`
+	CommentID    string `json:"commentId"`
+	ReactionEmoji string `json:"reactionEmoji"`
+}
+
+// Notifications represents a paginated list of notifications
+type Notifications struct {
+	Nodes    []Notification `json:"nodes"`
+	PageInfo PageInfo       `json:"pageInfo"`
+}
+
 // WorkflowState represents a Linear workflow state
 type WorkflowState struct {
 	ID          string  `json:"id"`
@@ -4283,4 +4304,66 @@ func (c *Client) ArchiveCycle(ctx context.Context, id string) error {
 		} `json:"cycleArchive"`
 	}
 	return c.Execute(ctx, query, variables, &response)
+}
+
+// GetNotifications returns the user's notifications (inbox items)
+func (c *Client) GetNotifications(ctx context.Context, first int, after string, includeArchived bool) (*Notifications, error) {
+	query := `
+		query Notifications($first: Int, $after: String, $includeArchived: Boolean) {
+			notifications(first: $first, after: $after, includeArchived: $includeArchived) {
+				nodes {
+					id
+					type
+					createdAt
+					readAt
+					snoozedUntilAt
+					archivedAt
+					actor {
+						id
+						name
+						email
+					}
+					... on IssueNotification {
+						issue {
+							id
+							identifier
+							title
+							state {
+								id
+								name
+								type
+								color
+							}
+							team {
+								id
+								key
+								name
+							}
+						}
+						commentId
+						reactionEmoji
+					}
+				}
+				pageInfo {
+					hasNextPage
+					endCursor
+				}
+			}
+		}
+	`
+	variables := map[string]interface{}{
+		"first":           first,
+		"includeArchived": includeArchived,
+	}
+	if after != "" {
+		variables["after"] = after
+	}
+	var response struct {
+		Notifications Notifications `json:"notifications"`
+	}
+	err := c.Execute(ctx, query, variables, &response)
+	if err != nil {
+		return nil, err
+	}
+	return &response.Notifications, nil
 }
