@@ -74,7 +74,7 @@ var statusListCmd = &cobra.Command{
 		if plaintext {
 			fmt.Println("# Project Status Updates")
 			for _, u := range updates.Nodes {
-				fmt.Printf("\n## %s by %s\n", u.CreatedAt.Format("2006-01-02 15:04"), u.User.Name)
+				fmt.Printf("\n## %s by %s\n", u.CreatedAt.Format("2006-01-02 15:04"), safeUserName(u.User))
 				fmt.Printf("- **ID**: %s\n", u.ID)
 				fmt.Printf("- **Health**: %s\n", u.Health)
 				if u.EditedAt != nil {

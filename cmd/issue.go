@@ -469,7 +469,7 @@ var issueGetCmd = &cobra.Command{
 				fmt.Printf("\n## Reactions\n")
 				reactionMap := make(map[string][]string)
 				for _, reaction := range issue.Reactions {
-					reactionMap[reaction.Emoji] = append(reactionMap[reaction.Emoji], reaction.User.Name)
+					reactionMap[reaction.Emoji] = append(reactionMap[reaction.Emoji], safeUserName(reaction.User))
 				}
 				for emoji, users := range reactionMap {
 					fmt.Printf("- %s: %s\n", emoji, strings.Join(users, ", "))
@@ -536,14 +536,14 @@ var issueGetCmd = &cobra.Command{
 			if issue.Comments != nil && len(issue.Comments.Nodes) > 0 {
 				fmt.Printf("\n## Recent Comments\n")
 				for _, comment := range issue.Comments.Nodes {
-					fmt.Printf("\n### %s - %s\n", comment.User.Name, comment.CreatedAt.Format("2006-01-02 15:04"))
+					fmt.Printf("\n### %s - %s\n", safeUserName(comment.User), comment.CreatedAt.Format("2006-01-02 15:04"))
 					if comment.EditedAt != nil {
 						fmt.Printf("*(edited %s)*\n", comment.EditedAt.Format("2006-01-02 15:04"))
 					}
 					fmt.Printf("%s\n", comment.Body)
 					if comment.Children != nil && len(comment.Children.Nodes) > 0 {
 						for _, reply := range comment.Children.Nodes {
-							fmt.Printf("\n  **Reply from %s**: %s\n", reply.User.Name, reply.Body)
+							fmt.Printf("\n  **Reply from %s**: %s\n", safeUserName(reply.User), reply.Body)
 						}
 					}
 				}
@@ -743,7 +743,7 @@ var issueGetCmd = &cobra.Command{
 			fmt.Printf("\n%s\n", color.New(color.FgYellow).Sprint("Recent Comments:"))
 			for _, comment := range issue.Comments.Nodes {
 				fmt.Printf("  💬 %s - %s\n",
-					color.New(color.FgCyan).Sprint(comment.User.Name),
+					color.New(color.FgCyan).Sprint(safeUserName(comment.User)),
 					color.New(color.FgWhite, color.Faint).Sprint(comment.CreatedAt.Format("2006-01-02 15:04")))
 				// Show first line of comment
 				lines := strings.Split(comment.Body, "\n")
