@@ -2,7 +2,7 @@
 
 CLI for the [Linear API](https://developers.linear.app/) — issues, projects, cycles, labels, documents, initiatives, views, teams, and raw GraphQL. Built for both humans and AI agents.
 
-**Version**: 0.2.2 | **Binary**: `linear-cli` | **Config**: `~/.linear-cli.yaml` | **Auth**: `~/.linear-cli-auth.json`
+**Version**: 0.3.0 | **Binary**: `linear-cli` | **Config**: `~/.linear-cli.yaml` | **Auth**: `~/.linear-cli-auth.json`
 
 ## Setup
 
@@ -281,6 +281,8 @@ linear-cli auth rate-limit            # Show API rate limit status
 linear-cli auth login                 # Interactive login
 linear-cli auth logout                # Clear credentials
 linear-cli docs                       # Show full embedded documentation
+linear-cli skill print                # Print embedded Claude Code skill
+linear-cli skill add                  # Install skill to ~/.claude/skills/
 linear-cli completion zsh             # Generate shell completions
 ```
 

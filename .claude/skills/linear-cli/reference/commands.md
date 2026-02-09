@@ -1,6 +1,6 @@
 # linear-cli Command Reference
 
-**Version**: 0.2.2 | **Binary**: `/opt/homebrew/bin/linear-cli`
+**Version**: 0.3.0 | **Binary**: `/opt/homebrew/bin/linear-cli`
 
 ## Table of Contents
 
@@ -473,6 +473,14 @@ Shortcut for `user me`.
 ### `docs`
 
 Outputs full embedded documentation in markdown.
+
+### `skill print`
+
+Print the embedded Claude Code skill (SKILL.md) to stdout.
+
+### `skill add`
+
+Install the Claude Code skill to `~/.claude/skills/linear-cli/`. Creates both `SKILL.md` and `reference/commands.md`.
 
 ### `completion`
 
