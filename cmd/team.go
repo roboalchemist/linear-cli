@@ -18,12 +18,15 @@ import (
 var teamCmd = &cobra.Command{
 	Use:   "team",
 	Short: "Manage Linear teams",
-	Long: `Manage Linear teams including listing teams, viewing team details, and listing team members.
+	Long: `Manage Linear teams including creating, updating, deleting teams, viewing team details, and listing team members.
 
 Examples:
   linear-cli team list              # List all teams
   linear-cli team get ENG           # Get team details
-  linear-cli team members ENG       # List team members`,
+  linear-cli team members ENG       # List team members
+  linear-cli team create --name "Engineering" --key ENG
+  linear-cli team update ENG --description "Updated"
+  linear-cli team delete ENG`,
 }
 
 var teamListCmd = &cobra.Command{
@@ -286,6 +289,227 @@ var teamMembersCmd = &cobra.Command{
 	},
 }
 
+var teamCreateCmd = &cobra.Command{
+	Use:     "create",
+	Aliases: []string{"new"},
+	Short:   "Create a new team",
+	Long: `Create a new team in your Linear workspace.
+
+Examples:
+  linear-cli team create --name "Engineering"
+  linear-cli team create --name "Design" --key DES --description "Design team"
+  linear-cli team create --name "Mobile" --color "#4285F4" --private
+  linear-cli team create --name "Backend" --copy-settings-from ENG`,
+	Run: func(cmd *cobra.Command, args []string) {
+		plaintext := viper.GetBool("plaintext")
+		jsonOut := viper.GetBool("json")
+
+		authHeader, err := auth.GetAuthHeader()
+		if err != nil {
+			output.Error(fmt.Sprintf("Authentication failed: %v", err), plaintext, jsonOut)
+			os.Exit(1)
+		}
+
+		client := api.NewClient(authHeader)
+
+		name, _ := cmd.Flags().GetString("name")
+		input := map[string]interface{}{
+			"name": name,
+		}
+
+		if cmd.Flags().Changed("key") {
+			key, _ := cmd.Flags().GetString("key")
+			input["key"] = key
+		}
+		if cmd.Flags().Changed("description") {
+			desc, _ := cmd.Flags().GetString("description")
+			input["description"] = desc
+		}
+		if cmd.Flags().Changed("color") {
+			c, _ := cmd.Flags().GetString("color")
+			input["color"] = c
+		}
+		if cmd.Flags().Changed("icon") {
+			icon, _ := cmd.Flags().GetString("icon")
+			input["icon"] = icon
+		}
+		if cmd.Flags().Changed("private") {
+			private, _ := cmd.Flags().GetBool("private")
+			input["private"] = private
+		}
+		if cmd.Flags().Changed("cycles-enabled") {
+			cycles, _ := cmd.Flags().GetBool("cycles-enabled")
+			input["cyclesEnabled"] = cycles
+		}
+		if cmd.Flags().Changed("triage-enabled") {
+			triage, _ := cmd.Flags().GetBool("triage-enabled")
+			input["triageEnabled"] = triage
+		}
+		if cmd.Flags().Changed("timezone") {
+			tz, _ := cmd.Flags().GetString("timezone")
+			input["timezone"] = tz
+		}
+
+		copyFrom, _ := cmd.Flags().GetString("copy-settings-from")
+
+		team, err := client.CreateTeam(context.Background(), input, copyFrom)
+		if err != nil {
+			output.Error(fmt.Sprintf("Failed to create team: %v", err), plaintext, jsonOut)
+			os.Exit(1)
+		}
+
+		if jsonOut {
+			output.JSON(team)
+		} else if plaintext {
+			fmt.Printf("Created team: %s (%s)\n", team.Name, team.Key)
+		} else {
+			output.Success(fmt.Sprintf("Created team %s (%s)",
+				color.New(color.FgWhite, color.Bold).Sprint(team.Name),
+				color.New(color.FgCyan).Sprint(team.Key)), plaintext, jsonOut)
+		}
+	},
+}
+
+var teamUpdateCmd = &cobra.Command{
+	Use:     "update TEAM-KEY",
+	Aliases: []string{"edit"},
+	Short:   "Update a team",
+	Long: `Update a team's settings.
+
+Examples:
+  linear-cli team update ENG --name "Engineering Team"
+  linear-cli team update ENG --description "Updated description"
+  linear-cli team update ENG --cycles-enabled --triage-enabled
+  linear-cli team update ENG --color "#FF5733"`,
+	Args: cobra.ExactArgs(1),
+	Run: func(cmd *cobra.Command, args []string) {
+		plaintext := viper.GetBool("plaintext")
+		jsonOut := viper.GetBool("json")
+		teamKey := args[0]
+
+		authHeader, err := auth.GetAuthHeader()
+		if err != nil {
+			output.Error(fmt.Sprintf("Authentication failed: %v", err), plaintext, jsonOut)
+			os.Exit(1)
+		}
+
+		client := api.NewClient(authHeader)
+
+		// First, get the team ID from the key
+		team, err := client.GetTeam(context.Background(), teamKey)
+		if err != nil {
+			output.Error(fmt.Sprintf("Failed to find team: %v", err), plaintext, jsonOut)
+			os.Exit(1)
+		}
+
+		input := map[string]interface{}{}
+		if cmd.Flags().Changed("name") {
+			name, _ := cmd.Flags().GetString("name")
+			input["name"] = name
+		}
+		if cmd.Flags().Changed("key") {
+			key, _ := cmd.Flags().GetString("key")
+			input["key"] = key
+		}
+		if cmd.Flags().Changed("description") {
+			desc, _ := cmd.Flags().GetString("description")
+			input["description"] = desc
+		}
+		if cmd.Flags().Changed("color") {
+			c, _ := cmd.Flags().GetString("color")
+			input["color"] = c
+		}
+		if cmd.Flags().Changed("icon") {
+			icon, _ := cmd.Flags().GetString("icon")
+			input["icon"] = icon
+		}
+		if cmd.Flags().Changed("private") {
+			private, _ := cmd.Flags().GetBool("private")
+			input["private"] = private
+		}
+		if cmd.Flags().Changed("cycles-enabled") {
+			cycles, _ := cmd.Flags().GetBool("cycles-enabled")
+			input["cyclesEnabled"] = cycles
+		}
+		if cmd.Flags().Changed("triage-enabled") {
+			triage, _ := cmd.Flags().GetBool("triage-enabled")
+			input["triageEnabled"] = triage
+		}
+		if cmd.Flags().Changed("timezone") {
+			tz, _ := cmd.Flags().GetString("timezone")
+			input["timezone"] = tz
+		}
+
+		if len(input) == 0 {
+			output.Error("No fields to update. Use --name, --key, --description, --color, --icon, --private, --cycles-enabled, --triage-enabled, or --timezone.", plaintext, jsonOut)
+			os.Exit(1)
+		}
+
+		updatedTeam, err := client.UpdateTeam(context.Background(), team.ID, input)
+		if err != nil {
+			output.Error(fmt.Sprintf("Failed to update team: %v", err), plaintext, jsonOut)
+			os.Exit(1)
+		}
+
+		if jsonOut {
+			output.JSON(updatedTeam)
+		} else {
+			output.Success(fmt.Sprintf("Updated team %s (%s)",
+				color.New(color.FgWhite, color.Bold).Sprint(updatedTeam.Name),
+				color.New(color.FgCyan).Sprint(updatedTeam.Key)), plaintext, jsonOut)
+		}
+	},
+}
+
+var teamDeleteCmd = &cobra.Command{
+	Use:     "delete TEAM-KEY",
+	Aliases: []string{"rm"},
+	Short:   "Delete a team",
+	Long: `Delete (retire) a team. Teams are soft-deleted with a 30-day grace period during which they can be recovered.
+
+Note: Teams with active issues cannot be deleted.
+
+Examples:
+  linear-cli team delete ENG`,
+	Args: cobra.ExactArgs(1),
+	Run: func(cmd *cobra.Command, args []string) {
+		plaintext := viper.GetBool("plaintext")
+		jsonOut := viper.GetBool("json")
+		teamKey := args[0]
+
+		authHeader, err := auth.GetAuthHeader()
+		if err != nil {
+			output.Error(fmt.Sprintf("Authentication failed: %v", err), plaintext, jsonOut)
+			os.Exit(1)
+		}
+
+		client := api.NewClient(authHeader)
+
+		// First, get the team ID from the key
+		team, err := client.GetTeam(context.Background(), teamKey)
+		if err != nil {
+			output.Error(fmt.Sprintf("Failed to find team: %v", err), plaintext, jsonOut)
+			os.Exit(1)
+		}
+
+		err = client.DeleteTeam(context.Background(), team.ID)
+		if err != nil {
+			output.Error(fmt.Sprintf("Failed to delete team: %v", err), plaintext, jsonOut)
+			os.Exit(1)
+		}
+
+		if jsonOut {
+			output.JSON(map[string]interface{}{
+				"success": true,
+				"message": fmt.Sprintf("Team %s deleted", teamKey),
+			})
+		} else {
+			output.Success(fmt.Sprintf("Deleted team %s (30-day recovery period applies)",
+				color.New(color.FgCyan).Sprint(teamKey)), plaintext, jsonOut)
+		}
+	},
+}
+
 var teamStatesCmd = &cobra.Command{
 	Use:     "states TEAM-KEY",
 	Aliases: []string{"workflows"},
@@ -368,8 +592,35 @@ func init() {
 	teamCmd.AddCommand(teamGetCmd)
 	teamCmd.AddCommand(teamMembersCmd)
 	teamCmd.AddCommand(teamStatesCmd)
+	teamCmd.AddCommand(teamCreateCmd)
+	teamCmd.AddCommand(teamUpdateCmd)
+	teamCmd.AddCommand(teamDeleteCmd)
 
 	// List command flags
 	teamListCmd.Flags().IntP("limit", "l", 50, "Maximum number of teams to return")
 	teamListCmd.Flags().StringP("sort", "o", "linear", "Sort order: linear (default), created, updated")
+
+	// Create command flags
+	teamCreateCmd.Flags().StringP("name", "n", "", "Team name (required)")
+	teamCreateCmd.Flags().StringP("key", "k", "", "Team identifier key (auto-generated from name if omitted)")
+	teamCreateCmd.Flags().StringP("description", "d", "", "Team description")
+	teamCreateCmd.Flags().StringP("color", "c", "", "Team color (hex, e.g., #4285F4)")
+	teamCreateCmd.Flags().String("icon", "", "Team icon")
+	teamCreateCmd.Flags().Bool("private", false, "Make the team private")
+	teamCreateCmd.Flags().Bool("cycles-enabled", false, "Enable cycles for the team")
+	teamCreateCmd.Flags().Bool("triage-enabled", false, "Enable triage mode for the team")
+	teamCreateCmd.Flags().String("timezone", "", "Team timezone")
+	teamCreateCmd.Flags().String("copy-settings-from", "", "Copy settings from another team (team key or ID)")
+	_ = teamCreateCmd.MarkFlagRequired("name")
+
+	// Update command flags
+	teamUpdateCmd.Flags().StringP("name", "n", "", "New team name")
+	teamUpdateCmd.Flags().StringP("key", "k", "", "New team identifier key")
+	teamUpdateCmd.Flags().StringP("description", "d", "", "New team description")
+	teamUpdateCmd.Flags().StringP("color", "c", "", "New team color (hex)")
+	teamUpdateCmd.Flags().String("icon", "", "New team icon")
+	teamUpdateCmd.Flags().Bool("private", false, "Set team visibility to private")
+	teamUpdateCmd.Flags().Bool("cycles-enabled", false, "Enable/disable cycles")
+	teamUpdateCmd.Flags().Bool("triage-enabled", false, "Enable/disable triage mode")
+	teamUpdateCmd.Flags().String("timezone", "", "New team timezone")
 }

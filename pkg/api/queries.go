@@ -4730,3 +4730,71 @@ func (c *Client) DeleteFavorite(ctx context.Context, id string) error {
 	err := c.Execute(ctx, query, variables, &response)
 	return err
 }
+
+// CreateTeam creates a new team
+func (c *Client) CreateTeam(ctx context.Context, input map[string]interface{}, copySettingsFromTeamID string) (*Team, error) {
+	query := `
+		mutation CreateTeam($input: TeamCreateInput!, $copySettingsFromTeamId: String) {
+			teamCreate(input: $input, copySettingsFromTeamId: $copySettingsFromTeamId) {
+				team {
+					id
+					key
+					name
+					description
+					private
+					color
+					icon
+					cyclesEnabled
+					triageEnabled
+					timezone
+				}
+				success
+			}
+		}
+	`
+
+	variables := map[string]interface{}{
+		"input": input,
+	}
+	if copySettingsFromTeamID != "" {
+		variables["copySettingsFromTeamId"] = copySettingsFromTeamID
+	}
+
+	var response struct {
+		TeamCreate struct {
+			Team    Team `json:"team"`
+			Success bool `json:"success"`
+		} `json:"teamCreate"`
+	}
+
+	err := c.Execute(ctx, query, variables, &response)
+	if err != nil {
+		return nil, err
+	}
+
+	return &response.TeamCreate.Team, nil
+}
+
+// DeleteTeam deletes (retires) a team with a 30-day grace period
+func (c *Client) DeleteTeam(ctx context.Context, id string) error {
+	query := `
+		mutation DeleteTeam($id: String!) {
+			teamDelete(id: $id) {
+				success
+			}
+		}
+	`
+
+	variables := map[string]interface{}{
+		"id": id,
+	}
+
+	var response struct {
+		TeamDelete struct {
+			Success bool `json:"success"`
+		} `json:"teamDelete"`
+	}
+
+	err := c.Execute(ctx, query, variables, &response)
+	return err
+}
