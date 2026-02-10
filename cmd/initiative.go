@@ -243,11 +243,17 @@ var initiativeGetCmd = &cobra.Command{
 			fmt.Printf("\n## Timeline\n")
 			fmt.Printf("- **Created**: %s\n", initiative.CreatedAt.Format("2006-01-02 15:04:05"))
 			fmt.Printf("- **Updated**: %s\n", initiative.UpdatedAt.Format("2006-01-02 15:04:05"))
+			if initiative.StartedAt != nil {
+				fmt.Printf("- **Started**: %s\n", initiative.StartedAt.Format("2006-01-02 15:04:05"))
+			}
 			if initiative.CompletedAt != nil {
 				fmt.Printf("- **Completed**: %s\n", initiative.CompletedAt.Format("2006-01-02 15:04:05"))
 			}
 			if initiative.ArchivedAt != nil {
 				fmt.Printf("- **Archived**: %s\n", initiative.ArchivedAt.Format("2006-01-02 15:04:05"))
+			}
+			if initiative.HealthUpdatedAt != nil {
+				fmt.Printf("- **Health Updated**: %s\n", initiative.HealthUpdatedAt.Format("2006-01-02 15:04:05"))
 			}
 
 			fmt.Printf("\n## URL\n- %s\n", initiative.URL)
@@ -318,6 +324,9 @@ var initiativeGetCmd = &cobra.Command{
 		fmt.Printf("\n%s\n", color.New(color.Bold).Sprint("Timeline:"))
 		fmt.Printf("  Created: %s\n", initiative.CreatedAt.Format("2006-01-02"))
 		fmt.Printf("  Updated: %s\n", initiative.UpdatedAt.Format("2006-01-02"))
+		if initiative.StartedAt != nil {
+			fmt.Printf("  Started: %s\n", initiative.StartedAt.Format("2006-01-02"))
+		}
 		if initiative.CompletedAt != nil {
 			fmt.Printf("  Completed: %s\n", initiative.CompletedAt.Format("2006-01-02"))
 		}
@@ -425,6 +434,50 @@ Examples:
 		if cmd.Flags().Changed("icon") {
 			icon, _ := cmd.Flags().GetString("icon")
 			input["icon"] = icon
+		}
+		if cmd.Flags().Changed("sort-order") {
+			so, _ := cmd.Flags().GetFloat64("sort-order")
+			input["sortOrder"] = so
+		}
+		if cmd.Flags().Changed("target-date-resolution") {
+			tdr, _ := cmd.Flags().GetString("target-date-resolution")
+			input["targetDateResolution"] = tdr
+		}
+		if cmd.Flags().Changed("content") {
+			content, _ := cmd.Flags().GetString("content")
+			input["content"] = content
+		}
+		if cmd.Flags().Changed("owner") {
+			owner, _ := cmd.Flags().GetString("owner")
+			switch strings.ToLower(owner) {
+			case "me":
+				viewer, err := client.GetViewer(context.Background())
+				if err != nil {
+					output.Error(fmt.Sprintf("Failed to get current user: %v", err), plaintext, jsonOut)
+					os.Exit(1)
+				}
+				input["ownerId"] = viewer.ID
+			case "none", "unassigned", "":
+				// Don't set ownerId
+			default:
+				users, err := client.GetUsers(context.Background(), 100, "", "")
+				if err != nil {
+					output.Error(fmt.Sprintf("Failed to get users: %v", err), plaintext, jsonOut)
+					os.Exit(1)
+				}
+				var foundUser *api.User
+				for _, user := range users.Nodes {
+					if strings.EqualFold(user.Email, owner) || strings.EqualFold(user.Name, owner) {
+						foundUser = &user
+						break
+					}
+				}
+				if foundUser == nil {
+					output.Error(fmt.Sprintf("User not found: %s", owner), plaintext, jsonOut)
+					os.Exit(1)
+				}
+				input["ownerId"] = foundUser.ID
+			}
 		}
 
 		initiative, err := client.CreateInitiative(context.Background(), input)
@@ -542,6 +595,18 @@ Examples:
 				}
 				input["ownerId"] = foundUser.ID
 			}
+		}
+		if cmd.Flags().Changed("sort-order") {
+			so, _ := cmd.Flags().GetFloat64("sort-order")
+			input["sortOrder"] = so
+		}
+		if cmd.Flags().Changed("target-date-resolution") {
+			tdr, _ := cmd.Flags().GetString("target-date-resolution")
+			input["targetDateResolution"] = tdr
+		}
+		if cmd.Flags().Changed("content") {
+			content, _ := cmd.Flags().GetString("content")
+			input["content"] = content
 		}
 
 		if len(input) == 0 {
@@ -936,8 +1001,12 @@ func init() {
 	initiativeCreateCmd.Flags().String("description-file", "", "Read description from a markdown file (use - for stdin)")
 	initiativeCreateCmd.Flags().StringP("status", "s", "", "Status (Planned, Active, Completed)")
 	initiativeCreateCmd.Flags().String("target-date", "", "Target date (YYYY-MM-DD)")
+	initiativeCreateCmd.Flags().String("target-date-resolution", "", "Target date resolution (month, quarter, halfYear, year)")
 	initiativeCreateCmd.Flags().String("color", "", "Initiative color (hex)")
 	initiativeCreateCmd.Flags().String("icon", "", "Initiative icon")
+	initiativeCreateCmd.Flags().Float64("sort-order", 0, "Sort order (float)")
+	initiativeCreateCmd.Flags().String("content", "", "Initiative content (markdown)")
+	initiativeCreateCmd.Flags().StringP("owner", "o", "", "Initiative owner (email, name, or 'me')")
 	_ = initiativeCreateCmd.MarkFlagRequired("name")
 
 	// Update flags
@@ -946,7 +1015,10 @@ func init() {
 	initiativeUpdateCmd.Flags().String("description-file", "", "Read description from a markdown file (use - for stdin)")
 	initiativeUpdateCmd.Flags().StringP("status", "s", "", "New status (Planned, Active, Completed)")
 	initiativeUpdateCmd.Flags().String("target-date", "", "New target date (YYYY-MM-DD, or empty to remove)")
+	initiativeUpdateCmd.Flags().String("target-date-resolution", "", "Target date resolution (month, quarter, halfYear, year)")
 	initiativeUpdateCmd.Flags().String("color", "", "New color (hex)")
 	initiativeUpdateCmd.Flags().String("icon", "", "New icon")
 	initiativeUpdateCmd.Flags().StringP("owner", "o", "", "Initiative owner (email, name, 'me', or 'none' to unset)")
+	initiativeUpdateCmd.Flags().Float64("sort-order", 0, "Sort order (float)")
+	initiativeUpdateCmd.Flags().String("content", "", "Initiative content (markdown)")
 }

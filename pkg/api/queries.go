@@ -336,13 +336,16 @@ type Initiative struct {
 	Content              string       `json:"content"`
 	TargetDate           *string      `json:"targetDate"`
 	TargetDateResolution string       `json:"targetDateResolution"`
+	SortOrder            float64      `json:"sortOrder"`
 	Owner                *User        `json:"owner"`
 	Creator              *User        `json:"creator"`
 	URL                  string       `json:"url"`
 	Health               string       `json:"health"`
+	HealthUpdatedAt      *time.Time   `json:"healthUpdatedAt"`
 	CreatedAt            time.Time    `json:"createdAt"`
 	UpdatedAt            time.Time    `json:"updatedAt"`
 	ArchivedAt           *time.Time   `json:"archivedAt"`
+	StartedAt            *time.Time   `json:"startedAt"`
 	CompletedAt          *time.Time   `json:"completedAt"`
 	Projects             *Projects    `json:"projects"`
 	ParentInitiative     *Initiative  `json:"parentInitiative"`
@@ -3483,11 +3486,14 @@ func (c *Client) GetInitiatives(ctx context.Context, filter map[string]interface
 					icon
 					targetDate
 					targetDateResolution
+					sortOrder
 					health
+					healthUpdatedAt
 					url
 					createdAt
 					updatedAt
 					archivedAt
+					startedAt
 					completedAt
 					owner {
 						id
@@ -3549,11 +3555,14 @@ func (c *Client) GetInitiative(ctx context.Context, id string) (*Initiative, err
 				content
 				targetDate
 				targetDateResolution
+				sortOrder
 				health
+				healthUpdatedAt
 				url
 				createdAt
 				updatedAt
 				archivedAt
+				startedAt
 				completedAt
 				owner {
 					id
@@ -3622,13 +3631,21 @@ func (c *Client) CreateInitiative(ctx context.Context, input map[string]interfac
 					name
 					description
 					status
+					slugId
 					color
 					icon
+					content
 					targetDate
+					targetDateResolution
+					sortOrder
 					health
+					healthUpdatedAt
 					url
 					createdAt
 					updatedAt
+					archivedAt
+					startedAt
+					completedAt
 					owner {
 						id
 						name
@@ -3673,13 +3690,21 @@ func (c *Client) UpdateInitiative(ctx context.Context, id string, input map[stri
 					name
 					description
 					status
+					slugId
 					color
 					icon
+					content
 					targetDate
+					targetDateResolution
+					sortOrder
 					health
+					healthUpdatedAt
 					url
 					createdAt
 					updatedAt
+					archivedAt
+					startedAt
+					completedAt
 					owner {
 						id
 						name
