@@ -17,7 +17,22 @@ type User struct {
 	IsMe        bool       `json:"isMe"`
 	Active      bool       `json:"active"`
 	Admin       bool       `json:"admin"`
+	Owner       bool       `json:"owner"`
+	Guest       bool       `json:"guest"`
 	CreatedAt   *time.Time `json:"createdAt"`
+	UpdatedAt   *time.Time `json:"updatedAt"`
+	ArchivedAt  *time.Time `json:"archivedAt"`
+	LastSeen    *time.Time `json:"lastSeen"`
+	// Profile fields
+	Description   string     `json:"description"`
+	Timezone      string     `json:"timezone"`
+	URL           string     `json:"url"`
+	// Status fields
+	StatusEmoji   string     `json:"statusEmoji"`
+	StatusLabel   string     `json:"statusLabel"`
+	StatusUntilAt *time.Time `json:"statusUntilAt"`
+	// Stats
+	CreatedIssueCount int `json:"createdIssueCount"`
 }
 
 // Team represents a Linear team
@@ -611,9 +626,23 @@ func (c *Client) GetViewer(ctx context.Context) (*User, error) {
 				name
 				email
 				avatarUrl
+				displayName
 				isMe
 				active
 				admin
+				owner
+				guest
+				createdAt
+				updatedAt
+				archivedAt
+				lastSeen
+				description
+				timezone
+				url
+				statusEmoji
+				statusLabel
+				statusUntilAt
+				createdIssueCount
 			}
 		}
 	`
@@ -1946,9 +1975,23 @@ func (c *Client) GetUsers(ctx context.Context, first int, after string, orderBy 
 					name
 					email
 					avatarUrl
+					displayName
 					isMe
 					active
 					admin
+					owner
+					guest
+					createdAt
+					updatedAt
+					archivedAt
+					lastSeen
+					description
+					timezone
+					url
+					statusEmoji
+					statusLabel
+					statusUntilAt
+					createdIssueCount
 				}
 				pageInfo {
 					hasNextPage
@@ -1980,24 +2023,106 @@ func (c *Client) GetUsers(ctx context.Context, first int, after string, orderBy 
 	return &response.Users, nil
 }
 
-// GetUser returns a specific user by email
-func (c *Client) GetUser(ctx context.Context, email string) (*User, error) {
+// GetUser returns a specific user by email or ID
+func (c *Client) GetUser(ctx context.Context, emailOrID string) (*User, error) {
+	// Check if it looks like an email (contains @)
+	isEmail := false
+	for _, c := range emailOrID {
+		if c == '@' {
+			isEmail = true
+			break
+		}
+	}
+
+	if isEmail {
+		// Use users query with email filter
+		query := `
+			query UserByEmail($filter: UserFilter) {
+				users(filter: $filter, first: 1) {
+					nodes {
+						id
+						name
+						email
+						avatarUrl
+						displayName
+						isMe
+						active
+						admin
+						owner
+						guest
+						createdAt
+						updatedAt
+						archivedAt
+						lastSeen
+						description
+						timezone
+						url
+						statusEmoji
+						statusLabel
+						statusUntilAt
+						createdIssueCount
+					}
+				}
+			}
+		`
+
+		variables := map[string]interface{}{
+			"filter": map[string]interface{}{
+				"email": map[string]interface{}{
+					"eq": emailOrID,
+				},
+			},
+		}
+
+		var response struct {
+			Users struct {
+				Nodes []User `json:"nodes"`
+			} `json:"users"`
+		}
+
+		err := c.Execute(ctx, query, variables, &response)
+		if err != nil {
+			return nil, err
+		}
+
+		if len(response.Users.Nodes) == 0 {
+			return nil, fmt.Errorf("user not found: %s", emailOrID)
+		}
+
+		return &response.Users.Nodes[0], nil
+	}
+
+	// Use user query with ID
 	query := `
-		query User($email: String!) {
-			user(email: $email) {
+		query User($id: String!) {
+			user(id: $id) {
 				id
 				name
 				email
 				avatarUrl
+				displayName
 				isMe
 				active
 				admin
+				owner
+				guest
+				createdAt
+				updatedAt
+				archivedAt
+				lastSeen
+				description
+				timezone
+				url
+				statusEmoji
+				statusLabel
+				statusUntilAt
+				createdIssueCount
 			}
 		}
 	`
 
 	variables := map[string]interface{}{
-		"email": email,
+		"id": emailOrID,
 	}
 
 	var response struct {
@@ -2010,6 +2135,75 @@ func (c *Client) GetUser(ctx context.Context, email string) (*User, error) {
 	}
 
 	return &response.User, nil
+}
+
+// UserUpdateInput represents the input for updating a user
+type UserUpdateInput struct {
+	Name          *string    `json:"name,omitempty"`
+	DisplayName   *string    `json:"displayName,omitempty"`
+	AvatarURL     *string    `json:"avatarUrl,omitempty"`
+	Description   *string    `json:"description,omitempty"`
+	StatusEmoji   *string    `json:"statusEmoji,omitempty"`
+	StatusLabel   *string    `json:"statusLabel,omitempty"`
+	StatusUntilAt *time.Time `json:"statusUntilAt,omitempty"`
+	Timezone      *string    `json:"timezone,omitempty"`
+}
+
+// UpdateUser updates a user's settings (can only update yourself)
+func (c *Client) UpdateUser(ctx context.Context, userID string, input UserUpdateInput) (*User, error) {
+	query := `
+		mutation UserUpdate($id: String!, $input: UserUpdateInput!) {
+			userUpdate(id: $id, input: $input) {
+				success
+				user {
+					id
+					name
+					email
+					avatarUrl
+					displayName
+					isMe
+					active
+					admin
+					owner
+					guest
+					createdAt
+					updatedAt
+					archivedAt
+					lastSeen
+					description
+					timezone
+					url
+					statusEmoji
+					statusLabel
+					statusUntilAt
+					createdIssueCount
+				}
+			}
+		}
+	`
+
+	variables := map[string]interface{}{
+		"id":    userID,
+		"input": input,
+	}
+
+	var response struct {
+		UserUpdate struct {
+			Success bool `json:"success"`
+			User    User `json:"user"`
+		} `json:"userUpdate"`
+	}
+
+	err := c.Execute(ctx, query, variables, &response)
+	if err != nil {
+		return nil, err
+	}
+
+	if !response.UserUpdate.Success {
+		return nil, fmt.Errorf("user update failed")
+	}
+
+	return &response.UserUpdate.User, nil
 }
 
 // GetIssueComments returns comments for a specific issue
