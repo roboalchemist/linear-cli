@@ -636,6 +636,223 @@ var initiativeProjectsCmd = &cobra.Command{
 	},
 }
 
+var initiativeAddProjectCmd = &cobra.Command{
+	Use:     "add-project INITIATIVE-ID PROJECT-ID [PROJECT-ID...]",
+	Aliases: []string{"attach-project"},
+	Short:   "Add projects to an initiative",
+	Long: `Link one or more projects to an initiative. Projects are specified by their ID.
+
+Examples:
+  linear-cli initiative add-project INITIATIVE-ID PROJECT-ID
+  linear-cli initiative add-project INITIATIVE-ID PROJECT-1 PROJECT-2`,
+	Args: cobra.MinimumNArgs(2),
+	Run: func(cmd *cobra.Command, args []string) {
+		plaintext := viper.GetBool("plaintext")
+		jsonOut := viper.GetBool("json")
+		initiativeID := args[0]
+		projectIDs := args[1:]
+
+		authHeader, err := auth.GetAuthHeader()
+		if err != nil {
+			output.Error(fmt.Sprintf("Authentication failed: %v", err), plaintext, jsonOut)
+			os.Exit(1)
+		}
+
+		client := api.NewClient(authHeader)
+		ctx := context.Background()
+
+		// Get current initiative to verify it exists and show its name
+		initiative, err := client.GetInitiative(ctx, initiativeID)
+		if err != nil {
+			output.Error(fmt.Sprintf("Failed to get initiative: %v", err), plaintext, jsonOut)
+			os.Exit(1)
+		}
+
+		// Check which projects are already linked
+		existingProjects, err := client.GetInitiativeProjects(ctx, initiativeID, 100, "")
+		if err != nil {
+			output.Error(fmt.Sprintf("Failed to get initiative projects: %v", err), plaintext, jsonOut)
+			os.Exit(1)
+		}
+
+		existingIDs := make(map[string]bool)
+		for _, p := range existingProjects.Nodes {
+			existingIDs[p.ID] = true
+		}
+
+		// Add each project
+		var addedProjects []string
+		var results []map[string]interface{}
+		for _, projectID := range projectIDs {
+			if existingIDs[projectID] {
+				if !jsonOut {
+					fmt.Fprintf(os.Stderr, "Project %s is already linked to this initiative, skipping\n", projectID)
+				}
+				continue
+			}
+
+			link, err := client.AddProjectToInitiative(ctx, initiativeID, projectID)
+			if err != nil {
+				if !jsonOut {
+					fmt.Fprintf(os.Stderr, "Failed to add project %s: %v\n", projectID, err)
+				}
+				continue
+			}
+			addedProjects = append(addedProjects, projectID)
+			if link.Project != nil {
+				results = append(results, map[string]interface{}{
+					"projectId":   link.Project.ID,
+					"projectName": link.Project.Name,
+					"state":       link.Project.State,
+				})
+			}
+		}
+
+		if len(addedProjects) == 0 {
+			if jsonOut {
+				output.JSON(map[string]interface{}{
+					"added":      []string{},
+					"initiative": initiative.Name,
+				})
+			} else {
+				fmt.Println("No new projects to add.")
+			}
+			return
+		}
+
+		if jsonOut {
+			output.JSON(map[string]interface{}{
+				"added":      results,
+				"initiative": initiative.Name,
+			})
+		} else if plaintext {
+			fmt.Printf("# Added %d project(s) to initiative: %s\n\n", len(addedProjects), initiative.Name)
+			for _, r := range results {
+				fmt.Printf("- %s (%s)\n", r["projectName"], r["state"])
+			}
+		} else {
+			fmt.Printf("\n%s Added %d project(s) to initiative %s\n",
+				color.New(color.FgGreen).Sprint("✓"),
+				len(addedProjects),
+				color.New(color.FgCyan, color.Bold).Sprint(initiative.Name))
+			if len(results) > 0 {
+				fmt.Printf("\n%s\n", color.New(color.Bold).Sprint("Added Projects:"))
+				for _, r := range results {
+					fmt.Printf("  • %s [%s]\n",
+						color.New(color.FgWhite, color.Bold).Sprint(r["projectName"]),
+						r["state"])
+				}
+			}
+			fmt.Println()
+		}
+	},
+}
+
+var initiativeRemoveProjectCmd = &cobra.Command{
+	Use:     "remove-project INITIATIVE-ID PROJECT-ID [PROJECT-ID...]",
+	Aliases: []string{"detach-project"},
+	Short:   "Remove projects from an initiative",
+	Long: `Unlink one or more projects from an initiative. Projects are specified by their ID.
+
+Examples:
+  linear-cli initiative remove-project INITIATIVE-ID PROJECT-ID
+  linear-cli initiative remove-project INITIATIVE-ID PROJECT-1 PROJECT-2`,
+	Args: cobra.MinimumNArgs(2),
+	Run: func(cmd *cobra.Command, args []string) {
+		plaintext := viper.GetBool("plaintext")
+		jsonOut := viper.GetBool("json")
+		initiativeID := args[0]
+		projectIDs := args[1:]
+
+		authHeader, err := auth.GetAuthHeader()
+		if err != nil {
+			output.Error(fmt.Sprintf("Authentication failed: %v", err), plaintext, jsonOut)
+			os.Exit(1)
+		}
+
+		client := api.NewClient(authHeader)
+		ctx := context.Background()
+
+		// Get current initiative to verify it exists and show its name
+		initiative, err := client.GetInitiative(ctx, initiativeID)
+		if err != nil {
+			output.Error(fmt.Sprintf("Failed to get initiative: %v", err), plaintext, jsonOut)
+			os.Exit(1)
+		}
+
+		// Check which projects are currently linked
+		existingProjects, err := client.GetInitiativeProjects(ctx, initiativeID, 100, "")
+		if err != nil {
+			output.Error(fmt.Sprintf("Failed to get initiative projects: %v", err), plaintext, jsonOut)
+			os.Exit(1)
+		}
+
+		existingIDs := make(map[string]string) // map project ID to name
+		for _, p := range existingProjects.Nodes {
+			existingIDs[p.ID] = p.Name
+		}
+
+		// Remove each project
+		var removedProjects []map[string]string
+		for _, projectID := range projectIDs {
+			if _, exists := existingIDs[projectID]; !exists {
+				if !jsonOut {
+					fmt.Fprintf(os.Stderr, "Project %s is not linked to this initiative, skipping\n", projectID)
+				}
+				continue
+			}
+
+			err := client.RemoveProjectFromInitiative(ctx, initiativeID, projectID)
+			if err != nil {
+				if !jsonOut {
+					fmt.Fprintf(os.Stderr, "Failed to remove project %s: %v\n", projectID, err)
+				}
+				continue
+			}
+			removedProjects = append(removedProjects, map[string]string{
+				"projectId":   projectID,
+				"projectName": existingIDs[projectID],
+			})
+		}
+
+		if len(removedProjects) == 0 {
+			if jsonOut {
+				output.JSON(map[string]interface{}{
+					"removed":    []string{},
+					"initiative": initiative.Name,
+				})
+			} else {
+				fmt.Println("No projects to remove.")
+			}
+			return
+		}
+
+		if jsonOut {
+			output.JSON(map[string]interface{}{
+				"removed":    removedProjects,
+				"initiative": initiative.Name,
+			})
+		} else if plaintext {
+			fmt.Printf("# Removed %d project(s) from initiative: %s\n\n", len(removedProjects), initiative.Name)
+			for _, r := range removedProjects {
+				fmt.Printf("- %s\n", r["projectName"])
+			}
+		} else {
+			fmt.Printf("\n%s Removed %d project(s) from initiative %s\n",
+				color.New(color.FgGreen).Sprint("✓"),
+				len(removedProjects),
+				color.New(color.FgCyan, color.Bold).Sprint(initiative.Name))
+			if len(removedProjects) > 0 {
+				fmt.Printf("\n%s\n", color.New(color.Bold).Sprint("Removed Projects:"))
+				for _, r := range removedProjects {
+					fmt.Printf("  • %s\n", color.New(color.FgWhite, color.Bold).Sprint(r["projectName"]))
+				}
+			}
+			fmt.Println()
+		}
+	},
+}
+
 func init() {
 	rootCmd.AddCommand(initiativeCmd)
 	initiativeCmd.AddCommand(initiativeListCmd)
@@ -644,6 +861,8 @@ func init() {
 	initiativeCmd.AddCommand(initiativeUpdateCmd)
 	initiativeCmd.AddCommand(initiativeDeleteCmd)
 	initiativeCmd.AddCommand(initiativeProjectsCmd)
+	initiativeCmd.AddCommand(initiativeAddProjectCmd)
+	initiativeCmd.AddCommand(initiativeRemoveProjectCmd)
 
 	// Initiative projects flags
 	initiativeProjectsCmd.Flags().IntP("limit", "l", 50, "Maximum number of projects to return")

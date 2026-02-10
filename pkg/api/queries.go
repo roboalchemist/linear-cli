@@ -3983,6 +3983,158 @@ func (c *Client) GetInitiativeProjects(ctx context.Context, initiativeID string,
 	return &response.Initiative.Projects, nil
 }
 
+// InitiativeToProject represents a link between an initiative and a project
+type InitiativeToProject struct {
+	ID         string   `json:"id"`
+	Initiative *struct {
+		ID   string `json:"id"`
+		Name string `json:"name"`
+	} `json:"initiative"`
+	Project   *Project `json:"project"`
+	SortOrder string   `json:"sortOrder"`
+}
+
+// AddProjectToInitiative links a project to an initiative
+func (c *Client) AddProjectToInitiative(ctx context.Context, initiativeID string, projectID string) (*InitiativeToProject, error) {
+	query := `
+		mutation InitiativeToProjectCreate($input: InitiativeToProjectCreateInput!) {
+			initiativeToProjectCreate(input: $input) {
+				initiativeToProject {
+					id
+					initiative {
+						id
+						name
+					}
+					project {
+						id
+						name
+						state
+						progress
+					}
+					sortOrder
+				}
+				success
+			}
+		}
+	`
+
+	variables := map[string]interface{}{
+		"input": map[string]interface{}{
+			"initiativeId": initiativeID,
+			"projectId":    projectID,
+		},
+	}
+
+	var response struct {
+		InitiativeToProjectCreate struct {
+			InitiativeToProject InitiativeToProject `json:"initiativeToProject"`
+			Success             bool                `json:"success"`
+		} `json:"initiativeToProjectCreate"`
+	}
+
+	err := c.Execute(ctx, query, variables, &response)
+	if err != nil {
+		return nil, err
+	}
+
+	if !response.InitiativeToProjectCreate.Success {
+		return nil, fmt.Errorf("failed to add project to initiative")
+	}
+
+	return &response.InitiativeToProjectCreate.InitiativeToProject, nil
+}
+
+// GetInitiativeToProjectLink finds the link ID between an initiative and a project
+func (c *Client) GetInitiativeToProjectLink(ctx context.Context, initiativeID string, projectID string) (string, error) {
+	// Query all initiative-to-project links and filter for the matching pair
+	// Linear API doesn't support direct filtering on this endpoint
+	query := `
+		query InitiativeToProjects($first: Int) {
+			initiativeToProjects(first: $first) {
+				nodes {
+					id
+					initiative {
+						id
+					}
+					project {
+						id
+					}
+				}
+			}
+		}
+	`
+
+	variables := map[string]interface{}{
+		"first": 250, // Reasonable limit
+	}
+
+	var response struct {
+		InitiativeToProjects struct {
+			Nodes []struct {
+				ID         string `json:"id"`
+				Initiative struct {
+					ID string `json:"id"`
+				} `json:"initiative"`
+				Project struct {
+					ID string `json:"id"`
+				} `json:"project"`
+			} `json:"nodes"`
+		} `json:"initiativeToProjects"`
+	}
+
+	err := c.Execute(ctx, query, variables, &response)
+	if err != nil {
+		return "", err
+	}
+
+	for _, link := range response.InitiativeToProjects.Nodes {
+		if link.Initiative.ID == initiativeID && link.Project.ID == projectID {
+			return link.ID, nil
+		}
+	}
+
+	return "", fmt.Errorf("no link found between initiative %s and project %s", initiativeID, projectID)
+}
+
+// RemoveProjectFromInitiative unlinks a project from an initiative
+func (c *Client) RemoveProjectFromInitiative(ctx context.Context, initiativeID string, projectID string) error {
+	// First, find the link ID
+	linkID, err := c.GetInitiativeToProjectLink(ctx, initiativeID, projectID)
+	if err != nil {
+		return err
+	}
+
+	// Delete by link ID
+	query := `
+		mutation InitiativeToProjectDelete($id: String!) {
+			initiativeToProjectDelete(id: $id) {
+				success
+			}
+		}
+	`
+
+	variables := map[string]interface{}{
+		"id": linkID,
+	}
+
+	var response struct {
+		InitiativeToProjectDelete struct {
+			Success bool `json:"success"`
+		} `json:"initiativeToProjectDelete"`
+	}
+
+	err = c.Execute(ctx, query, variables, &response)
+	if err != nil {
+		return err
+	}
+
+	if !response.InitiativeToProjectDelete.Success {
+		return fmt.Errorf("failed to remove project from initiative")
+	}
+
+	return nil
+}
+
 // GetProjectIssues returns issues for a specific project
 func (c *Client) GetProjectIssues(ctx context.Context, projectID string, first int, after string) (*Issues, error) {
 	query := `
