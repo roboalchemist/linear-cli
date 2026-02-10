@@ -22,18 +22,68 @@ type User struct {
 
 // Team represents a Linear team
 type Team struct {
-	ID                 string  `json:"id"`
-	Key                string  `json:"key"`
-	Name               string  `json:"name"`
-	Description        string  `json:"description"`
-	Icon               *string `json:"icon"`
-	Color              string  `json:"color"`
-	Private            bool    `json:"private"`
-	IssueCount         int     `json:"issueCount"`
-	CyclesEnabled      bool    `json:"cyclesEnabled"`
-	CycleStartDay      int     `json:"cycleStartDay"`
-	CycleDuration      int     `json:"cycleDuration"`
-	UpcomingCycleCount int     `json:"upcomingCycleCount"`
+	ID          string  `json:"id"`
+	Key         string  `json:"key"`
+	Name        string  `json:"name"`
+	DisplayName string  `json:"displayName"`
+	Description string  `json:"description"`
+	Icon        *string `json:"icon"`
+	Color       string  `json:"color"`
+	Private     bool    `json:"private"`
+	IssueCount  int     `json:"issueCount"`
+	Timezone    string  `json:"timezone"`
+	// Cycle settings
+	CyclesEnabled                bool   `json:"cyclesEnabled"`
+	CycleStartDay                int    `json:"cycleStartDay"`
+	CycleDuration                int    `json:"cycleDuration"`
+	CycleCooldownTime            int    `json:"cycleCooldownTime"`
+	CycleIssueAutoAssignStarted  bool   `json:"cycleIssueAutoAssignStarted"`
+	CycleIssueAutoAssignCompleted bool   `json:"cycleIssueAutoAssignCompleted"`
+	CycleLockToActive            bool   `json:"cycleLockToActive"`
+	UpcomingCycleCount           int    `json:"upcomingCycleCount"`
+	CycleCalenderUrl             string `json:"cycleCalenderUrl"`
+	// Triage settings
+	TriageEnabled              bool `json:"triageEnabled"`
+	RequirePriorityToLeaveTriage bool `json:"requirePriorityToLeaveTriage"`
+	// Issue estimation settings
+	InheritIssueEstimation       bool    `json:"inheritIssueEstimation"`
+	IssueEstimationType          string  `json:"issueEstimationType"`
+	IssueEstimationAllowZero     bool    `json:"issueEstimationAllowZero"`
+	IssueEstimationExtended      bool    `json:"issueEstimationExtended"`
+	DefaultIssueEstimate         float64 `json:"defaultIssueEstimate"`
+	SetIssueSortOrderOnStateChange string `json:"setIssueSortOrderOnStateChange"`
+	// Auto-close/archive settings
+	AutoClosePeriod      *float64 `json:"autoClosePeriod"`
+	AutoCloseStateId     *string  `json:"autoCloseStateId"`
+	AutoArchivePeriod    float64  `json:"autoArchivePeriod"`
+	AutoCloseParentIssues *bool   `json:"autoCloseParentIssues"`
+	AutoCloseChildIssues  *bool   `json:"autoCloseChildIssues"`
+	// Team hierarchy
+	Parent   *Team `json:"parent"`
+	// Workflow settings
+	InheritWorkflowStatuses bool `json:"inheritWorkflowStatuses"`
+	GroupIssueHistory       bool `json:"groupIssueHistory"`
+	// Access/membership settings
+	JoinByDefault     *bool `json:"joinByDefault"`
+	AllMembersCanJoin *bool `json:"allMembersCanJoin"`
+	ScimManaged       bool  `json:"scimManaged"`
+	ScimGroupName     *string `json:"scimGroupName"`
+	// AI settings
+	AiThreadSummariesEnabled     bool `json:"aiThreadSummariesEnabled"`
+	AiDiscussionSummariesEnabled bool `json:"aiDiscussionSummariesEnabled"`
+	// Timestamps
+	CreatedAt  *time.Time `json:"createdAt"`
+	UpdatedAt  *time.Time `json:"updatedAt"`
+	ArchivedAt *time.Time `json:"archivedAt"`
+	RetiredAt  *time.Time `json:"retiredAt"`
+	// Nested objects (for detail queries)
+	DefaultIssueState             *WorkflowState `json:"defaultIssueState"`
+	TriageIssueState              *WorkflowState `json:"triageIssueState"`
+	MarkedAsDuplicateWorkflowState *WorkflowState `json:"markedAsDuplicateWorkflowState"`
+	ActiveCycle                   *Cycle         `json:"activeCycle"`
+	DefaultTemplateForMembers     *Template      `json:"defaultTemplateForMembers"`
+	DefaultTemplateForNonMembers  *Template      `json:"defaultTemplateForNonMembers"`
+	DefaultProjectTemplate        *Template      `json:"defaultProjectTemplate"`
 }
 
 // Issue represents a Linear issue
@@ -1062,9 +1112,46 @@ func (c *Client) GetTeams(ctx context.Context, first int, after string, orderBy 
 					id
 					key
 					name
+					displayName
 					description
+					icon
+					color
 					private
 					issueCount
+					timezone
+					cyclesEnabled
+					cycleStartDay
+					cycleDuration
+					cycleCooldownTime
+					cycleIssueAutoAssignStarted
+					cycleIssueAutoAssignCompleted
+					cycleLockToActive
+					upcomingCycleCount
+					triageEnabled
+					requirePriorityToLeaveTriage
+					inheritIssueEstimation
+					issueEstimationType
+					issueEstimationAllowZero
+					issueEstimationExtended
+					defaultIssueEstimate
+					setIssueSortOrderOnStateChange
+					autoClosePeriod
+					autoCloseStateId
+					autoArchivePeriod
+					autoCloseParentIssues
+					autoCloseChildIssues
+					inheritWorkflowStatuses
+					groupIssueHistory
+					joinByDefault
+					allMembersCanJoin
+					scimManaged
+					scimGroupName
+					aiThreadSummariesEnabled
+					aiDiscussionSummariesEnabled
+					createdAt
+					updatedAt
+					archivedAt
+					retiredAt
 				}
 				pageInfo {
 					hasNextPage
@@ -1543,9 +1630,89 @@ func (c *Client) GetTeam(ctx context.Context, key string) (*Team, error) {
 				id
 				key
 				name
+				displayName
 				description
+				icon
+				color
 				private
 				issueCount
+				timezone
+				cyclesEnabled
+				cycleStartDay
+				cycleDuration
+				cycleCooldownTime
+				cycleIssueAutoAssignStarted
+				cycleIssueAutoAssignCompleted
+				cycleLockToActive
+				upcomingCycleCount
+				cycleCalenderUrl
+				triageEnabled
+				requirePriorityToLeaveTriage
+				inheritIssueEstimation
+				issueEstimationType
+				issueEstimationAllowZero
+				issueEstimationExtended
+				defaultIssueEstimate
+				setIssueSortOrderOnStateChange
+				autoClosePeriod
+				autoCloseStateId
+				autoArchivePeriod
+				autoCloseParentIssues
+				autoCloseChildIssues
+				inheritWorkflowStatuses
+				groupIssueHistory
+				joinByDefault
+				allMembersCanJoin
+				scimManaged
+				scimGroupName
+				aiThreadSummariesEnabled
+				aiDiscussionSummariesEnabled
+				createdAt
+				updatedAt
+				archivedAt
+				retiredAt
+				parent {
+					id
+					key
+					name
+				}
+				defaultIssueState {
+					id
+					name
+					type
+					color
+				}
+				triageIssueState {
+					id
+					name
+					type
+					color
+				}
+				markedAsDuplicateWorkflowState {
+					id
+					name
+					type
+					color
+				}
+				activeCycle {
+					id
+					number
+					name
+					startsAt
+					endsAt
+				}
+				defaultTemplateForMembers {
+					id
+					name
+				}
+				defaultTemplateForNonMembers {
+					id
+					name
+				}
+				defaultProjectTemplate {
+					id
+					name
+				}
 			}
 		}
 	`
@@ -4074,7 +4241,40 @@ func (c *Client) UpdateTeam(ctx context.Context, id string, input map[string]int
 					id
 					key
 					name
+					displayName
+					description
+					icon
+					color
+					private
+					timezone
 					cyclesEnabled
+					cycleStartDay
+					cycleDuration
+					cycleCooldownTime
+					cycleIssueAutoAssignStarted
+					cycleIssueAutoAssignCompleted
+					cycleLockToActive
+					upcomingCycleCount
+					triageEnabled
+					requirePriorityToLeaveTriage
+					inheritIssueEstimation
+					issueEstimationType
+					issueEstimationAllowZero
+					issueEstimationExtended
+					defaultIssueEstimate
+					setIssueSortOrderOnStateChange
+					autoClosePeriod
+					autoCloseStateId
+					autoArchivePeriod
+					autoCloseParentIssues
+					autoCloseChildIssues
+					inheritWorkflowStatuses
+					groupIssueHistory
+					joinByDefault
+					allMembersCanJoin
+					scimManaged
+					aiThreadSummariesEnabled
+					aiDiscussionSummariesEnabled
 				}
 				success
 			}
@@ -5171,13 +5371,38 @@ func (c *Client) CreateTeam(ctx context.Context, input map[string]interface{}, c
 					id
 					key
 					name
+					displayName
 					description
-					private
-					color
 					icon
-					cyclesEnabled
-					triageEnabled
+					color
+					private
 					timezone
+					cyclesEnabled
+					cycleStartDay
+					cycleDuration
+					cycleCooldownTime
+					cycleIssueAutoAssignStarted
+					cycleIssueAutoAssignCompleted
+					cycleLockToActive
+					upcomingCycleCount
+					triageEnabled
+					requirePriorityToLeaveTriage
+					inheritIssueEstimation
+					issueEstimationType
+					issueEstimationAllowZero
+					issueEstimationExtended
+					defaultIssueEstimate
+					setIssueSortOrderOnStateChange
+					autoClosePeriod
+					autoCloseStateId
+					autoArchivePeriod
+					inheritWorkflowStatuses
+					groupIssueHistory
+					joinByDefault
+					allMembersCanJoin
+					scimManaged
+					aiThreadSummariesEnabled
+					aiDiscussionSummariesEnabled
 				}
 				success
 			}
