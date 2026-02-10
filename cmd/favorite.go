@@ -227,18 +227,20 @@ func getTypeColor(favType string) *color.Color {
 		return color.New(color.FgMagenta)
 	case "cycle":
 		return color.New(color.FgBlue)
-	case "customView":
+	case "customView", "predefinedViewIssues", "predefinedViewProjects":
 		return color.New(color.FgGreen)
 	case "document":
 		return color.New(color.FgWhite)
 	case "initiative":
 		return color.New(color.FgRed)
-	case "label":
+	case "label", "projectLabel":
 		return color.New(color.FgYellow)
 	case "user":
 		return color.New(color.FgCyan)
 	case "folder":
 		return color.New(color.FgYellow)
+	case "pullRequest":
+		return color.New(color.FgMagenta)
 	default:
 		return color.New(color.FgWhite)
 	}
@@ -252,18 +254,20 @@ func getTypeIcon(favType string) string {
 		return "📊"
 	case "cycle":
 		return "🔄"
-	case "customView":
+	case "customView", "predefinedViewIssues", "predefinedViewProjects":
 		return "👁"
 	case "document":
 		return "📄"
 	case "initiative":
 		return "🎯"
-	case "label":
+	case "label", "projectLabel":
 		return "🏷"
 	case "user":
 		return "👤"
 	case "folder":
 		return "📁"
+	case "pullRequest":
+		return "🔀"
 	default:
 		return "⭐"
 	}
@@ -274,17 +278,33 @@ func getFavoriteDetail(f *api.Favorite) string {
 	case f.Issue != nil:
 		return f.Issue.Identifier
 	case f.Project != nil:
-		return f.Project.State
+		detail := f.Project.State
+		if f.ProjectTab != "" {
+			detail = fmt.Sprintf("%s [%s]", detail, f.ProjectTab)
+		}
+		return detail
 	case f.Cycle != nil:
 		return fmt.Sprintf("#%d", f.Cycle.Number)
 	case f.CustomView != nil:
 		return f.CustomView.ModelName
+	case f.PredefinedViewType != "":
+		if f.PredefinedViewTeam != nil {
+			return fmt.Sprintf("%s (%s)", f.PredefinedViewType, f.PredefinedViewTeam.Key)
+		}
+		return f.PredefinedViewType
 	case f.Document != nil:
 		return ""
 	case f.Initiative != nil:
+		if f.InitiativeTab != "" {
+			return fmt.Sprintf("[%s]", f.InitiativeTab)
+		}
 		return ""
 	case f.Label != nil:
 		return ""
+	case f.ProjectLabel != nil:
+		return ""
+	case f.PullRequest != nil:
+		return fmt.Sprintf("#%d", f.PullRequest.Number)
 	case f.User != nil && f.User.Email != "" && f.User.Email != f.Title:
 		return f.User.Email
 	default:
@@ -301,11 +321,17 @@ var favoriteAddCmd = &cobra.Command{
 Examples:
   linear-cli favorite add --issue ROB-123
   linear-cli favorite add --project PROJECT-ID
+  linear-cli favorite add --project PROJECT-ID --project-tab documents
   linear-cli favorite add --view VIEW-ID
   linear-cli favorite add --cycle CYCLE-ID
   linear-cli favorite add --document DOC-ID
   linear-cli favorite add --initiative INIT-ID
+  linear-cli favorite add --initiative INIT-ID --initiative-tab projects
   linear-cli favorite add --label LABEL-ID
+  linear-cli favorite add --project-label PROJ-LABEL-ID
+  linear-cli favorite add --user USER-ID
+  linear-cli favorite add --predefined-view-type myIssues
+  linear-cli favorite add --predefined-view-type activeIssues --predefined-view-team TEAM-ID
   linear-cli favorite add --folder "My Folder"
   linear-cli favorite add --issue ROB-123 --parent FOLDER-ID`,
 	Run: func(cmd *cobra.Command, args []string) {
@@ -328,7 +354,13 @@ Examples:
 		documentID, _ := cmd.Flags().GetString("document")
 		initiativeID, _ := cmd.Flags().GetString("initiative")
 		labelID, _ := cmd.Flags().GetString("label")
+		projectLabelID, _ := cmd.Flags().GetString("project-label")
+		userID, _ := cmd.Flags().GetString("user")
 		folderName, _ := cmd.Flags().GetString("folder")
+		predefinedViewType, _ := cmd.Flags().GetString("predefined-view-type")
+		predefinedViewTeamID, _ := cmd.Flags().GetString("predefined-view-team")
+		projectTab, _ := cmd.Flags().GetString("project-tab")
+		initiativeTab, _ := cmd.Flags().GetString("initiative-tab")
 		parentID, _ := cmd.Flags().GetString("parent")
 		sortOrder, _ := cmd.Flags().GetFloat64("sort-order")
 
@@ -355,12 +387,21 @@ Examples:
 		if labelID != "" {
 			entityCount++
 		}
+		if projectLabelID != "" {
+			entityCount++
+		}
+		if userID != "" {
+			entityCount++
+		}
 		if folderName != "" {
+			entityCount++
+		}
+		if predefinedViewType != "" {
 			entityCount++
 		}
 
 		if entityCount == 0 {
-			output.Error("Must specify exactly one entity type: --issue, --project, --view, --cycle, --document, --initiative, --label, or --folder", plaintext, jsonOut)
+			output.Error("Must specify exactly one entity type: --issue, --project, --view, --cycle, --document, --initiative, --label, --project-label, --user, --predefined-view-type, or --folder", plaintext, jsonOut)
 			os.Exit(1)
 		}
 		if entityCount > 1 {
@@ -403,8 +444,26 @@ Examples:
 		if labelID != "" {
 			input["labelId"] = labelID
 		}
+		if projectLabelID != "" {
+			input["projectLabelId"] = projectLabelID
+		}
+		if userID != "" {
+			input["userId"] = userID
+		}
 		if folderName != "" {
 			input["folderName"] = folderName
+		}
+		if predefinedViewType != "" {
+			input["predefinedViewType"] = predefinedViewType
+		}
+		if predefinedViewTeamID != "" {
+			input["predefinedViewTeamId"] = predefinedViewTeamID
+		}
+		if projectTab != "" {
+			input["projectTab"] = projectTab
+		}
+		if initiativeTab != "" {
+			input["initiativeTab"] = initiativeTab
 		}
 		if parentID != "" {
 			input["parentId"] = parentID
@@ -605,6 +664,18 @@ var favoriteGetCmd = &cobra.Command{
 			if favorite.FolderName != "" {
 				fmt.Printf("- **Folder**: %s\n", favorite.FolderName)
 			}
+			if favorite.ProjectTab != "" {
+				fmt.Printf("- **Project Tab**: %s\n", favorite.ProjectTab)
+			}
+			if favorite.InitiativeTab != "" {
+				fmt.Printf("- **Initiative Tab**: %s\n", favorite.InitiativeTab)
+			}
+			if favorite.PredefinedViewType != "" {
+				fmt.Printf("- **Predefined View**: %s\n", favorite.PredefinedViewType)
+			}
+			if favorite.PredefinedViewTeam != nil {
+				fmt.Printf("- **Predefined View Team**: %s (%s)\n", favorite.PredefinedViewTeam.Name, favorite.PredefinedViewTeam.Key)
+			}
 			fmt.Printf("- **Sort Order**: %.0f\n", favorite.SortOrder)
 			if favorite.URL != "" {
 				fmt.Printf("- **URL**: %s\n", favorite.URL)
@@ -615,6 +686,40 @@ var favoriteGetCmd = &cobra.Command{
 			}
 			if favorite.Children != nil && len(favorite.Children.Nodes) > 0 {
 				fmt.Printf("- **Children**: %d items\n", len(favorite.Children.Nodes))
+			}
+			// Show referenced entity details
+			if favorite.Issue != nil {
+				fmt.Printf("- **Issue**: %s - %s\n", favorite.Issue.Identifier, favorite.Issue.Title)
+			}
+			if favorite.Project != nil {
+				fmt.Printf("- **Project**: %s (%s)\n", favorite.Project.Name, favorite.Project.State)
+			}
+			if favorite.ProjectTeam != nil {
+				fmt.Printf("- **Project Team**: %s (%s)\n", favorite.ProjectTeam.Name, favorite.ProjectTeam.Key)
+			}
+			if favorite.Cycle != nil {
+				fmt.Printf("- **Cycle**: %s (#%d)\n", favorite.Cycle.Name, favorite.Cycle.Number)
+			}
+			if favorite.CustomView != nil {
+				fmt.Printf("- **Custom View**: %s (%s)\n", favorite.CustomView.Name, favorite.CustomView.ModelName)
+			}
+			if favorite.Document != nil {
+				fmt.Printf("- **Document**: %s\n", favorite.Document.Title)
+			}
+			if favorite.Initiative != nil {
+				fmt.Printf("- **Initiative**: %s\n", favorite.Initiative.Name)
+			}
+			if favorite.Label != nil {
+				fmt.Printf("- **Label**: %s\n", favorite.Label.Name)
+			}
+			if favorite.ProjectLabel != nil {
+				fmt.Printf("- **Project Label**: %s\n", favorite.ProjectLabel.Name)
+			}
+			if favorite.User != nil {
+				fmt.Printf("- **User**: %s (%s)\n", favorite.User.Name, favorite.User.Email)
+			}
+			if favorite.PullRequest != nil {
+				fmt.Printf("- **Pull Request**: %s (#%d)\n", favorite.PullRequest.Title, favorite.PullRequest.Number)
 			}
 			return
 		}
@@ -637,6 +742,21 @@ var favoriteGetCmd = &cobra.Command{
 		if favorite.FolderName != "" {
 			fmt.Printf("%s %s\n", color.New(color.Bold).Sprint("Folder:"), favorite.FolderName)
 		}
+		if favorite.ProjectTab != "" {
+			fmt.Printf("%s %s\n", color.New(color.Bold).Sprint("Project Tab:"), favorite.ProjectTab)
+		}
+		if favorite.InitiativeTab != "" {
+			fmt.Printf("%s %s\n", color.New(color.Bold).Sprint("Initiative Tab:"), favorite.InitiativeTab)
+		}
+		if favorite.PredefinedViewType != "" {
+			fmt.Printf("%s %s\n", color.New(color.Bold).Sprint("Predefined View:"), favorite.PredefinedViewType)
+		}
+		if favorite.PredefinedViewTeam != nil {
+			fmt.Printf("%s %s (%s)\n",
+				color.New(color.Bold).Sprint("Predefined View Team:"),
+				favorite.PredefinedViewTeam.Name,
+				color.New(color.FgWhite, color.Faint).Sprint(favorite.PredefinedViewTeam.Key))
+		}
 		fmt.Printf("%s %.0f\n", color.New(color.Bold).Sprint("Sort Order:"), favorite.SortOrder)
 
 		if favorite.URL != "" {
@@ -650,6 +770,70 @@ var favoriteGetCmd = &cobra.Command{
 				color.New(color.Bold).Sprint("Parent:"),
 				favorite.Parent.Title,
 				color.New(color.FgWhite, color.Faint).Sprint(favorite.Parent.ID))
+		}
+
+		// Show referenced entity details
+		if favorite.Issue != nil {
+			fmt.Printf("%s %s - %s\n",
+				color.New(color.Bold).Sprint("Issue:"),
+				color.New(color.FgCyan).Sprint(favorite.Issue.Identifier),
+				favorite.Issue.Title)
+		}
+		if favorite.Project != nil {
+			fmt.Printf("%s %s (%s)\n",
+				color.New(color.Bold).Sprint("Project:"),
+				favorite.Project.Name,
+				favorite.Project.State)
+		}
+		if favorite.ProjectTeam != nil {
+			fmt.Printf("%s %s (%s)\n",
+				color.New(color.Bold).Sprint("Project Team:"),
+				favorite.ProjectTeam.Name,
+				color.New(color.FgWhite, color.Faint).Sprint(favorite.ProjectTeam.Key))
+		}
+		if favorite.Cycle != nil {
+			fmt.Printf("%s %s (#%d)\n",
+				color.New(color.Bold).Sprint("Cycle:"),
+				favorite.Cycle.Name,
+				favorite.Cycle.Number)
+		}
+		if favorite.CustomView != nil {
+			fmt.Printf("%s %s (%s)\n",
+				color.New(color.Bold).Sprint("Custom View:"),
+				favorite.CustomView.Name,
+				favorite.CustomView.ModelName)
+		}
+		if favorite.Document != nil {
+			fmt.Printf("%s %s\n",
+				color.New(color.Bold).Sprint("Document:"),
+				favorite.Document.Title)
+		}
+		if favorite.Initiative != nil {
+			fmt.Printf("%s %s\n",
+				color.New(color.Bold).Sprint("Initiative:"),
+				favorite.Initiative.Name)
+		}
+		if favorite.Label != nil {
+			fmt.Printf("%s %s\n",
+				color.New(color.Bold).Sprint("Label:"),
+				favorite.Label.Name)
+		}
+		if favorite.ProjectLabel != nil {
+			fmt.Printf("%s %s\n",
+				color.New(color.Bold).Sprint("Project Label:"),
+				favorite.ProjectLabel.Name)
+		}
+		if favorite.User != nil {
+			fmt.Printf("%s %s (%s)\n",
+				color.New(color.Bold).Sprint("User:"),
+				favorite.User.Name,
+				favorite.User.Email)
+		}
+		if favorite.PullRequest != nil {
+			fmt.Printf("%s %s (#%d)\n",
+				color.New(color.Bold).Sprint("Pull Request:"),
+				favorite.PullRequest.Title,
+				favorite.PullRequest.Number)
 		}
 
 		if favorite.Children != nil && len(favorite.Children.Nodes) > 0 {
@@ -676,15 +860,22 @@ func init() {
 	favoriteListCmd.Flags().IntP("limit", "l", 100, "Maximum number of favorites to return")
 	favoriteListCmd.Flags().Bool("flat", false, "Show flat list without folder grouping")
 
-	// Add flags
+	// Add flags - entity types
 	favoriteAddCmd.Flags().String("issue", "", "Issue ID or identifier (e.g., ROB-123)")
 	favoriteAddCmd.Flags().String("project", "", "Project ID")
 	favoriteAddCmd.Flags().String("view", "", "Custom view ID")
 	favoriteAddCmd.Flags().String("cycle", "", "Cycle ID")
 	favoriteAddCmd.Flags().String("document", "", "Document ID")
 	favoriteAddCmd.Flags().String("initiative", "", "Initiative ID")
-	favoriteAddCmd.Flags().String("label", "", "Label ID")
+	favoriteAddCmd.Flags().String("label", "", "Issue label ID")
+	favoriteAddCmd.Flags().String("project-label", "", "Project label ID")
+	favoriteAddCmd.Flags().String("user", "", "User ID")
 	favoriteAddCmd.Flags().String("folder", "", "Create a folder with this name")
+	favoriteAddCmd.Flags().String("predefined-view-type", "", "Predefined view type (e.g., myIssues, activeIssues)")
+	favoriteAddCmd.Flags().String("predefined-view-team", "", "Team ID for predefined view")
+	// Add flags - modifiers
+	favoriteAddCmd.Flags().String("project-tab", "", "Tab for project favorites: issues, documents, updates, customers")
+	favoriteAddCmd.Flags().String("initiative-tab", "", "Tab for initiative favorites: overview, projects, updates")
 	favoriteAddCmd.Flags().String("parent", "", "Parent folder ID")
 	favoriteAddCmd.Flags().Float64("sort-order", 0, "Sort order (lower = higher in list)")
 

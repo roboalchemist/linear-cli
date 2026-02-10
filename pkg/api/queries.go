@@ -259,6 +259,17 @@ type Label struct {
 	RetiredBy     *User      `json:"retiredBy"`
 }
 
+// ProjectLabel represents a label for projects (distinct from issue labels)
+type ProjectLabel struct {
+	ID          string     `json:"id"`
+	Name        string     `json:"name"`
+	Color       string     `json:"color"`
+	Description *string    `json:"description"`
+	CreatedAt   time.Time  `json:"createdAt"`
+	UpdatedAt   time.Time  `json:"updatedAt"`
+	ArchivedAt  *time.Time `json:"archivedAt"`
+}
+
 // Cycle represents a Linear cycle (sprint)
 type Cycle struct {
 	ID                          string     `json:"id"`
@@ -5833,16 +5844,23 @@ type Favorite struct {
 	Children *Favorites `json:"children"`
 	// Owner
 	Owner *User `json:"owner"`
+	// Tab/view settings
+	ProjectTab         string `json:"projectTab"`         // For project favorites: issues, documents, updates, customers
+	InitiativeTab      string `json:"initiativeTab"`      // For initiative favorites: overview, projects, updates
+	PredefinedViewType string `json:"predefinedViewType"` // For predefined view favorites
 	// Referenced entities (nullable)
-	Issue       *Issue       `json:"issue"`
-	Project     *Project     `json:"project"`
-	Cycle       *Cycle       `json:"cycle"`
-	CustomView  *CustomView  `json:"customView"`
-	Document    *Document    `json:"document"`
-	Initiative  *Initiative  `json:"initiative"`
-	Label       *Label       `json:"label"`
-	User        *User        `json:"user"`
-	PullRequest *PullRequest `json:"pullRequest"`
+	Issue              *Issue        `json:"issue"`
+	Project            *Project      `json:"project"`
+	Cycle              *Cycle        `json:"cycle"`
+	CustomView         *CustomView   `json:"customView"`
+	Document           *Document     `json:"document"`
+	Initiative         *Initiative   `json:"initiative"`
+	Label              *Label        `json:"label"`
+	ProjectLabel       *ProjectLabel `json:"projectLabel"`
+	User               *User         `json:"user"`
+	PullRequest        *PullRequest  `json:"pullRequest"`
+	PredefinedViewTeam *Team         `json:"predefinedViewTeam"`
+	ProjectTeam        *Team         `json:"projectTeam"`
 }
 
 // PullRequest represents a Linear pull request (simplified)
@@ -5877,6 +5895,9 @@ func (c *Client) GetFavorites(ctx context.Context, first int, after string) (*Fa
 					createdAt
 					updatedAt
 					archivedAt
+					projectTab
+					initiativeTab
+					predefinedViewType
 					parent {
 						id
 						title
@@ -5891,6 +5912,11 @@ func (c *Client) GetFavorites(ctx context.Context, first int, after string) (*Fa
 						id
 						name
 						state
+					}
+					projectTeam {
+						id
+						key
+						name
 					}
 					cycle {
 						id
@@ -5915,10 +5941,26 @@ func (c *Client) GetFavorites(ctx context.Context, first int, after string) (*Fa
 						name
 						color
 					}
+					projectLabel {
+						id
+						name
+						color
+					}
 					user {
 						id
 						name
 						email
+					}
+					pullRequest {
+						id
+						title
+						number
+						url
+					}
+					predefinedViewTeam {
+						id
+						key
+						name
 					}
 				}
 				pageInfo {
@@ -5965,6 +6007,9 @@ func (c *Client) GetFavorite(ctx context.Context, id string) (*Favorite, error) 
 				createdAt
 				updatedAt
 				archivedAt
+				projectTab
+				initiativeTab
+				predefinedViewType
 				parent {
 					id
 					title
@@ -5987,6 +6032,11 @@ func (c *Client) GetFavorite(ctx context.Context, id string) (*Favorite, error) 
 					id
 					name
 					state
+				}
+				projectTeam {
+					id
+					key
+					name
 				}
 				cycle {
 					id
@@ -6011,10 +6061,26 @@ func (c *Client) GetFavorite(ctx context.Context, id string) (*Favorite, error) 
 					name
 					color
 				}
+				projectLabel {
+					id
+					name
+					color
+				}
 				user {
 					id
 					name
 					email
+				}
+				pullRequest {
+					id
+					title
+					number
+					url
+				}
+				predefinedViewTeam {
+					id
+					key
+					name
 				}
 			}
 		}
@@ -6053,6 +6119,13 @@ func (c *Client) CreateFavorite(ctx context.Context, input map[string]interface{
 					icon
 					url
 					createdAt
+					projectTab
+					initiativeTab
+					predefinedViewType
+					parent {
+						id
+						title
+					}
 					issue {
 						id
 						identifier
@@ -6060,6 +6133,11 @@ func (c *Client) CreateFavorite(ctx context.Context, input map[string]interface{
 					}
 					project {
 						id
+						name
+					}
+					projectTeam {
+						id
+						key
 						name
 					}
 					cycle {
@@ -6081,6 +6159,26 @@ func (c *Client) CreateFavorite(ctx context.Context, input map[string]interface{
 					}
 					label {
 						id
+						name
+					}
+					projectLabel {
+						id
+						name
+					}
+					user {
+						id
+						name
+						email
+					}
+					pullRequest {
+						id
+						title
+						number
+						url
+					}
+					predefinedViewTeam {
+						id
+						key
 						name
 					}
 				}
