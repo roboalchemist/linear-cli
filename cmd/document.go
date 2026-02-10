@@ -214,6 +214,19 @@ var documentGetCmd = &cobra.Command{
 			if doc.Team != nil {
 				fmt.Printf("- **Team**: %s (%s)\n", doc.Team.Name, doc.Team.Key)
 			}
+			if doc.Issue != nil {
+				fmt.Printf("- **Issue**: %s — %s\n", doc.Issue.Identifier, doc.Issue.Title)
+			}
+			if doc.Initiative != nil {
+				fmt.Printf("- **Initiative**: %s\n", doc.Initiative.Name)
+			}
+			if doc.Cycle != nil {
+				if doc.Cycle.Name != "" {
+					fmt.Printf("- **Cycle**: %s\n", doc.Cycle.Name)
+				} else {
+					fmt.Printf("- **Cycle**: #%d\n", doc.Cycle.Number)
+				}
+			}
 			if doc.URL != "" {
 				fmt.Printf("- **URL**: %s\n", doc.URL)
 			}
@@ -257,6 +270,27 @@ var documentGetCmd = &cobra.Command{
 		if doc.Team != nil {
 			fmt.Printf("Team: %s\n",
 				color.New(color.FgMagenta).Sprint(doc.Team.Name))
+		}
+
+		if doc.Issue != nil {
+			fmt.Printf("Issue: %s — %s\n",
+				color.New(color.FgGreen).Sprint(doc.Issue.Identifier),
+				doc.Issue.Title)
+		}
+
+		if doc.Initiative != nil {
+			fmt.Printf("Initiative: %s\n",
+				color.New(color.FgYellow).Sprint(doc.Initiative.Name))
+		}
+
+		if doc.Cycle != nil {
+			if doc.Cycle.Name != "" {
+				fmt.Printf("Cycle: %s\n",
+					color.New(color.FgCyan).Sprint(doc.Cycle.Name))
+			} else {
+				fmt.Printf("Cycle: %s\n",
+					color.New(color.FgCyan).Sprintf("#%d", doc.Cycle.Number))
+			}
 		}
 
 		if doc.URL != "" {
@@ -371,11 +405,18 @@ Examples:
 		projectID, _ := cmd.Flags().GetString("project")
 		issueID, _ := cmd.Flags().GetString("issue")
 		teamKey, _ := cmd.Flags().GetString("team")
+		initiativeID, _ := cmd.Flags().GetString("initiative")
+		cycleID, _ := cmd.Flags().GetString("cycle")
 		icon, _ := cmd.Flags().GetString("icon")
 		docColor, _ := cmd.Flags().GetString("color")
 
 		if title == "" {
 			output.Error("Title is required (--title)", plaintext, jsonOut)
+			os.Exit(1)
+		}
+
+		if projectID == "" && teamKey == "" {
+			output.Error("Either --team or --project is required to create a document.", plaintext, jsonOut)
 			os.Exit(1)
 		}
 
@@ -391,10 +432,10 @@ Examples:
 			input["projectId"] = projectID
 		}
 
-		// NOTE: issueId is intentionally NOT added to create input.
-		// Linear API's documentCreate mutation doesn't support issueId despite
-		// the schema advertising it. We work around this by creating the document
-		// first, then updating it to link the issue.
+		// NOTE: issueId, initiativeId, and cycleId are intentionally NOT added
+		// to create input. Linear API's documentCreate mutation doesn't support
+		// these fields despite the schema advertising them. We work around this
+		// by creating the document first, then updating it to link them.
 
 		if teamKey != "" {
 			// Resolve team key to ID
@@ -420,15 +461,21 @@ Examples:
 			os.Exit(1)
 		}
 
-		// If issue ID was provided, update the document to link it
-		// (workaround for Linear API limitation where documentCreate doesn't accept issueId)
+		// Link entities via update (workaround for documentCreate API limitation)
+		linkInput := make(map[string]interface{})
 		if issueID != "" {
-			updateInput := map[string]interface{}{
-				"issueId": issueID,
-			}
-			doc, err = client.UpdateDocument(context.Background(), doc.ID, updateInput)
+			linkInput["issueId"] = issueID
+		}
+		if initiativeID != "" {
+			linkInput["initiativeId"] = initiativeID
+		}
+		if cycleID != "" {
+			linkInput["cycleId"] = cycleID
+		}
+		if len(linkInput) > 0 {
+			doc, err = client.UpdateDocument(context.Background(), doc.ID, linkInput)
 			if err != nil {
-				output.Error(fmt.Sprintf("Failed to link document to issue: %v", err), plaintext, jsonOut)
+				output.Error(fmt.Sprintf("Failed to link document: %v", err), plaintext, jsonOut)
 				os.Exit(1)
 			}
 		}
@@ -516,6 +563,16 @@ Examples:
 		if cmd.Flags().Changed("issue") {
 			issueID, _ := cmd.Flags().GetString("issue")
 			input["issueId"] = issueID
+		}
+
+		if cmd.Flags().Changed("initiative") {
+			initiativeID, _ := cmd.Flags().GetString("initiative")
+			input["initiativeId"] = initiativeID
+		}
+
+		if cmd.Flags().Changed("cycle") {
+			cycleID, _ := cmd.Flags().GetString("cycle")
+			input["cycleId"] = cycleID
 		}
 
 		if len(input) == 0 {
@@ -644,6 +701,8 @@ func init() {
 	documentCreateCmd.Flags().String("project", "", "Project ID to associate with")
 	documentCreateCmd.Flags().String("issue", "", "Issue ID to associate with")
 	documentCreateCmd.Flags().StringP("team", "t", "", "Team key to associate with")
+	documentCreateCmd.Flags().String("initiative", "", "Initiative ID to associate with")
+	documentCreateCmd.Flags().String("cycle", "", "Cycle ID to associate with")
 	documentCreateCmd.Flags().String("icon", "", "Document icon (emoji)")
 	documentCreateCmd.Flags().String("color", "", "Document icon color (hex)")
 	_ = documentCreateCmd.MarkFlagRequired("title")
@@ -656,6 +715,8 @@ func init() {
 	documentUpdateCmd.Flags().String("color", "", "New icon color (hex)")
 	documentUpdateCmd.Flags().String("project", "", "Project ID to associate with")
 	documentUpdateCmd.Flags().String("issue", "", "Issue ID to associate with")
+	documentUpdateCmd.Flags().String("initiative", "", "Initiative ID to associate with")
+	documentUpdateCmd.Flags().String("cycle", "", "Cycle ID to associate with")
 
 	// Delete has no extra flags
 }

@@ -418,8 +418,11 @@ type Document struct {
 	UpdatedBy *User     `json:"updatedBy"`
 	Project   *Project  `json:"project"`
 	Team      *Team     `json:"team"`
-	CreatedAt time.Time `json:"createdAt"`
-	UpdatedAt time.Time `json:"updatedAt"`
+	Issue      *Issue      `json:"issue"`
+	Initiative *Initiative `json:"initiative"`
+	Cycle      *Cycle      `json:"cycle"`
+	CreatedAt  time.Time   `json:"createdAt"`
+	UpdatedAt  time.Time   `json:"updatedAt"`
 }
 
 type ProjectLinks struct {
@@ -1809,6 +1812,20 @@ func (c *Client) GetDocument(ctx context.Context, id string) (*Document, error) 
 				team {
 					id
 					key
+					name
+				}
+				issue {
+					id
+					identifier
+					title
+				}
+				initiative {
+					id
+					name
+				}
+				cycle {
+					id
+					number
 					name
 				}
 			}
