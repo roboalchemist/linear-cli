@@ -88,39 +88,67 @@ func runInboxList(cmd *cobra.Command, args []string) {
 	if jsonOut {
 		output.JSON(filteredNotifications)
 	} else if plaintext {
-		fmt.Println("Type\tIssue\tTitle\tTime\tRead")
+		fmt.Println("Type\tIssue\tTitle\tActor\tTeam\tTime\tRead")
 		for _, n := range filteredNotifications {
 			issueID := ""
-			title := ""
+			title := n.Title
 			if n.Issue != nil {
 				issueID = n.Issue.Identifier
-				title = n.Issue.Title
+				if title == "" {
+					title = n.Issue.Title
+				}
+			} else if n.Project != nil {
+				issueID = n.Project.Name
+			}
+			actorName := ""
+			if n.Actor != nil {
+				actorName = n.Actor.Name
+			}
+			teamKey := ""
+			if n.Team != nil {
+				teamKey = n.Team.Key
 			}
 			readStatus := "unread"
 			if n.ReadAt != nil {
 				readStatus = "read"
 			}
-			fmt.Printf("%s\t%s\t%s\t%s\t%s\n",
+			fmt.Printf("%s\t%s\t%s\t%s\t%s\t%s\t%s\n",
 				formatNotificationType(n.Type),
 				issueID,
 				title,
+				actorName,
+				teamKey,
 				formatRelativeTime(n.CreatedAt),
 				readStatus,
 			)
 		}
 	} else {
 		// Rich table output
-		headers := []string{"Type", "Issue", "Title", "Time", "Status"}
+		headers := []string{"Type", "Issue", "Title", "Actor", "Team", "Time", "Status"}
 		rows := [][]string{}
 
 		for _, n := range filteredNotifications {
 			notifType := formatNotificationTypeColored(n.Type)
 
 			issueID := ""
-			title := ""
+			title := truncateString(n.Title, 40)
 			if n.Issue != nil {
 				issueID = color.New(color.FgCyan).Sprint(n.Issue.Identifier)
-				title = truncateString(n.Issue.Title, 50)
+				if title == "" {
+					title = truncateString(n.Issue.Title, 40)
+				}
+			} else if n.Project != nil {
+				issueID = color.New(color.FgMagenta).Sprint(n.Project.Name)
+			}
+
+			actorName := ""
+			if n.Actor != nil {
+				actorName = color.New(color.FgWhite).Sprint(n.Actor.Name)
+			}
+
+			teamKey := ""
+			if n.Team != nil {
+				teamKey = color.New(color.FgBlue).Sprint(n.Team.Key)
 			}
 
 			timeStr := color.New(color.FgWhite).Sprint(formatRelativeTime(n.CreatedAt))
@@ -129,11 +157,16 @@ func runInboxList(cmd *cobra.Command, args []string) {
 			if n.ReadAt != nil {
 				status = color.New(color.FgWhite).Sprint("read")
 			}
+			if n.SnoozedUntilAt != nil {
+				status = color.New(color.FgCyan).Sprint("snoozed")
+			}
 
 			rows = append(rows, []string{
 				notifType,
 				issueID,
 				title,
+				actorName,
+				teamKey,
 				timeStr,
 				status,
 			})
@@ -146,15 +179,23 @@ func runInboxList(cmd *cobra.Command, args []string) {
 
 		// Summary
 		unreadCount := 0
+		snoozedCount := 0
 		for _, n := range filteredNotifications {
 			if n.ReadAt == nil {
 				unreadCount++
 			}
+			if n.SnoozedUntilAt != nil {
+				snoozedCount++
+			}
 		}
-		fmt.Printf("\n%s %d notifications (%d unread)\n",
+		summaryParts := []string{fmt.Sprintf("%d unread", unreadCount)}
+		if snoozedCount > 0 {
+			summaryParts = append(summaryParts, fmt.Sprintf("%d snoozed", snoozedCount))
+		}
+		fmt.Printf("\n%s %d notifications (%s)\n",
 			color.New(color.FgGreen).Sprint("📬"),
 			len(filteredNotifications),
-			unreadCount)
+			strings.Join(summaryParts, ", "))
 	}
 }
 
@@ -245,11 +286,329 @@ func formatRelativeTime(t time.Time) string {
 	}
 }
 
+// inboxReadCmd marks a notification as read
+var inboxReadCmd = &cobra.Command{
+	Use:   "read <notification-id>",
+	Short: "Mark a notification as read",
+	Long: `Mark a notification as read.
+
+Use --all to mark all notifications as read.
+
+Examples:
+  linear-cli inbox read abc123           # Mark specific notification as read
+  linear-cli inbox read --all            # Mark all notifications as read`,
+	Run: runInboxRead,
+}
+
+func runInboxRead(cmd *cobra.Command, args []string) {
+	plaintext := viper.GetBool("plaintext")
+	jsonOut := viper.GetBool("json")
+
+	authHeader, err := auth.GetAuthHeader()
+	if err != nil {
+		output.Error(fmt.Sprintf("Authentication failed: %v", err), plaintext, jsonOut)
+		os.Exit(1)
+	}
+
+	client := api.NewClient(authHeader)
+
+	markAll, _ := cmd.Flags().GetBool("all")
+
+	if markAll {
+		// Mark all as read
+		err = client.MarkAllNotificationsRead(context.Background(), time.Now())
+		if err != nil {
+			output.Error(fmt.Sprintf("Failed to mark notifications as read: %v", err), plaintext, jsonOut)
+			os.Exit(1)
+		}
+		if jsonOut {
+			output.JSON(map[string]interface{}{"success": true, "message": "All notifications marked as read"})
+		} else if plaintext {
+			fmt.Println("All notifications marked as read")
+		} else {
+			fmt.Printf("%s All notifications marked as read\n", color.New(color.FgGreen).Sprint("✓"))
+		}
+		return
+	}
+
+	if len(args) == 0 {
+		output.Error("Notification ID required (or use --all)", plaintext, jsonOut)
+		os.Exit(1)
+	}
+
+	notificationID := args[0]
+	now := time.Now()
+	input := api.NotificationUpdateInput{
+		ReadAt: &now,
+	}
+
+	notification, err := client.UpdateNotification(context.Background(), notificationID, input)
+	if err != nil {
+		output.Error(fmt.Sprintf("Failed to mark notification as read: %v", err), plaintext, jsonOut)
+		os.Exit(1)
+	}
+
+	if jsonOut {
+		output.JSON(notification)
+	} else if plaintext {
+		fmt.Printf("Notification %s marked as read\n", notificationID)
+	} else {
+		fmt.Printf("%s Notification %s marked as read\n",
+			color.New(color.FgGreen).Sprint("✓"),
+			color.New(color.FgCyan).Sprint(notificationID))
+	}
+}
+
+// inboxUnreadCmd marks a notification as unread
+var inboxUnreadCmd = &cobra.Command{
+	Use:   "unread <notification-id>",
+	Short: "Mark a notification as unread",
+	Long: `Mark a notification as unread.
+
+Examples:
+  linear-cli inbox unread abc123         # Mark notification as unread`,
+	Args: cobra.ExactArgs(1),
+	Run:  runInboxUnread,
+}
+
+func runInboxUnread(cmd *cobra.Command, args []string) {
+	plaintext := viper.GetBool("plaintext")
+	jsonOut := viper.GetBool("json")
+
+	authHeader, err := auth.GetAuthHeader()
+	if err != nil {
+		output.Error(fmt.Sprintf("Authentication failed: %v", err), plaintext, jsonOut)
+		os.Exit(1)
+	}
+
+	client := api.NewClient(authHeader)
+	notificationID := args[0]
+
+	input := api.NotificationUpdateInput{
+		ReadAt: nil, // Setting to nil marks as unread
+	}
+
+	notification, err := client.UpdateNotification(context.Background(), notificationID, input)
+	if err != nil {
+		output.Error(fmt.Sprintf("Failed to mark notification as unread: %v", err), plaintext, jsonOut)
+		os.Exit(1)
+	}
+
+	if jsonOut {
+		output.JSON(notification)
+	} else if plaintext {
+		fmt.Printf("Notification %s marked as unread\n", notificationID)
+	} else {
+		fmt.Printf("%s Notification %s marked as unread\n",
+			color.New(color.FgGreen).Sprint("✓"),
+			color.New(color.FgCyan).Sprint(notificationID))
+	}
+}
+
+// inboxSnoozeCmd snoozes a notification
+var inboxSnoozeCmd = &cobra.Command{
+	Use:   "snooze <notification-id> <duration>",
+	Short: "Snooze a notification",
+	Long: `Snooze a notification for a specified duration.
+
+Duration can be specified as:
+  - 1h, 2h, etc. for hours
+  - 1d, 2d, etc. for days
+  - 1w for a week
+  - tomorrow (snooze until 9am tomorrow)
+
+Examples:
+  linear-cli inbox snooze abc123 1h       # Snooze for 1 hour
+  linear-cli inbox snooze abc123 1d       # Snooze for 1 day
+  linear-cli inbox snooze abc123 tomorrow # Snooze until tomorrow`,
+	Args: cobra.ExactArgs(2),
+	Run:  runInboxSnooze,
+}
+
+func runInboxSnooze(cmd *cobra.Command, args []string) {
+	plaintext := viper.GetBool("plaintext")
+	jsonOut := viper.GetBool("json")
+
+	authHeader, err := auth.GetAuthHeader()
+	if err != nil {
+		output.Error(fmt.Sprintf("Authentication failed: %v", err), plaintext, jsonOut)
+		os.Exit(1)
+	}
+
+	client := api.NewClient(authHeader)
+	notificationID := args[0]
+	durationStr := args[1]
+
+	// Parse the duration
+	var snoozeUntil time.Time
+	switch {
+	case durationStr == "tomorrow":
+		// Snooze until 9am tomorrow
+		now := time.Now()
+		tomorrow := now.AddDate(0, 0, 1)
+		snoozeUntil = time.Date(tomorrow.Year(), tomorrow.Month(), tomorrow.Day(), 9, 0, 0, 0, now.Location())
+	case strings.HasSuffix(durationStr, "w"):
+		weeks, err := parseIntFromSuffix(durationStr, "w")
+		if err != nil {
+			output.Error(fmt.Sprintf("Invalid duration: %v", err), plaintext, jsonOut)
+			os.Exit(1)
+		}
+		snoozeUntil = time.Now().AddDate(0, 0, weeks*7)
+	case strings.HasSuffix(durationStr, "d"):
+		days, err := parseIntFromSuffix(durationStr, "d")
+		if err != nil {
+			output.Error(fmt.Sprintf("Invalid duration: %v", err), plaintext, jsonOut)
+			os.Exit(1)
+		}
+		snoozeUntil = time.Now().AddDate(0, 0, days)
+	case strings.HasSuffix(durationStr, "h"):
+		hours, err := parseIntFromSuffix(durationStr, "h")
+		if err != nil {
+			output.Error(fmt.Sprintf("Invalid duration: %v", err), plaintext, jsonOut)
+			os.Exit(1)
+		}
+		snoozeUntil = time.Now().Add(time.Duration(hours) * time.Hour)
+	default:
+		// Try parsing as a Go duration
+		duration, err := time.ParseDuration(durationStr)
+		if err != nil {
+			output.Error(fmt.Sprintf("Invalid duration format: %s", durationStr), plaintext, jsonOut)
+			os.Exit(1)
+		}
+		snoozeUntil = time.Now().Add(duration)
+	}
+
+	input := api.NotificationUpdateInput{
+		SnoozedUntilAt: &snoozeUntil,
+	}
+
+	notification, err := client.UpdateNotification(context.Background(), notificationID, input)
+	if err != nil {
+		output.Error(fmt.Sprintf("Failed to snooze notification: %v", err), plaintext, jsonOut)
+		os.Exit(1)
+	}
+
+	if jsonOut {
+		output.JSON(notification)
+	} else if plaintext {
+		fmt.Printf("Notification %s snoozed until %s\n", notificationID, snoozeUntil.Format(time.RFC3339))
+	} else {
+		fmt.Printf("%s Notification %s snoozed until %s\n",
+			color.New(color.FgGreen).Sprint("✓"),
+			color.New(color.FgCyan).Sprint(notificationID),
+			color.New(color.FgYellow).Sprint(snoozeUntil.Format("Jan 2 at 3:04 PM")))
+	}
+}
+
+// parseIntFromSuffix parses an integer from a string with a suffix (e.g., "2d" -> 2)
+func parseIntFromSuffix(s, suffix string) (int, error) {
+	numStr := strings.TrimSuffix(s, suffix)
+	var num int
+	_, err := fmt.Sscanf(numStr, "%d", &num)
+	if err != nil {
+		return 0, fmt.Errorf("could not parse number from %s", s)
+	}
+	return num, nil
+}
+
+// inboxArchiveCmd archives a notification
+var inboxArchiveCmd = &cobra.Command{
+	Use:   "archive <notification-id>",
+	Short: "Archive a notification",
+	Long: `Archive a notification to remove it from your inbox.
+
+Examples:
+  linear-cli inbox archive abc123        # Archive notification`,
+	Args: cobra.ExactArgs(1),
+	Run:  runInboxArchive,
+}
+
+func runInboxArchive(cmd *cobra.Command, args []string) {
+	plaintext := viper.GetBool("plaintext")
+	jsonOut := viper.GetBool("json")
+
+	authHeader, err := auth.GetAuthHeader()
+	if err != nil {
+		output.Error(fmt.Sprintf("Authentication failed: %v", err), plaintext, jsonOut)
+		os.Exit(1)
+	}
+
+	client := api.NewClient(authHeader)
+	notificationID := args[0]
+
+	err = client.ArchiveNotification(context.Background(), notificationID)
+	if err != nil {
+		output.Error(fmt.Sprintf("Failed to archive notification: %v", err), plaintext, jsonOut)
+		os.Exit(1)
+	}
+
+	if jsonOut {
+		output.JSON(map[string]interface{}{"success": true, "id": notificationID})
+	} else if plaintext {
+		fmt.Printf("Notification %s archived\n", notificationID)
+	} else {
+		fmt.Printf("%s Notification %s archived\n",
+			color.New(color.FgGreen).Sprint("✓"),
+			color.New(color.FgCyan).Sprint(notificationID))
+	}
+}
+
+// inboxUnarchiveCmd unarchives a notification
+var inboxUnarchiveCmd = &cobra.Command{
+	Use:   "unarchive <notification-id>",
+	Short: "Unarchive a notification",
+	Long: `Unarchive a notification to return it to your inbox.
+
+Examples:
+  linear-cli inbox unarchive abc123      # Unarchive notification`,
+	Args: cobra.ExactArgs(1),
+	Run:  runInboxUnarchive,
+}
+
+func runInboxUnarchive(cmd *cobra.Command, args []string) {
+	plaintext := viper.GetBool("plaintext")
+	jsonOut := viper.GetBool("json")
+
+	authHeader, err := auth.GetAuthHeader()
+	if err != nil {
+		output.Error(fmt.Sprintf("Authentication failed: %v", err), plaintext, jsonOut)
+		os.Exit(1)
+	}
+
+	client := api.NewClient(authHeader)
+	notificationID := args[0]
+
+	err = client.UnarchiveNotification(context.Background(), notificationID)
+	if err != nil {
+		output.Error(fmt.Sprintf("Failed to unarchive notification: %v", err), plaintext, jsonOut)
+		os.Exit(1)
+	}
+
+	if jsonOut {
+		output.JSON(map[string]interface{}{"success": true, "id": notificationID})
+	} else if plaintext {
+		fmt.Printf("Notification %s unarchived\n", notificationID)
+	} else {
+		fmt.Printf("%s Notification %s unarchived\n",
+			color.New(color.FgGreen).Sprint("✓"),
+			color.New(color.FgCyan).Sprint(notificationID))
+	}
+}
+
 func init() {
 	rootCmd.AddCommand(inboxCmd)
 
-	// Inbox flags
+	// Inbox list flags
 	inboxCmd.Flags().IntP("limit", "l", 50, "Maximum number of notifications to return")
 	inboxCmd.Flags().BoolP("unread", "u", false, "Show only unread notifications")
 	inboxCmd.Flags().BoolP("all", "a", false, "Include archived notifications")
+
+	// Subcommands
+	inboxCmd.AddCommand(inboxReadCmd)
+	inboxReadCmd.Flags().BoolP("all", "a", false, "Mark all notifications as read")
+
+	inboxCmd.AddCommand(inboxUnreadCmd)
+	inboxCmd.AddCommand(inboxSnoozeCmd)
+	inboxCmd.AddCommand(inboxArchiveCmd)
+	inboxCmd.AddCommand(inboxUnarchiveCmd)
 }

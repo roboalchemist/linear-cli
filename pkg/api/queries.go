@@ -1868,14 +1868,29 @@ type Notification struct {
 	ID             string     `json:"id"`
 	Type           string     `json:"type"`
 	CreatedAt      time.Time  `json:"createdAt"`
+	UpdatedAt      time.Time  `json:"updatedAt"`
 	ReadAt         *time.Time `json:"readAt"`
+	EmailedAt      *time.Time `json:"emailedAt"`
 	SnoozedUntilAt *time.Time `json:"snoozedUntilAt"`
+	UnsnoozedAt    *time.Time `json:"unsnoozedAt"`
 	ArchivedAt     *time.Time `json:"archivedAt"`
 	Actor          *User      `json:"actor"`
+	Category       string     `json:"category"`
+	URL            string     `json:"url"`
+	InboxURL       string     `json:"inboxUrl"`
+	Title          string     `json:"title"`
+	Subtitle       string     `json:"subtitle"`
 	// IssueNotification fields
-	Issue        *Issue `json:"issue"`
-	CommentID    string `json:"commentId"`
-	ReactionEmoji string `json:"reactionEmoji"`
+	Issue           *Issue   `json:"issue"`
+	Team            *Team    `json:"team"`
+	Comment         *Comment `json:"comment"`
+	CommentID       string   `json:"commentId"`
+	ParentCommentID string   `json:"parentCommentId"`
+	ParentComment   *Comment `json:"parentComment"`
+	ReactionEmoji   string   `json:"reactionEmoji"`
+	// ProjectNotification fields
+	Project       *Project       `json:"project"`
+	ProjectUpdate *ProjectUpdate `json:"projectUpdate"`
 }
 
 // Notifications represents a paginated list of notifications
@@ -5566,14 +5581,22 @@ func (c *Client) GetNotifications(ctx context.Context, first int, after string, 
 					id
 					type
 					createdAt
+					updatedAt
 					readAt
+					emailedAt
 					snoozedUntilAt
+					unsnoozedAt
 					archivedAt
 					actor {
 						id
 						name
 						email
 					}
+					category
+					url
+					inboxUrl
+					title
+					subtitle
 					... on IssueNotification {
 						issue {
 							id
@@ -5585,9 +5608,57 @@ func (c *Client) GetNotifications(ctx context.Context, first int, after string, 
 								type
 								color
 							}
-							team {
+						}
+						team {
+							id
+							key
+							name
+						}
+						comment {
+							id
+							body
+							createdAt
+							user {
 								id
-								key
+								name
+							}
+						}
+						commentId
+						parentCommentId
+						parentComment {
+							id
+							body
+							createdAt
+							user {
+								id
+								name
+							}
+						}
+						reactionEmoji
+					}
+					... on ProjectNotification {
+						project {
+							id
+							name
+							slugId
+							state
+						}
+						projectUpdate {
+							id
+							body
+							health
+							createdAt
+							user {
+								id
+								name
+							}
+						}
+						comment {
+							id
+							body
+							createdAt
+							user {
+								id
 								name
 							}
 						}
@@ -5617,6 +5688,106 @@ func (c *Client) GetNotifications(ctx context.Context, first int, after string, 
 		return nil, err
 	}
 	return &response.Notifications, nil
+}
+
+// NotificationUpdateInput represents input for updating a notification
+type NotificationUpdateInput struct {
+	ReadAt         *time.Time `json:"readAt,omitempty"`
+	SnoozedUntilAt *time.Time `json:"snoozedUntilAt,omitempty"`
+}
+
+// UpdateNotification updates a notification (e.g., mark as read, snooze)
+func (c *Client) UpdateNotification(ctx context.Context, id string, input NotificationUpdateInput) (*Notification, error) {
+	query := `
+		mutation NotificationUpdate($id: String!, $input: NotificationUpdateInput!) {
+			notificationUpdate(id: $id, input: $input) {
+				success
+				notification {
+					id
+					type
+					readAt
+					snoozedUntilAt
+					archivedAt
+				}
+			}
+		}
+	`
+	variables := map[string]interface{}{
+		"id":    id,
+		"input": input,
+	}
+	var response struct {
+		NotificationUpdate struct {
+			Success      bool         `json:"success"`
+			Notification Notification `json:"notification"`
+		} `json:"notificationUpdate"`
+	}
+	err := c.Execute(ctx, query, variables, &response)
+	if err != nil {
+		return nil, err
+	}
+	return &response.NotificationUpdate.Notification, nil
+}
+
+// ArchiveNotification archives a notification
+func (c *Client) ArchiveNotification(ctx context.Context, id string) error {
+	query := `
+		mutation NotificationArchive($id: String!) {
+			notificationArchive(id: $id) {
+				success
+			}
+		}
+	`
+	variables := map[string]interface{}{
+		"id": id,
+	}
+	var response struct {
+		NotificationArchive struct {
+			Success bool `json:"success"`
+		} `json:"notificationArchive"`
+	}
+	return c.Execute(ctx, query, variables, &response)
+}
+
+// UnarchiveNotification unarchives a notification
+func (c *Client) UnarchiveNotification(ctx context.Context, id string) error {
+	query := `
+		mutation NotificationUnarchive($id: String!) {
+			notificationUnarchive(id: $id) {
+				success
+			}
+		}
+	`
+	variables := map[string]interface{}{
+		"id": id,
+	}
+	var response struct {
+		NotificationUnarchive struct {
+			Success bool `json:"success"`
+		} `json:"notificationUnarchive"`
+	}
+	return c.Execute(ctx, query, variables, &response)
+}
+
+// MarkAllNotificationsRead marks all notifications as read
+func (c *Client) MarkAllNotificationsRead(ctx context.Context, readAt time.Time) error {
+	query := `
+		mutation NotificationMarkReadAll($readAt: DateTime!, $input: NotificationEntityInput!) {
+			notificationMarkReadAll(readAt: $readAt, input: $input) {
+				success
+			}
+		}
+	`
+	variables := map[string]interface{}{
+		"readAt": readAt.Format(time.RFC3339),
+		"input":  map[string]interface{}{},
+	}
+	var response struct {
+		NotificationMarkReadAll struct {
+			Success bool `json:"success"`
+		} `json:"notificationMarkReadAll"`
+	}
+	return c.Execute(ctx, query, variables, &response)
 }
 
 // Favorite represents a Linear favorite (sidebar shortcut)
