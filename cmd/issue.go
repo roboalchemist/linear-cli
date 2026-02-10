@@ -1662,6 +1662,14 @@ Examples:
 					actorName := "System"
 					if entry.Actor != nil {
 						actorName = entry.Actor.Name
+					} else if entry.BotActor != nil {
+						if entry.BotActor.UserDisplayName != nil {
+							actorName = *entry.BotActor.UserDisplayName
+						} else if entry.BotActor.Name != nil {
+							actorName = *entry.BotActor.Name + " (bot)"
+						} else {
+							actorName = entry.BotActor.Type + " (bot)"
+						}
 					}
 
 					fmt.Printf("\n### %s by %s\n", entry.CreatedAt.Format("2006-01-02 15:04"), actorName)
@@ -1682,6 +1690,9 @@ Examples:
 					if entry.FromTitle != nil && entry.ToTitle != nil {
 						fmt.Printf("- Title: \"%s\" -> \"%s\"\n", *entry.FromTitle, *entry.ToTitle)
 					}
+					if entry.UpdatedDescription != nil && *entry.UpdatedDescription {
+						fmt.Println("- Description updated")
+					}
 					if entry.FromCycle != nil && entry.ToCycle != nil {
 						fmt.Printf("- Cycle: %s -> %s\n", entry.FromCycle.Name, entry.ToCycle.Name)
 					} else if entry.FromCycle == nil && entry.ToCycle != nil {
@@ -1696,11 +1707,79 @@ Examples:
 					} else if entry.FromProject != nil && entry.ToProject == nil {
 						fmt.Printf("- Removed from project: %s\n", entry.FromProject.Name)
 					}
-					if len(entry.AddedLabelIds) > 0 {
+					if entry.FromTeam != nil && entry.ToTeam != nil {
+						fmt.Printf("- Team: %s -> %s\n", entry.FromTeam.Name, entry.ToTeam.Name)
+					} else if entry.FromTeam == nil && entry.ToTeam != nil {
+						fmt.Printf("- Moved to team: %s\n", entry.ToTeam.Name)
+					} else if entry.FromTeam != nil && entry.ToTeam == nil {
+						fmt.Printf("- Removed from team: %s\n", entry.FromTeam.Name)
+					}
+					if entry.FromParent != nil && entry.ToParent != nil {
+						fmt.Printf("- Parent: %s -> %s\n", entry.FromParent.Identifier, entry.ToParent.Identifier)
+					} else if entry.FromParent == nil && entry.ToParent != nil {
+						fmt.Printf("- Set parent: %s\n", entry.ToParent.Identifier)
+					} else if entry.FromParent != nil && entry.ToParent == nil {
+						fmt.Printf("- Removed parent: %s\n", entry.FromParent.Identifier)
+					}
+					if entry.FromEstimate != nil && entry.ToEstimate != nil {
+						fmt.Printf("- Estimate: %.1f -> %.1f\n", *entry.FromEstimate, *entry.ToEstimate)
+					} else if entry.FromEstimate == nil && entry.ToEstimate != nil {
+						fmt.Printf("- Set estimate: %.1f\n", *entry.ToEstimate)
+					} else if entry.FromEstimate != nil && entry.ToEstimate == nil {
+						fmt.Println("- Estimate removed")
+					}
+					if entry.FromDueDate != nil && entry.ToDueDate != nil {
+						fmt.Printf("- Due date: %s -> %s\n", *entry.FromDueDate, *entry.ToDueDate)
+					} else if entry.FromDueDate == nil && entry.ToDueDate != nil {
+						fmt.Printf("- Set due date: %s\n", *entry.ToDueDate)
+					} else if entry.FromDueDate != nil && entry.ToDueDate == nil {
+						fmt.Println("- Due date removed")
+					}
+					if entry.FromProjectMilestone != nil && entry.ToProjectMilestone != nil {
+						fmt.Printf("- Milestone: %s -> %s\n", entry.FromProjectMilestone.Name, entry.ToProjectMilestone.Name)
+					} else if entry.FromProjectMilestone == nil && entry.ToProjectMilestone != nil {
+						fmt.Printf("- Set milestone: %s\n", entry.ToProjectMilestone.Name)
+					} else if entry.FromProjectMilestone != nil && entry.ToProjectMilestone == nil {
+						fmt.Printf("- Removed from milestone: %s\n", entry.FromProjectMilestone.Name)
+					}
+					if len(entry.AddedLabels) > 0 {
+						names := make([]string, len(entry.AddedLabels))
+						for i, l := range entry.AddedLabels {
+							names[i] = l.Name
+						}
+						fmt.Printf("- Added label(s): %s\n", strings.Join(names, ", "))
+					} else if len(entry.AddedLabelIds) > 0 {
 						fmt.Printf("- Added %d label(s)\n", len(entry.AddedLabelIds))
 					}
-					if len(entry.RemovedLabelIds) > 0 {
+					if len(entry.RemovedLabels) > 0 {
+						names := make([]string, len(entry.RemovedLabels))
+						for i, l := range entry.RemovedLabels {
+							names[i] = l.Name
+						}
+						fmt.Printf("- Removed label(s): %s\n", strings.Join(names, ", "))
+					} else if len(entry.RemovedLabelIds) > 0 {
 						fmt.Printf("- Removed %d label(s)\n", len(entry.RemovedLabelIds))
+					}
+					if len(entry.RelationChanges) > 0 {
+						for _, rc := range entry.RelationChanges {
+							fmt.Printf("- Relation %s: %s\n", rc.Type, rc.Identifier)
+						}
+					}
+					if entry.Attachment != nil {
+						fmt.Printf("- Attachment: %s\n", entry.Attachment.Title)
+					}
+					if entry.Archived != nil && *entry.Archived {
+						if entry.AutoArchived != nil && *entry.AutoArchived {
+							fmt.Println("- Auto-archived")
+						} else {
+							fmt.Println("- Archived")
+						}
+					}
+					if entry.Trashed != nil && *entry.Trashed {
+						fmt.Println("- Trashed")
+					}
+					if entry.AutoClosed != nil && *entry.AutoClosed {
+						fmt.Println("- Auto-closed")
 					}
 				}
 			}
@@ -1768,6 +1847,14 @@ Examples:
 				actorName := "System"
 				if entry.Actor != nil {
 					actorName = entry.Actor.Name
+				} else if entry.BotActor != nil {
+					if entry.BotActor.UserDisplayName != nil {
+						actorName = *entry.BotActor.UserDisplayName
+					} else if entry.BotActor.Name != nil {
+						actorName = *entry.BotActor.Name + " (bot)"
+					} else {
+						actorName = entry.BotActor.Type + " (bot)"
+					}
 				}
 
 				timestamp := color.New(color.FgWhite, color.Faint).Sprint(entry.CreatedAt.Format("2006-01-02 15:04"))
@@ -1791,7 +1878,10 @@ Examples:
 					changes = append(changes, fmt.Sprintf("Priority: %s -> %s", priorityToString(*entry.FromPriority), priorityToString(*entry.ToPriority)))
 				}
 				if entry.FromTitle != nil && entry.ToTitle != nil {
-					changes = append(changes, fmt.Sprintf("Title changed"))
+					changes = append(changes, "Title changed")
+				}
+				if entry.UpdatedDescription != nil && *entry.UpdatedDescription {
+					changes = append(changes, "Description updated")
 				}
 				if entry.FromCycle != nil && entry.ToCycle != nil {
 					changes = append(changes, fmt.Sprintf("Cycle: %s -> %s", entry.FromCycle.Name, entry.ToCycle.Name))
@@ -1807,11 +1897,79 @@ Examples:
 				} else if entry.FromProject != nil && entry.ToProject == nil {
 					changes = append(changes, fmt.Sprintf("Removed from project: %s", entry.FromProject.Name))
 				}
-				if len(entry.AddedLabelIds) > 0 {
+				if entry.FromTeam != nil && entry.ToTeam != nil {
+					changes = append(changes, fmt.Sprintf("Team: %s -> %s", entry.FromTeam.Name, entry.ToTeam.Name))
+				} else if entry.FromTeam == nil && entry.ToTeam != nil {
+					changes = append(changes, fmt.Sprintf("Moved to team: %s", entry.ToTeam.Name))
+				} else if entry.FromTeam != nil && entry.ToTeam == nil {
+					changes = append(changes, fmt.Sprintf("Removed from team: %s", entry.FromTeam.Name))
+				}
+				if entry.FromParent != nil && entry.ToParent != nil {
+					changes = append(changes, fmt.Sprintf("Parent: %s -> %s", entry.FromParent.Identifier, entry.ToParent.Identifier))
+				} else if entry.FromParent == nil && entry.ToParent != nil {
+					changes = append(changes, fmt.Sprintf("Set parent: %s", entry.ToParent.Identifier))
+				} else if entry.FromParent != nil && entry.ToParent == nil {
+					changes = append(changes, fmt.Sprintf("Removed parent: %s", entry.FromParent.Identifier))
+				}
+				if entry.FromEstimate != nil && entry.ToEstimate != nil {
+					changes = append(changes, fmt.Sprintf("Estimate: %.1f -> %.1f", *entry.FromEstimate, *entry.ToEstimate))
+				} else if entry.FromEstimate == nil && entry.ToEstimate != nil {
+					changes = append(changes, fmt.Sprintf("Set estimate: %.1f", *entry.ToEstimate))
+				} else if entry.FromEstimate != nil && entry.ToEstimate == nil {
+					changes = append(changes, "Estimate removed")
+				}
+				if entry.FromDueDate != nil && entry.ToDueDate != nil {
+					changes = append(changes, fmt.Sprintf("Due date: %s -> %s", *entry.FromDueDate, *entry.ToDueDate))
+				} else if entry.FromDueDate == nil && entry.ToDueDate != nil {
+					changes = append(changes, fmt.Sprintf("Set due date: %s", *entry.ToDueDate))
+				} else if entry.FromDueDate != nil && entry.ToDueDate == nil {
+					changes = append(changes, "Due date removed")
+				}
+				if entry.FromProjectMilestone != nil && entry.ToProjectMilestone != nil {
+					changes = append(changes, fmt.Sprintf("Milestone: %s -> %s", entry.FromProjectMilestone.Name, entry.ToProjectMilestone.Name))
+				} else if entry.FromProjectMilestone == nil && entry.ToProjectMilestone != nil {
+					changes = append(changes, fmt.Sprintf("Set milestone: %s", entry.ToProjectMilestone.Name))
+				} else if entry.FromProjectMilestone != nil && entry.ToProjectMilestone == nil {
+					changes = append(changes, fmt.Sprintf("Removed from milestone: %s", entry.FromProjectMilestone.Name))
+				}
+				if len(entry.AddedLabels) > 0 {
+					names := make([]string, len(entry.AddedLabels))
+					for i, l := range entry.AddedLabels {
+						names[i] = l.Name
+					}
+					changes = append(changes, fmt.Sprintf("Added label(s): %s", strings.Join(names, ", ")))
+				} else if len(entry.AddedLabelIds) > 0 {
 					changes = append(changes, fmt.Sprintf("Added %d label(s)", len(entry.AddedLabelIds)))
 				}
-				if len(entry.RemovedLabelIds) > 0 {
+				if len(entry.RemovedLabels) > 0 {
+					names := make([]string, len(entry.RemovedLabels))
+					for i, l := range entry.RemovedLabels {
+						names[i] = l.Name
+					}
+					changes = append(changes, fmt.Sprintf("Removed label(s): %s", strings.Join(names, ", ")))
+				} else if len(entry.RemovedLabelIds) > 0 {
 					changes = append(changes, fmt.Sprintf("Removed %d label(s)", len(entry.RemovedLabelIds)))
+				}
+				if len(entry.RelationChanges) > 0 {
+					for _, rc := range entry.RelationChanges {
+						changes = append(changes, fmt.Sprintf("Relation %s: %s", rc.Type, rc.Identifier))
+					}
+				}
+				if entry.Attachment != nil {
+					changes = append(changes, fmt.Sprintf("Attachment: %s", entry.Attachment.Title))
+				}
+				if entry.Archived != nil && *entry.Archived {
+					if entry.AutoArchived != nil && *entry.AutoArchived {
+						changes = append(changes, "Auto-archived")
+					} else {
+						changes = append(changes, "Archived")
+					}
+				}
+				if entry.Trashed != nil && *entry.Trashed {
+					changes = append(changes, "Trashed")
+				}
+				if entry.AutoClosed != nil && *entry.AutoClosed {
+					changes = append(changes, "Auto-closed")
 				}
 
 				if len(changes) > 0 {

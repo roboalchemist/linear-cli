@@ -391,25 +391,60 @@ type IssueHistory struct {
 }
 
 type IssueHistoryEntry struct {
-	ID              string    `json:"id"`
-	CreatedAt       time.Time `json:"createdAt"`
-	UpdatedAt       time.Time `json:"updatedAt"`
-	Changes         string    `json:"changes"`
-	Actor           *User     `json:"actor"`
-	FromAssignee    *User     `json:"fromAssignee"`
-	ToAssignee      *User     `json:"toAssignee"`
-	FromState       *State    `json:"fromState"`
-	ToState         *State    `json:"toState"`
-	FromPriority    *int      `json:"fromPriority"`
-	ToPriority      *int      `json:"toPriority"`
-	FromTitle       *string   `json:"fromTitle"`
-	ToTitle         *string   `json:"toTitle"`
-	FromCycle       *Cycle    `json:"fromCycle"`
-	ToCycle         *Cycle    `json:"toCycle"`
-	FromProject     *Project  `json:"fromProject"`
-	ToProject       *Project  `json:"toProject"`
-	AddedLabelIds   []string  `json:"addedLabelIds"`
-	RemovedLabelIds []string  `json:"removedLabelIds"`
+	ID                 string              `json:"id"`
+	CreatedAt          time.Time           `json:"createdAt"`
+	UpdatedAt          time.Time           `json:"updatedAt"`
+	Changes            string              `json:"changes"`
+	Actor              *User               `json:"actor"`
+	BotActor           *ActorBot           `json:"botActor"`
+	FromAssignee       *User               `json:"fromAssignee"`
+	ToAssignee         *User               `json:"toAssignee"`
+	FromState          *State              `json:"fromState"`
+	ToState            *State              `json:"toState"`
+	FromPriority       *int                `json:"fromPriority"`
+	ToPriority         *int                `json:"toPriority"`
+	FromTitle          *string             `json:"fromTitle"`
+	ToTitle            *string             `json:"toTitle"`
+	FromCycle          *Cycle              `json:"fromCycle"`
+	ToCycle            *Cycle              `json:"toCycle"`
+	FromProject        *Project            `json:"fromProject"`
+	ToProject          *Project            `json:"toProject"`
+	FromTeam           *Team               `json:"fromTeam"`
+	ToTeam             *Team               `json:"toTeam"`
+	FromParent         *Issue              `json:"fromParent"`
+	ToParent           *Issue              `json:"toParent"`
+	FromEstimate       *float64            `json:"fromEstimate"`
+	ToEstimate         *float64            `json:"toEstimate"`
+	FromDueDate        *string             `json:"fromDueDate"`
+	ToDueDate          *string             `json:"toDueDate"`
+	FromProjectMilestone *ProjectMilestone `json:"fromProjectMilestone"`
+	ToProjectMilestone   *ProjectMilestone `json:"toProjectMilestone"`
+	UpdatedDescription *bool               `json:"updatedDescription"`
+	Archived           *bool               `json:"archived"`
+	Trashed            *bool               `json:"trashed"`
+	AutoClosed         *bool               `json:"autoClosed"`
+	AutoArchived       *bool               `json:"autoArchived"`
+	AddedLabelIds      []string            `json:"addedLabelIds"`
+	RemovedLabelIds    []string            `json:"removedLabelIds"`
+	AddedLabels        []Label             `json:"addedLabels"`
+	RemovedLabels      []Label             `json:"removedLabels"`
+	RelationChanges    []RelationChange    `json:"relationChanges"`
+	Attachment         *Attachment         `json:"attachment"`
+}
+
+// ActorBot represents a bot actor in Linear
+type ActorBot struct {
+	ID              string  `json:"id"`
+	Type            string  `json:"type"`
+	SubType         *string `json:"subType"`
+	Name            *string `json:"name"`
+	UserDisplayName *string `json:"userDisplayName"`
+}
+
+// RelationChange represents a change to an issue relation
+type RelationChange struct {
+	Identifier string `json:"identifier"`
+	Type       string `json:"type"`
 }
 
 type Reaction struct {
@@ -4078,6 +4113,13 @@ func (c *Client) GetIssueActivity(ctx context.Context, issueID string, historyFi
 							name
 							email
 						}
+						botActor {
+							id
+							type
+							subType
+							name
+							userDisplayName
+						}
 						fromAssignee {
 							name
 						}
@@ -4106,8 +4148,58 @@ func (c *Client) GetIssueActivity(ctx context.Context, issueID string, historyFi
 						toProject {
 							name
 						}
+						fromTeam {
+							key
+							name
+						}
+						toTeam {
+							key
+							name
+						}
+						fromParent {
+							identifier
+							title
+						}
+						toParent {
+							identifier
+							title
+						}
+						fromEstimate
+						toEstimate
+						fromDueDate
+						toDueDate
+						fromProjectMilestone {
+							name
+						}
+						toProjectMilestone {
+							name
+						}
+						updatedDescription
+						archived
+						trashed
+						autoClosed
+						autoArchived
 						addedLabelIds
 						removedLabelIds
+						addedLabels {
+							id
+							name
+							color
+						}
+						removedLabels {
+							id
+							name
+							color
+						}
+						relationChanges {
+							identifier
+							type
+						}
+						attachment {
+							id
+							title
+							url
+						}
 					}
 				}
 			}
