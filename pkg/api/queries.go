@@ -1217,6 +1217,11 @@ func (c *Client) UpdateProject(ctx context.Context, id string, input map[string]
 					state
 					progress
 					url
+					lead {
+						id
+						name
+						email
+					}
 					teams {
 						nodes {
 							id

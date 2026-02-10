@@ -920,8 +920,15 @@ var projectUpdateCmd = &cobra.Command{
 	Use:     "update PROJECT-ID",
 	Aliases: []string{"edit"},
 	Short:   "Update a project",
-	Long:    `Update a project's name, description, state, or dates.`,
-	Args:    cobra.ExactArgs(1),
+	Long: `Update a project's name, description, state, dates, or lead.
+
+Examples:
+  linear-cli project update PROJECT-ID --name "New Name"
+  linear-cli project update PROJECT-ID --state started
+  linear-cli project update PROJECT-ID --lead user@example.com
+  linear-cli project update PROJECT-ID --lead me
+  linear-cli project update PROJECT-ID --lead none`,
+	Args: cobra.ExactArgs(1),
 	Run: func(cmd *cobra.Command, args []string) {
 		plaintext := viper.GetBool("plaintext")
 		jsonOut := viper.GetBool("json")
@@ -955,6 +962,46 @@ var projectUpdateCmd = &cobra.Command{
 			d, _ := cmd.Flags().GetString("target-date")
 			input["targetDate"] = d
 		}
+
+		// Handle lead update
+		if cmd.Flags().Changed("lead") {
+			lead, _ := cmd.Flags().GetString("lead")
+			switch strings.ToLower(lead) {
+			case "me":
+				// Get current user
+				viewer, err := client.GetViewer(context.Background())
+				if err != nil {
+					output.Error(fmt.Sprintf("Failed to get current user: %v", err), plaintext, jsonOut)
+					os.Exit(1)
+				}
+				input["leadId"] = viewer.ID
+			case "none", "unassigned", "":
+				input["leadId"] = nil
+			default:
+				// Look up user by email or name
+				users, err := client.GetUsers(context.Background(), 100, "", "")
+				if err != nil {
+					output.Error(fmt.Sprintf("Failed to get users: %v", err), plaintext, jsonOut)
+					os.Exit(1)
+				}
+
+				var foundUser *api.User
+				for _, user := range users.Nodes {
+					if user.Email == lead || user.Name == lead {
+						foundUser = &user
+						break
+					}
+				}
+
+				if foundUser == nil {
+					output.Error(fmt.Sprintf("User not found: %s", lead), plaintext, jsonOut)
+					os.Exit(1)
+				}
+
+				input["leadId"] = foundUser.ID
+			}
+		}
+
 		if len(input) == 0 {
 			output.Error("No fields to update.", plaintext, jsonOut)
 			os.Exit(1)
@@ -969,8 +1016,12 @@ var projectUpdateCmd = &cobra.Command{
 		if jsonOut {
 			output.JSON(project)
 		} else {
-			output.Success(fmt.Sprintf("Updated project %s",
-				color.New(color.FgWhite, color.Bold).Sprint(project.Name)), plaintext, jsonOut)
+			leadInfo := ""
+			if project.Lead != nil {
+				leadInfo = fmt.Sprintf(" (lead: %s)", project.Lead.Name)
+			}
+			output.Success(fmt.Sprintf("Updated project %s%s",
+				color.New(color.FgWhite, color.Bold).Sprint(project.Name), leadInfo), plaintext, jsonOut)
 		}
 	},
 }
@@ -1164,6 +1215,7 @@ func init() {
 	projectUpdateCmd.Flags().String("state", "", "New state: planned, started, paused, completed, canceled")
 	projectUpdateCmd.Flags().String("start-date", "", "New start date (YYYY-MM-DD)")
 	projectUpdateCmd.Flags().String("target-date", "", "New target date (YYYY-MM-DD)")
+	projectUpdateCmd.Flags().StringP("lead", "l", "", "Project lead (email, name, 'me', or 'none' to unset)")
 
 	// List command flags
 	projectListCmd.Flags().StringP("team", "t", "", "Filter by team key")
