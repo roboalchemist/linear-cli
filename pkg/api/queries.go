@@ -204,6 +204,13 @@ type Cycles struct {
 	PageInfo PageInfo `json:"pageInfo"`
 }
 
+// Release represents a Linear release (for document linking)
+type Release struct {
+	ID      string  `json:"id"`
+	Name    string  `json:"name"`
+	Version *string `json:"version"`
+}
+
 // Attachment represents a file attachment or link
 type Attachment struct {
 	ID        string                 `json:"id"`
@@ -440,6 +447,7 @@ type Document struct {
 	Issue      *Issue      `json:"issue"`
 	Initiative *Initiative `json:"initiative"`
 	Cycle      *Cycle      `json:"cycle"`
+	Release    *Release    `json:"release"`
 	CreatedAt  time.Time   `json:"createdAt"`
 	UpdatedAt  time.Time   `json:"updatedAt"`
 }
@@ -1891,6 +1899,25 @@ func (c *Client) GetDocuments(ctx context.Context, filter map[string]interface{}
 						key
 						name
 					}
+					issue {
+						id
+						identifier
+						title
+					}
+					initiative {
+						id
+						name
+					}
+					cycle {
+						id
+						number
+						name
+					}
+					release {
+						id
+						name
+						version
+					}
 				}
 				pageInfo {
 					hasNextPage
@@ -1976,6 +2003,11 @@ func (c *Client) GetDocument(ctx context.Context, id string) (*Document, error) 
 					number
 					name
 				}
+				release {
+					id
+					name
+					version
+				}
 			}
 		}
 	`
@@ -2028,6 +2060,25 @@ func (c *Client) SearchDocuments(ctx context.Context, term string, first int, af
 						id
 						key
 						name
+					}
+					issue {
+						id
+						identifier
+						title
+					}
+					initiative {
+						id
+						name
+					}
+					cycle {
+						id
+						number
+						name
+					}
+					release {
+						id
+						name
+						version
 					}
 				}
 				pageInfo {
@@ -2100,6 +2151,25 @@ func (c *Client) CreateDocument(ctx context.Context, input map[string]interface{
 						key
 						name
 					}
+					issue {
+						id
+						identifier
+						title
+					}
+					initiative {
+						id
+						name
+					}
+					cycle {
+						id
+						number
+						name
+					}
+					release {
+						id
+						name
+						version
+					}
 				}
 			}
 		}
@@ -2151,6 +2221,25 @@ func (c *Client) UpdateDocument(ctx context.Context, id string, input map[string
 						id
 						key
 						name
+					}
+					issue {
+						id
+						identifier
+						title
+					}
+					initiative {
+						id
+						name
+					}
+					cycle {
+						id
+						number
+						name
+					}
+					release {
+						id
+						name
+						version
 					}
 				}
 			}

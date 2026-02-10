@@ -102,6 +102,26 @@ func renderDocumentCollection(docs *api.Documents, plaintext, jsonOut bool, empt
 			if doc.Team != nil {
 				fmt.Printf("- **Team**: %s\n", doc.Team.Key)
 			}
+			if doc.Issue != nil {
+				fmt.Printf("- **Issue**: %s — %s\n", doc.Issue.Identifier, doc.Issue.Title)
+			}
+			if doc.Initiative != nil {
+				fmt.Printf("- **Initiative**: %s\n", doc.Initiative.Name)
+			}
+			if doc.Cycle != nil {
+				if doc.Cycle.Name != "" {
+					fmt.Printf("- **Cycle**: %s\n", doc.Cycle.Name)
+				} else {
+					fmt.Printf("- **Cycle**: #%d\n", doc.Cycle.Number)
+				}
+			}
+			if doc.Release != nil {
+				if doc.Release.Version != nil && *doc.Release.Version != "" {
+					fmt.Printf("- **Release**: %s (%s)\n", doc.Release.Name, *doc.Release.Version)
+				} else {
+					fmt.Printf("- **Release**: %s\n", doc.Release.Name)
+				}
+			}
 			if doc.Creator != nil {
 				fmt.Printf("- **Creator**: %s\n", doc.Creator.Name)
 			}
@@ -227,6 +247,13 @@ var documentGetCmd = &cobra.Command{
 					fmt.Printf("- **Cycle**: #%d\n", doc.Cycle.Number)
 				}
 			}
+			if doc.Release != nil {
+				if doc.Release.Version != nil && *doc.Release.Version != "" {
+					fmt.Printf("- **Release**: %s (%s)\n", doc.Release.Name, *doc.Release.Version)
+				} else {
+					fmt.Printf("- **Release**: %s\n", doc.Release.Name)
+				}
+			}
 			if doc.URL != "" {
 				fmt.Printf("- **URL**: %s\n", doc.URL)
 			}
@@ -290,6 +317,17 @@ var documentGetCmd = &cobra.Command{
 			} else {
 				fmt.Printf("Cycle: %s\n",
 					color.New(color.FgCyan).Sprintf("#%d", doc.Cycle.Number))
+			}
+		}
+
+		if doc.Release != nil {
+			if doc.Release.Version != nil && *doc.Release.Version != "" {
+				fmt.Printf("Release: %s (%s)\n",
+					color.New(color.FgMagenta).Sprint(doc.Release.Name),
+					*doc.Release.Version)
+			} else {
+				fmt.Printf("Release: %s\n",
+					color.New(color.FgMagenta).Sprint(doc.Release.Name))
 			}
 		}
 
@@ -407,6 +445,7 @@ Examples:
 		teamKey, _ := cmd.Flags().GetString("team")
 		initiativeID, _ := cmd.Flags().GetString("initiative")
 		cycleID, _ := cmd.Flags().GetString("cycle")
+		releaseID, _ := cmd.Flags().GetString("release")
 		icon, _ := cmd.Flags().GetString("icon")
 		docColor, _ := cmd.Flags().GetString("color")
 
@@ -471,6 +510,9 @@ Examples:
 		}
 		if cycleID != "" {
 			linkInput["cycleId"] = cycleID
+		}
+		if releaseID != "" {
+			linkInput["releaseId"] = releaseID
 		}
 		if len(linkInput) > 0 {
 			doc, err = client.UpdateDocument(context.Background(), doc.ID, linkInput)
@@ -573,6 +615,11 @@ Examples:
 		if cmd.Flags().Changed("cycle") {
 			cycleID, _ := cmd.Flags().GetString("cycle")
 			input["cycleId"] = cycleID
+		}
+
+		if cmd.Flags().Changed("release") {
+			releaseID, _ := cmd.Flags().GetString("release")
+			input["releaseId"] = releaseID
 		}
 
 		if len(input) == 0 {
@@ -703,6 +750,7 @@ func init() {
 	documentCreateCmd.Flags().StringP("team", "t", "", "Team key to associate with")
 	documentCreateCmd.Flags().String("initiative", "", "Initiative ID to associate with")
 	documentCreateCmd.Flags().String("cycle", "", "Cycle ID to associate with")
+	documentCreateCmd.Flags().String("release", "", "Release ID to associate with")
 	documentCreateCmd.Flags().String("icon", "", "Document icon (emoji)")
 	documentCreateCmd.Flags().String("color", "", "Document icon color (hex)")
 	_ = documentCreateCmd.MarkFlagRequired("title")
@@ -717,6 +765,7 @@ func init() {
 	documentUpdateCmd.Flags().String("issue", "", "Issue ID to associate with")
 	documentUpdateCmd.Flags().String("initiative", "", "Initiative ID to associate with")
 	documentUpdateCmd.Flags().String("cycle", "", "Cycle ID to associate with")
+	documentUpdateCmd.Flags().String("release", "", "Release ID to associate with")
 
 	// Delete has no extra flags
 }
