@@ -525,16 +525,23 @@ type ProjectUpdates struct {
 }
 
 type ProjectUpdate struct {
-	ID         string     `json:"id"`
-	Body       string     `json:"body"`
-	User       *User      `json:"user"`
-	CreatedAt  time.Time  `json:"createdAt"`
-	UpdatedAt  time.Time  `json:"updatedAt"`
-	EditedAt   *time.Time `json:"editedAt"`
-	ArchivedAt *time.Time `json:"archivedAt"`
-	Health     string     `json:"health"`
-	URL        string     `json:"url"`
-	Project    *Project   `json:"project"`
+	ID           string                 `json:"id"`
+	SlugId       string                 `json:"slugId"`
+	Body         string                 `json:"body"`
+	User         *User                  `json:"user"`
+	CreatedAt    time.Time              `json:"createdAt"`
+	UpdatedAt    time.Time              `json:"updatedAt"`
+	EditedAt     *time.Time             `json:"editedAt"`
+	ArchivedAt   *time.Time             `json:"archivedAt"`
+	Health       string                 `json:"health"`
+	URL          string                 `json:"url"`
+	Project      *Project               `json:"project"`
+	IsDiffHidden bool                   `json:"isDiffHidden"`
+	IsStale      bool                   `json:"isStale"`
+	Diff         map[string]interface{} `json:"diff"`
+	DiffMarkdown *string                `json:"diffMarkdown"`
+	InfoSnapshot map[string]interface{} `json:"infoSnapshot"`
+	CommentCount int                    `json:"commentCount"`
 }
 
 type Documents struct {
@@ -2998,6 +3005,7 @@ func (c *Client) GetProjectUpdates(ctx context.Context, projectID string, first 
 				projectUpdates(first: $first, after: $after) {
 					nodes {
 						id
+						slugId
 						body
 						health
 						url
@@ -3005,6 +3013,12 @@ func (c *Client) GetProjectUpdates(ctx context.Context, projectID string, first 
 						updatedAt
 						editedAt
 						archivedAt
+						isDiffHidden
+						isStale
+						diff
+						diffMarkdown
+						infoSnapshot
+						commentCount
 						user {
 							id
 							name
@@ -3054,6 +3068,7 @@ func (c *Client) GetProjectUpdate(ctx context.Context, id string) (*ProjectUpdat
 		query ProjectUpdate($id: String!) {
 			projectUpdate(id: $id) {
 				id
+				slugId
 				body
 				health
 				url
@@ -3061,6 +3076,12 @@ func (c *Client) GetProjectUpdate(ctx context.Context, id string) (*ProjectUpdat
 				updatedAt
 				editedAt
 				archivedAt
+				isDiffHidden
+				isStale
+				diff
+				diffMarkdown
+				infoSnapshot
+				commentCount
 				user {
 					id
 					name
@@ -3100,11 +3121,20 @@ func (c *Client) CreateProjectUpdate(ctx context.Context, input map[string]inter
 			projectUpdateCreate(input: $input) {
 				projectUpdate {
 					id
+					slugId
 					body
 					health
 					url
 					createdAt
 					updatedAt
+					editedAt
+					archivedAt
+					isDiffHidden
+					isStale
+					diff
+					diffMarkdown
+					infoSnapshot
+					commentCount
 					user {
 						id
 						name
@@ -3150,12 +3180,20 @@ func (c *Client) UpdateProjectUpdate(ctx context.Context, id string, input map[s
 			projectUpdateUpdate(id: $id, input: $input) {
 				projectUpdate {
 					id
+					slugId
 					body
 					health
 					url
 					createdAt
 					updatedAt
 					editedAt
+					archivedAt
+					isDiffHidden
+					isStale
+					diff
+					diffMarkdown
+					infoSnapshot
+					commentCount
 					user {
 						id
 						name

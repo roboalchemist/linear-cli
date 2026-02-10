@@ -159,6 +159,7 @@ var statusGetCmd = &cobra.Command{
 		if plaintext {
 			fmt.Printf("# Project Status Update\n\n")
 			fmt.Printf("- **ID**: %s\n", update.ID)
+			fmt.Printf("- **Slug ID**: %s\n", update.SlugId)
 			fmt.Printf("- **Health**: %s\n", update.Health)
 			if update.User != nil {
 				fmt.Printf("- **Author**: %s (%s)\n", update.User.Name, update.User.Email)
@@ -177,7 +178,19 @@ var statusGetCmd = &cobra.Command{
 			if update.URL != "" {
 				fmt.Printf("- **URL**: %s\n", update.URL)
 			}
+			if update.IsStale {
+				fmt.Printf("- **Stale**: yes\n")
+			}
+			if update.IsDiffHidden {
+				fmt.Printf("- **Diff Hidden**: yes\n")
+			}
+			if update.CommentCount > 0 {
+				fmt.Printf("- **Comments**: %d\n", update.CommentCount)
+			}
 			fmt.Printf("\n## Body\n%s\n", update.Body)
+			if update.DiffMarkdown != nil && *update.DiffMarkdown != "" {
+				fmt.Printf("\n## Changes Since Last Update\n%s\n", *update.DiffMarkdown)
+			}
 			return
 		}
 
@@ -209,10 +222,30 @@ var statusGetCmd = &cobra.Command{
 				color.New(color.Bold).Sprint("URL:"),
 				color.New(color.FgBlue, color.Underline).Sprint(update.URL))
 		}
+		if update.IsStale {
+			fmt.Printf("%s %s\n",
+				color.New(color.Bold).Sprint("Stale:"),
+				color.New(color.FgYellow).Sprint("Yes"))
+		}
+		if update.IsDiffHidden {
+			fmt.Printf("%s %s\n",
+				color.New(color.Bold).Sprint("Diff Hidden:"),
+				"Yes")
+		}
+		if update.CommentCount > 0 {
+			fmt.Printf("%s %d\n",
+				color.New(color.Bold).Sprint("Comments:"),
+				update.CommentCount)
+		}
 		fmt.Printf("%s %s\n",
 			color.New(color.Bold).Sprint("ID:"),
 			color.New(color.FgWhite, color.Faint).Sprint(update.ID))
 		fmt.Printf("\n%s\n", update.Body)
+		if update.DiffMarkdown != nil && *update.DiffMarkdown != "" {
+			fmt.Printf("\n%s\n%s\n",
+				color.New(color.Bold).Sprint("Changes Since Last Update:"),
+				*update.DiffMarkdown)
+		}
 		fmt.Println()
 	},
 }
@@ -231,6 +264,7 @@ Health values: onTrack, atRisk, offTrack
 Examples:
   linear-cli project status create PROJECT-ID --body "Sprint going well" --health onTrack
   linear-cli project status create PROJECT-ID --body-file status-update.md --health atRisk
+  linear-cli project status create PROJECT-ID --body "Private update" --hide-diff
   cat report.md | linear-cli project status create PROJECT-ID --body-file - --health onTrack`,
 	Args: cobra.ExactArgs(1),
 	Run: func(cmd *cobra.Command, args []string) {
@@ -273,6 +307,10 @@ Examples:
 		}
 		if health != "" {
 			input["health"] = health
+		}
+		if cmd.Flags().Changed("hide-diff") {
+			hideDiff, _ := cmd.Flags().GetBool("hide-diff")
+			input["isDiffHidden"] = hideDiff
 		}
 
 		update, err := client.CreateProjectUpdate(context.Background(), input)
@@ -320,7 +358,8 @@ Examples:
   linear-cli project status update UPDATE-ID --body "Updated status text"
   linear-cli project status update UPDATE-ID --body-file updated-status.md
   linear-cli project status update UPDATE-ID --health offTrack
-  linear-cli project status update UPDATE-ID --body "New text" --health onTrack`,
+  linear-cli project status update UPDATE-ID --body "New text" --health onTrack
+  linear-cli project status update UPDATE-ID --hide-diff`,
 	Args: cobra.ExactArgs(1),
 	Run: func(cmd *cobra.Command, args []string) {
 		plaintext := viper.GetBool("plaintext")
@@ -355,6 +394,11 @@ Examples:
 				os.Exit(1)
 			}
 			input["health"] = health
+		}
+
+		if cmd.Flags().Changed("hide-diff") {
+			hideDiff, _ := cmd.Flags().GetBool("hide-diff")
+			input["isDiffHidden"] = hideDiff
 		}
 
 		if len(input) == 0 {
@@ -461,11 +505,13 @@ func init() {
 	statusCreateCmd.Flags().StringP("body", "b", "", "Status update body text (required unless --body-file is used)")
 	statusCreateCmd.Flags().String("body-file", "", "Read body from a markdown file (use - for stdin)")
 	statusCreateCmd.Flags().String("health", "", "Project health: onTrack, atRisk, offTrack")
+	statusCreateCmd.Flags().Bool("hide-diff", false, "Hide the project diff in this update")
 
 	// update flags
 	statusUpdateCmd.Flags().StringP("body", "b", "", "New body text")
 	statusUpdateCmd.Flags().String("body-file", "", "Read body from a markdown file (use - for stdin)")
 	statusUpdateCmd.Flags().String("health", "", "New health: onTrack, atRisk, offTrack")
+	statusUpdateCmd.Flags().Bool("hide-diff", false, "Hide the project diff in this update")
 
 	// Aliases so "linear-cli project update-status" also works — handled via Aliases on projectStatusCmd
 }
