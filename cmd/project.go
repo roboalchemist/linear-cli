@@ -147,6 +147,15 @@ var projectListCmd = &cobra.Command{
 				fmt.Printf("- **ID**: %s\n", project.ID)
 				fmt.Printf("- **State**: %s\n", project.State)
 				fmt.Printf("- **Progress**: %.0f%%\n", project.Progress*100)
+				if project.Health != "" {
+					fmt.Printf("- **Health**: %s\n", project.Health)
+				}
+				if project.Priority > 0 {
+					fmt.Printf("- **Priority**: %s\n", project.PriorityLabel)
+				}
+				if project.Scope > 0 {
+					fmt.Printf("- **Scope**: %.0f\n", project.Scope)
+				}
 				if project.Lead != nil {
 					fmt.Printf("- **Lead**: %s\n", project.Lead.Name)
 				} else {
@@ -170,6 +179,12 @@ var projectListCmd = &cobra.Command{
 				}
 				fmt.Printf("- **Created**: %s\n", project.CreatedAt.Format("2006-01-02"))
 				fmt.Printf("- **Updated**: %s\n", project.UpdatedAt.Format("2006-01-02"))
+				if project.CompletedAt != nil {
+					fmt.Printf("- **Completed**: %s\n", project.CompletedAt.Format("2006-01-02"))
+				}
+				if project.CanceledAt != nil {
+					fmt.Printf("- **Canceled**: %s\n", project.CanceledAt.Format("2006-01-02"))
+				}
 				fmt.Printf("- **URL**: %s\n", constructProjectURL(project.ID, project.URL))
 				if project.Description != "" {
 					fmt.Printf("- **Description**: %s\n", project.Description)
@@ -180,7 +195,7 @@ var projectListCmd = &cobra.Command{
 			return
 		} else {
 			// Table output
-			headers := []string{"Name", "State", "Lead", "Teams", "Created", "Updated", "URL"}
+			headers := []string{"Name", "State", "Health", "Progress", "Lead", "Teams", "URL"}
 			rows := [][]string{}
 
 			for _, project := range projects.Nodes {
@@ -213,13 +228,31 @@ var projectListCmd = &cobra.Command{
 					stateColor = color.New(color.FgRed)
 				}
 
+				// Format health with color
+				health := project.Health
+				healthColor := color.New(color.FgWhite)
+				switch project.Health {
+				case "onTrack":
+					healthColor = color.New(color.FgGreen)
+					health = "On Track"
+				case "atRisk":
+					healthColor = color.New(color.FgYellow)
+					health = "At Risk"
+				case "offTrack":
+					healthColor = color.New(color.FgRed)
+					health = "Off Track"
+				}
+
+				// Format progress
+				progressStr := fmt.Sprintf("%.0f%%", project.Progress*100)
+
 				rows = append(rows, []string{
 					truncateString(project.Name, 25),
 					stateColor.Sprint(project.State),
+					healthColor.Sprint(health),
+					progressStr,
 					lead,
 					teams,
-					project.CreatedAt.Format("2006-01-02"),
-					project.UpdatedAt.Format("2006-01-02"),
 					constructProjectURL(project.ID, project.URL),
 				})
 			}
@@ -286,21 +319,41 @@ var projectGetCmd = &cobra.Command{
 			fmt.Printf("- **State**: %s\n", project.State)
 			fmt.Printf("- **Progress**: %.0f%%\n", project.Progress*100)
 			fmt.Printf("- **Health**: %s\n", project.Health)
-			fmt.Printf("- **Scope**: %d\n", project.Scope)
+			if project.HealthUpdatedAt != nil {
+				fmt.Printf("- **Health Updated**: %s\n", project.HealthUpdatedAt.Format("2006-01-02 15:04:05"))
+			}
+			fmt.Printf("- **Scope**: %.0f\n", project.Scope)
+			if project.Priority > 0 {
+				fmt.Printf("- **Priority**: %s (%d)\n", project.PriorityLabel, project.Priority)
+			}
 			if project.Icon != nil && *project.Icon != "" {
 				fmt.Printf("- **Icon**: %s\n", *project.Icon)
 			}
 			fmt.Printf("- **Color**: %s\n", project.Color)
+			if project.Trashed {
+				fmt.Printf("- **Trashed**: yes\n")
+			}
 
 			fmt.Printf("\n## Timeline\n")
 			if project.StartDate != nil {
-				fmt.Printf("- **Start Date**: %s\n", *project.StartDate)
+				dateStr := *project.StartDate
+				if project.StartDateResolution != "" {
+					dateStr += fmt.Sprintf(" (%s)", project.StartDateResolution)
+				}
+				fmt.Printf("- **Start Date**: %s\n", dateStr)
 			}
 			if project.TargetDate != nil {
-				fmt.Printf("- **Target Date**: %s\n", *project.TargetDate)
+				dateStr := *project.TargetDate
+				if project.TargetDateResolution != "" {
+					dateStr += fmt.Sprintf(" (%s)", project.TargetDateResolution)
+				}
+				fmt.Printf("- **Target Date**: %s\n", dateStr)
 			}
 			fmt.Printf("- **Created**: %s\n", project.CreatedAt.Format("2006-01-02 15:04:05"))
 			fmt.Printf("- **Updated**: %s\n", project.UpdatedAt.Format("2006-01-02 15:04:05"))
+			if project.StartedAt != nil {
+				fmt.Printf("- **Started**: %s\n", project.StartedAt.Format("2006-01-02 15:04:05"))
+			}
 			if project.CompletedAt != nil {
 				fmt.Printf("- **Completed**: %s\n", project.CompletedAt.Format("2006-01-02 15:04:05"))
 			}
@@ -309,6 +362,9 @@ var projectGetCmd = &cobra.Command{
 			}
 			if project.ArchivedAt != nil {
 				fmt.Printf("- **Archived**: %s\n", project.ArchivedAt.Format("2006-01-02 15:04:05"))
+			}
+			if project.AutoArchivedAt != nil {
+				fmt.Printf("- **Auto-Archived**: %s\n", project.AutoArchivedAt.Format("2006-01-02 15:04:05"))
 			}
 
 			fmt.Printf("\n## People\n")
@@ -911,6 +967,130 @@ Examples:
 			input["targetDate"] = d
 		}
 
+		// Handle icon
+		if cmd.Flags().Changed("icon") {
+			icon, _ := cmd.Flags().GetString("icon")
+			input["icon"] = icon
+		}
+
+		// Handle color
+		if cmd.Flags().Changed("color") {
+			c, _ := cmd.Flags().GetString("color")
+			input["color"] = c
+		}
+
+		// Handle priority
+		if cmd.Flags().Changed("priority") {
+			priority, _ := cmd.Flags().GetInt("priority")
+			input["priority"] = priority
+		}
+
+		// Handle content (rich markdown)
+		if cmd.Flags().Changed("content") {
+			content, _ := cmd.Flags().GetString("content")
+			input["content"] = content
+		}
+
+		// Handle lead
+		if cmd.Flags().Changed("lead") {
+			lead, _ := cmd.Flags().GetString("lead")
+			switch strings.ToLower(lead) {
+			case "me":
+				viewer, err := client.GetViewer(context.Background())
+				if err != nil {
+					output.Error(fmt.Sprintf("Failed to get current user: %v", err), plaintext, jsonOut)
+					os.Exit(1)
+				}
+				input["leadId"] = viewer.ID
+			case "":
+				// Don't set leadId
+			default:
+				users, err := client.GetUsers(context.Background(), 100, "", "")
+				if err != nil {
+					output.Error(fmt.Sprintf("Failed to get users: %v", err), plaintext, jsonOut)
+					os.Exit(1)
+				}
+				var foundUser *api.User
+				for _, user := range users.Nodes {
+					if user.ID == lead || user.Email == lead || user.Name == lead {
+						foundUser = &user
+						break
+					}
+				}
+				if foundUser == nil {
+					output.Error(fmt.Sprintf("User not found: %s", lead), plaintext, jsonOut)
+					os.Exit(1)
+				}
+				input["leadId"] = foundUser.ID
+			}
+		}
+
+		// Handle members
+		if cmd.Flags().Changed("members") {
+			membersArg, _ := cmd.Flags().GetStringSlice("members")
+			if len(membersArg) > 0 {
+				users, err := client.GetUsers(context.Background(), 100, "", "")
+				if err != nil {
+					output.Error(fmt.Sprintf("Failed to get users: %v", err), plaintext, jsonOut)
+					os.Exit(1)
+				}
+				var memberIDs []string
+				for _, member := range membersArg {
+					memberLower := strings.ToLower(member)
+					if memberLower == "me" {
+						viewer, err := client.GetViewer(context.Background())
+						if err != nil {
+							output.Error(fmt.Sprintf("Failed to get current user: %v", err), plaintext, jsonOut)
+							os.Exit(1)
+						}
+						memberIDs = append(memberIDs, viewer.ID)
+						continue
+					}
+					var foundUser *api.User
+					for _, user := range users.Nodes {
+						if strings.EqualFold(user.Email, member) || strings.EqualFold(user.Name, member) {
+							foundUser = &user
+							break
+						}
+					}
+					if foundUser == nil {
+						output.Error(fmt.Sprintf("User not found: %s", member), plaintext, jsonOut)
+						os.Exit(1)
+					}
+					memberIDs = append(memberIDs, foundUser.ID)
+				}
+				input["memberIds"] = memberIDs
+			}
+		}
+
+		// Handle template
+		if cmd.Flags().Changed("template-id") {
+			templateID, _ := cmd.Flags().GetString("template-id")
+			input["templateId"] = templateID
+		}
+
+		// Handle use-default-template
+		if cmd.Flags().Changed("use-default-template") {
+			useDefault, _ := cmd.Flags().GetBool("use-default-template")
+			input["useDefaultTemplate"] = useDefault
+		}
+
+		// Handle converted-from-issue
+		if cmd.Flags().Changed("converted-from-issue") {
+			issueID, _ := cmd.Flags().GetString("converted-from-issue")
+			input["convertedFromIssueId"] = issueID
+		}
+
+		// Handle date resolution
+		if cmd.Flags().Changed("start-date-resolution") {
+			res, _ := cmd.Flags().GetString("start-date-resolution")
+			input["startDateResolution"] = res
+		}
+		if cmd.Flags().Changed("target-date-resolution") {
+			res, _ := cmd.Flags().GetString("target-date-resolution")
+			input["targetDateResolution"] = res
+		}
+
 		project, err := client.CreateProject(context.Background(), input)
 		if err != nil {
 			output.Error(fmt.Sprintf("Failed to create project: %v", err), plaintext, jsonOut)
@@ -1090,6 +1270,100 @@ Examples:
 					memberIDs = append(memberIDs, foundUser.ID)
 				}
 				input["memberIds"] = memberIDs
+			}
+		}
+
+		// Handle Slack integration flags
+		if cmd.Flags().Changed("slack-new-issue") {
+			v, _ := cmd.Flags().GetBool("slack-new-issue")
+			input["slackNewIssue"] = v
+		}
+		if cmd.Flags().Changed("slack-issue-comments") {
+			v, _ := cmd.Flags().GetBool("slack-issue-comments")
+			input["slackIssueComments"] = v
+		}
+		if cmd.Flags().Changed("slack-issue-statuses") {
+			v, _ := cmd.Flags().GetBool("slack-issue-statuses")
+			input["slackIssueStatuses"] = v
+		}
+
+		// Handle trashed
+		if cmd.Flags().Changed("trashed") {
+			v, _ := cmd.Flags().GetBool("trashed")
+			input["trashed"] = v
+		}
+
+		// Handle completed-at and canceled-at
+		if cmd.Flags().Changed("completed-at") {
+			v, _ := cmd.Flags().GetString("completed-at")
+			if v == "" || strings.ToLower(v) == "none" {
+				input["completedAt"] = nil
+			} else {
+				input["completedAt"] = v
+			}
+		}
+		if cmd.Flags().Changed("canceled-at") {
+			v, _ := cmd.Flags().GetString("canceled-at")
+			if v == "" || strings.ToLower(v) == "none" {
+				input["canceledAt"] = nil
+			} else {
+				input["canceledAt"] = v
+			}
+		}
+
+		// Handle converted-from-issue
+		if cmd.Flags().Changed("converted-from-issue") {
+			v, _ := cmd.Flags().GetString("converted-from-issue")
+			if v == "" || strings.ToLower(v) == "none" {
+				input["convertedFromIssueId"] = nil
+			} else {
+				input["convertedFromIssueId"] = v
+			}
+		}
+
+		// Handle last-applied-template
+		if cmd.Flags().Changed("last-applied-template") {
+			v, _ := cmd.Flags().GetString("last-applied-template")
+			if v == "" || strings.ToLower(v) == "none" {
+				input["lastAppliedTemplateId"] = nil
+			} else {
+				input["lastAppliedTemplateId"] = v
+			}
+		}
+
+		// Handle date resolution
+		if cmd.Flags().Changed("start-date-resolution") {
+			v, _ := cmd.Flags().GetString("start-date-resolution")
+			input["startDateResolution"] = v
+		}
+		if cmd.Flags().Changed("target-date-resolution") {
+			v, _ := cmd.Flags().GetString("target-date-resolution")
+			input["targetDateResolution"] = v
+		}
+
+		// Handle update reminder settings
+		if cmd.Flags().Changed("update-reminder-frequency") {
+			v, _ := cmd.Flags().GetFloat64("update-reminder-frequency")
+			input["updateReminderFrequency"] = v
+		}
+		if cmd.Flags().Changed("frequency-resolution") {
+			v, _ := cmd.Flags().GetString("frequency-resolution")
+			input["frequencyResolution"] = v
+		}
+		if cmd.Flags().Changed("update-reminders-day") {
+			v, _ := cmd.Flags().GetString("update-reminders-day")
+			input["updateRemindersDay"] = v
+		}
+		if cmd.Flags().Changed("update-reminders-hour") {
+			v, _ := cmd.Flags().GetInt("update-reminders-hour")
+			input["updateRemindersHour"] = v
+		}
+		if cmd.Flags().Changed("update-reminders-paused-until") {
+			v, _ := cmd.Flags().GetString("update-reminders-paused-until")
+			if v == "" || strings.ToLower(v) == "none" {
+				input["projectUpdateRemindersPausedUntilAt"] = nil
+			} else {
+				input["projectUpdateRemindersPausedUntilAt"] = v
 			}
 		}
 
@@ -1299,6 +1573,17 @@ func init() {
 	projectCreateCmd.Flags().String("state", "planned", "State: planned, started, paused, completed, canceled")
 	projectCreateCmd.Flags().String("start-date", "", "Start date (YYYY-MM-DD)")
 	projectCreateCmd.Flags().String("target-date", "", "Target date (YYYY-MM-DD)")
+	projectCreateCmd.Flags().String("icon", "", "Project icon (emoji)")
+	projectCreateCmd.Flags().StringP("color", "c", "", "Project color (hex, e.g., #4285F4)")
+	projectCreateCmd.Flags().Int("priority", -1, "Project priority (0=None, 1=Urgent, 2=High, 3=Medium, 4=Low)")
+	projectCreateCmd.Flags().String("content", "", "Project content (rich markdown)")
+	projectCreateCmd.Flags().StringP("lead", "L", "", "Project lead (email, name, UUID, or 'me')")
+	projectCreateCmd.Flags().StringSlice("members", nil, "Project members (emails/names, repeatable)")
+	projectCreateCmd.Flags().String("template-id", "", "Template ID to apply")
+	projectCreateCmd.Flags().Bool("use-default-template", false, "Apply default project template")
+	projectCreateCmd.Flags().String("converted-from-issue", "", "Issue ID this project was converted from")
+	projectCreateCmd.Flags().String("start-date-resolution", "", "Start date resolution (day, month, quarter, year)")
+	projectCreateCmd.Flags().String("target-date-resolution", "", "Target date resolution (day, month, quarter, year)")
 	_ = projectCreateCmd.MarkFlagRequired("name")
 
 	// Project update flags
@@ -1314,6 +1599,25 @@ func init() {
 	projectUpdateCmd.Flags().Int("priority", -1, "Project priority (0=None, 1=Urgent, 2=High, 3=Medium, 4=Low)")
 	projectUpdateCmd.Flags().String("content", "", "Project content (rich markdown)")
 	projectUpdateCmd.Flags().StringSlice("members", nil, "Project members (emails/names, repeatable, or 'none' to clear)")
+	// Slack integration flags
+	projectUpdateCmd.Flags().Bool("slack-new-issue", false, "Notify Slack on new issues")
+	projectUpdateCmd.Flags().Bool("slack-issue-comments", false, "Notify Slack on issue comments")
+	projectUpdateCmd.Flags().Bool("slack-issue-statuses", false, "Notify Slack on issue status changes")
+	// Additional update flags
+	projectUpdateCmd.Flags().Bool("trashed", false, "Mark project as trashed")
+	projectUpdateCmd.Flags().String("completed-at", "", "Completion timestamp (ISO 8601 or 'none' to unset)")
+	projectUpdateCmd.Flags().String("canceled-at", "", "Cancellation timestamp (ISO 8601 or 'none' to unset)")
+	projectUpdateCmd.Flags().String("converted-from-issue", "", "Issue ID this project was converted from (or 'none' to unset)")
+	projectUpdateCmd.Flags().String("last-applied-template", "", "Last applied template ID (or 'none' to unset)")
+	// Date resolution flags
+	projectUpdateCmd.Flags().String("start-date-resolution", "", "Start date resolution (day, month, quarter, year)")
+	projectUpdateCmd.Flags().String("target-date-resolution", "", "Target date resolution (day, month, quarter, year)")
+	// Update reminder flags
+	projectUpdateCmd.Flags().Float64("update-reminder-frequency", 0, "Reminder frequency (number of periods)")
+	projectUpdateCmd.Flags().String("frequency-resolution", "", "Frequency resolution (day, week, month)")
+	projectUpdateCmd.Flags().String("update-reminders-day", "", "Day for update reminders (Monday, Tuesday, etc.)")
+	projectUpdateCmd.Flags().Int("update-reminders-hour", -1, "Hour for update reminders (0-23)")
+	projectUpdateCmd.Flags().String("update-reminders-paused-until", "", "Pause reminders until (ISO 8601 timestamp or 'none' to resume)")
 
 	// List command flags
 	projectListCmd.Flags().StringP("team", "t", "", "Filter by team key")

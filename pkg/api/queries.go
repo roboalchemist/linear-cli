@@ -127,17 +127,27 @@ type Project struct {
 	Issues            *Issues            `json:"issues"`
 	ProjectMilestones *ProjectMilestones `json:"projectMilestones"`
 	// Additional fields
-	SlugId              string          `json:"slugId"`
-	Content             string          `json:"content"`
-	ConvertedFromIssue  *Issue          `json:"convertedFromIssue"`
-	LastAppliedTemplate *Template       `json:"lastAppliedTemplate"`
-	ProjectUpdates      *ProjectUpdates `json:"projectUpdates"`
-	Documents           *Documents      `json:"documents"`
-	Health              string          `json:"health"`
-	Scope               int             `json:"scope"`
-	SlackNewIssue       bool            `json:"slackNewIssue"`
-	SlackIssueComments  bool            `json:"slackIssueComments"`
-	SlackIssueStatuses  bool            `json:"slackIssueStatuses"`
+	SlugId               string          `json:"slugId"`
+	Content              string          `json:"content"`
+	ConvertedFromIssue   *Issue          `json:"convertedFromIssue"`
+	LastAppliedTemplate  *Template       `json:"lastAppliedTemplate"`
+	ProjectUpdates       *ProjectUpdates `json:"projectUpdates"`
+	Documents            *Documents      `json:"documents"`
+	Health               string          `json:"health"`
+	Scope                float64         `json:"scope"`
+	SlackNewIssue        bool            `json:"slackNewIssue"`
+	SlackIssueComments   bool            `json:"slackIssueComments"`
+	SlackIssueStatuses   bool            `json:"slackIssueStatuses"`
+	Priority             int             `json:"priority"`
+	PriorityLabel        string          `json:"priorityLabel"`
+	StartedAt            *time.Time      `json:"startedAt"`
+	AutoArchivedAt       *time.Time      `json:"autoArchivedAt"`
+	Trashed              bool            `json:"trashed"`
+	HealthUpdatedAt      *time.Time      `json:"healthUpdatedAt"`
+	StartDateResolution  string          `json:"startDateResolution"`
+	TargetDateResolution string          `json:"targetDateResolution"`
+	SortOrder            float64         `json:"sortOrder"`
+	PrioritySortOrder    float64         `json:"prioritySortOrder"`
 }
 
 // Paginated collections
@@ -1092,8 +1102,16 @@ func (c *Client) GetProjects(ctx context.Context, filter map[string]interface{},
 					startDate
 					targetDate
 					url
+					icon
+					color
 					createdAt
 					updatedAt
+					completedAt
+					canceledAt
+					health
+					priority
+					priorityLabel
+					scope
 					lead {
 						id
 						name
@@ -1153,9 +1171,12 @@ func (c *Client) GetProject(ctx context.Context, id string) (*Project, error) {
 				state
 				progress
 				health
+				healthUpdatedAt
 				scope
 				startDate
+				startDateResolution
 				targetDate
+				targetDateResolution
 				url
 				icon
 				color
@@ -1164,6 +1185,13 @@ func (c *Client) GetProject(ctx context.Context, id string) (*Project, error) {
 				completedAt
 				canceledAt
 				archivedAt
+				startedAt
+				autoArchivedAt
+				trashed
+				priority
+				priorityLabel
+				sortOrder
+				prioritySortOrder
 				slackNewIssue
 				slackIssueComments
 				slackIssueStatuses
@@ -1316,13 +1344,34 @@ func (c *Client) UpdateProject(ctx context.Context, id string, input map[string]
 				project {
 					id
 					name
+					description
 					state
 					progress
 					url
+					icon
+					color
+					priority
+					priorityLabel
+					health
+					scope
+					startDate
+					targetDate
+					slackNewIssue
+					slackIssueComments
+					slackIssueStatuses
+					createdAt
+					updatedAt
 					lead {
 						id
 						name
 						email
+					}
+					members {
+						nodes {
+							id
+							name
+							email
+						}
 					}
 					teams {
 						nodes {
@@ -4453,9 +4502,29 @@ func (c *Client) CreateProject(ctx context.Context, input map[string]interface{}
 					targetDate
 					url
 					slugId
+					icon
+					color
+					priority
+					priorityLabel
+					health
+					scope
+					createdAt
 					lead {
 						id
 						name
+						email
+					}
+					creator {
+						id
+						name
+						email
+					}
+					members {
+						nodes {
+							id
+							name
+							email
+						}
 					}
 					teams {
 						nodes {
