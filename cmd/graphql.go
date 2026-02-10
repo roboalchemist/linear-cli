@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
+	"strings"
 
 	"github.com/roboalchemist/linear-cli/pkg/api"
 	"github.com/roboalchemist/linear-cli/pkg/auth"
@@ -28,6 +29,11 @@ Examples:
 		plaintext := viper.GetBool("plaintext")
 		jsonOut := viper.GetBool("json")
 		query := args[0]
+
+		// Unescape shell-escaped exclamation marks.
+		// Users often type \! to prevent bash history expansion in interactive shells,
+		// but the GraphQL API expects unescaped ! in type annotations like String!
+		query = strings.ReplaceAll(query, `\!`, `!`)
 
 		// Get auth header
 		authHeader, err := auth.GetAuthHeader()
