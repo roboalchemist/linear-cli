@@ -62,12 +62,21 @@ type Issue struct {
 	Documents           *Documents        `json:"documents"`
 	Comments            *Comments         `json:"comments"`
 	SnoozedUntilAt      *time.Time        `json:"snoozedUntilAt"`
+	SnoozedBy           *User             `json:"snoozedBy"`
+	StartedAt           *time.Time        `json:"startedAt"`
 	CompletedAt         *time.Time        `json:"completedAt"`
 	CanceledAt          *time.Time        `json:"canceledAt"`
 	ArchivedAt          *time.Time        `json:"archivedAt"`
 	TriagedAt           *time.Time        `json:"triagedAt"`
 	CustomerTicketCount int               `json:"customerTicketCount"`
 	PreviousIdentifiers []string          `json:"previousIdentifiers"`
+	Trashed             *bool             `json:"trashed"`
+	// SLA fields
+	SLAStartedAt    *time.Time `json:"slaStartedAt"`
+	SLAMediumRiskAt *time.Time `json:"slaMediumRiskAt"`
+	SLAHighRiskAt   *time.Time `json:"slaHighRiskAt"`
+	SLABreachesAt   *time.Time `json:"slaBreachesAt"`
+	SLAType         *string    `json:"slaType"`
 	// Additional fields
 	Number                int              `json:"number"`
 	BoardOrder            float64          `json:"boardOrder"`
@@ -499,11 +508,25 @@ func (c *Client) GetIssues(ctx context.Context, filter map[string]interface{}, f
 					title
 					description
 					priority
+					priorityLabel
 					estimate
 					createdAt
 					updatedAt
+					startedAt
+					completedAt
+					canceledAt
+					archivedAt
+					triagedAt
+					snoozedUntilAt
 					dueDate
+					branchName
+					customerTicketCount
 					url
+					slaStartedAt
+					slaMediumRiskAt
+					slaHighRiskAt
+					slaBreachesAt
+					slaType
 					state {
 						id
 						name
@@ -511,6 +534,11 @@ func (c *Client) GetIssues(ctx context.Context, filter map[string]interface{}, f
 						color
 					}
 					assignee {
+						id
+						name
+						email
+					}
+					creator {
 						id
 						name
 						email
@@ -526,6 +554,26 @@ func (c *Client) GetIssues(ctx context.Context, filter map[string]interface{}, f
 							name
 							color
 						}
+					}
+					cycle {
+						id
+						number
+						name
+					}
+					project {
+						id
+						name
+						state
+					}
+					projectMilestone {
+						id
+						name
+						status
+					}
+					parent {
+						id
+						identifier
+						title
 					}
 				}
 				pageInfo {
@@ -572,11 +620,25 @@ func (c *Client) IssueSearch(ctx context.Context, term string, filter map[string
 					title
 					description
 					priority
+					priorityLabel
 					estimate
 					createdAt
 					updatedAt
+					startedAt
+					completedAt
+					canceledAt
+					archivedAt
+					triagedAt
+					snoozedUntilAt
 					dueDate
+					branchName
+					customerTicketCount
 					url
+					slaStartedAt
+					slaMediumRiskAt
+					slaHighRiskAt
+					slaBreachesAt
+					slaType
 					state {
 						id
 						name
@@ -584,6 +646,11 @@ func (c *Client) IssueSearch(ctx context.Context, term string, filter map[string
 						color
 					}
 					assignee {
+						id
+						name
+						email
+					}
+					creator {
 						id
 						name
 						email
@@ -599,6 +666,26 @@ func (c *Client) IssueSearch(ctx context.Context, term string, filter map[string
 							name
 							color
 						}
+					}
+					cycle {
+						id
+						number
+						name
+					}
+					project {
+						id
+						name
+						state
+					}
+					projectMilestone {
+						id
+						name
+						status
+					}
+					parent {
+						id
+						identifier
+						title
 					}
 				}
 				pageInfo {
@@ -659,17 +746,29 @@ func (c *Client) GetIssue(ctx context.Context, id string) (*Issue, error) {
 				subIssueSortOrder
 				createdAt
 				updatedAt
+				startedAt
 				dueDate
 				url
 				branchName
 				snoozedUntilAt
+				snoozedBy {
+					id
+					name
+					email
+				}
 				completedAt
 				canceledAt
 				archivedAt
 				triagedAt
+				trashed
 				customerTicketCount
 				previousIdentifiers
 				integrationSourceType
+				slaStartedAt
+				slaMediumRiskAt
+				slaHighRiskAt
+				slaBreachesAt
+				slaType
 				state {
 					id
 					name

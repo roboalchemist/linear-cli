@@ -344,6 +344,9 @@ var issueGetCmd = &cobra.Command{
 			fmt.Printf("\n## Status & Dates\n")
 			fmt.Printf("- **Created**: %s\n", issue.CreatedAt.Format("2006-01-02 15:04:05"))
 			fmt.Printf("- **Updated**: %s\n", issue.UpdatedAt.Format("2006-01-02 15:04:05"))
+			if issue.StartedAt != nil {
+				fmt.Printf("- **Started**: %s\n", issue.StartedAt.Format("2006-01-02 15:04:05"))
+			}
 			if issue.TriagedAt != nil {
 				fmt.Printf("- **Triaged**: %s\n", issue.TriagedAt.Format("2006-01-02 15:04:05"))
 			}
@@ -360,7 +363,31 @@ var issueGetCmd = &cobra.Command{
 				fmt.Printf("- **Due Date**: %s\n", *issue.DueDate)
 			}
 			if issue.SnoozedUntilAt != nil {
-				fmt.Printf("- **Snoozed Until**: %s\n", issue.SnoozedUntilAt.Format("2006-01-02 15:04:05"))
+				snoozedBy := ""
+				if issue.SnoozedBy != nil {
+					snoozedBy = fmt.Sprintf(" by %s", issue.SnoozedBy.Name)
+				}
+				fmt.Printf("- **Snoozed Until**: %s%s\n", issue.SnoozedUntilAt.Format("2006-01-02 15:04:05"), snoozedBy)
+			}
+
+			// SLA Information
+			if issue.SLAStartedAt != nil || issue.SLABreachesAt != nil || issue.SLAType != nil {
+				fmt.Printf("\n## SLA\n")
+				if issue.SLAType != nil && *issue.SLAType != "" {
+					fmt.Printf("- **Type**: %s\n", *issue.SLAType)
+				}
+				if issue.SLAStartedAt != nil {
+					fmt.Printf("- **Started**: %s\n", issue.SLAStartedAt.Format("2006-01-02 15:04:05"))
+				}
+				if issue.SLAMediumRiskAt != nil {
+					fmt.Printf("- **Medium Risk At**: %s\n", issue.SLAMediumRiskAt.Format("2006-01-02 15:04:05"))
+				}
+				if issue.SLAHighRiskAt != nil {
+					fmt.Printf("- **High Risk At**: %s\n", issue.SLAHighRiskAt.Format("2006-01-02 15:04:05"))
+				}
+				if issue.SLABreachesAt != nil {
+					fmt.Printf("- **Breaches At**: %s\n", issue.SLABreachesAt.Format("2006-01-02 15:04:05"))
+				}
 			}
 
 			fmt.Printf("\n## Technical Details\n")
@@ -1031,6 +1058,89 @@ Examples:
 			input["labelIds"] = labelIDs
 		}
 
+		// Handle cycle flag
+		if cmd.Flags().Changed("cycle") {
+			cycleVal, _ := cmd.Flags().GetString("cycle")
+			if cycleVal != "" {
+				input["cycleId"] = cycleVal
+			}
+		}
+
+		// Handle estimate flag
+		if cmd.Flags().Changed("estimate") {
+			estimate, _ := cmd.Flags().GetInt("estimate")
+			if estimate >= 0 {
+				input["estimate"] = estimate
+			}
+		}
+
+		// Handle due-date flag
+		if cmd.Flags().Changed("due-date") {
+			dueDate, _ := cmd.Flags().GetString("due-date")
+			if dueDate != "" {
+				input["dueDate"] = dueDate
+			}
+		}
+
+		// Handle state flag (initial state)
+		if cmd.Flags().Changed("state") {
+			stateName, _ := cmd.Flags().GetString("state")
+			if stateName != "" {
+				// Get available states for the team
+				states, err := client.GetTeamStates(context.Background(), teamKey)
+				if err != nil {
+					output.Error(fmt.Sprintf("Failed to get team states: %v", err), plaintext, jsonOut)
+					os.Exit(1)
+				}
+
+				var stateID string
+				for _, state := range states {
+					if strings.EqualFold(state.Name, stateName) {
+						stateID = state.ID
+						break
+					}
+				}
+
+				if stateID == "" {
+					var stateNames []string
+					for _, state := range states {
+						stateNames = append(stateNames, state.Name)
+					}
+					output.Error(fmt.Sprintf("State '%s' not found. Available states: %s", stateName, strings.Join(stateNames, ", ")), plaintext, jsonOut)
+					os.Exit(1)
+				}
+
+				input["stateId"] = stateID
+			}
+		}
+
+		// Handle subscriber flag
+		subscriberEmails, _ := cmd.Flags().GetStringSlice("subscriber")
+		if len(subscriberEmails) > 0 {
+			users, err := client.GetUsers(context.Background(), 100, "", "")
+			if err != nil {
+				output.Error(fmt.Sprintf("Failed to get users: %v", err), plaintext, jsonOut)
+				os.Exit(1)
+			}
+
+			var subscriberIDs []string
+			for _, email := range subscriberEmails {
+				var found bool
+				for _, user := range users.Nodes {
+					if user.Email == email || user.Name == email {
+						subscriberIDs = append(subscriberIDs, user.ID)
+						found = true
+						break
+					}
+				}
+				if !found {
+					output.Error(fmt.Sprintf("User '%s' not found", email), plaintext, jsonOut)
+					os.Exit(1)
+				}
+			}
+			input["subscriberIds"] = subscriberIDs
+		}
+
 		// Create issue
 		issue, err := client.CreateIssue(context.Background(), input)
 		if err != nil {
@@ -1337,6 +1447,117 @@ Examples:
 					}
 				}
 				input["removedLabelIds"] = labelIDs
+			}
+		}
+
+		// Handle snooze-until flag
+		if cmd.Flags().Changed("snooze-until") {
+			snoozeUntil, _ := cmd.Flags().GetString("snooze-until")
+			if snoozeUntil == "" {
+				input["snoozedUntilAt"] = nil
+			} else {
+				input["snoozedUntilAt"] = snoozeUntil
+			}
+		}
+
+		// Handle add-subscriber flag
+		if cmd.Flags().Changed("add-subscriber") {
+			subscriberEmails, _ := cmd.Flags().GetStringSlice("add-subscriber")
+			if len(subscriberEmails) > 0 {
+				users, err := client.GetUsers(context.Background(), 100, "", "")
+				if err != nil {
+					output.Error(fmt.Sprintf("Failed to get users: %v", err), plaintext, jsonOut)
+					os.Exit(1)
+				}
+
+				// Get current issue to find existing subscribers
+				currentIssue, err := client.GetIssue(context.Background(), args[0])
+				if err != nil {
+					output.Error(fmt.Sprintf("Failed to get issue: %v", err), plaintext, jsonOut)
+					os.Exit(1)
+				}
+
+				// Start with existing subscriber IDs
+				subscriberIDs := []string{}
+				if currentIssue.Subscribers != nil {
+					for _, sub := range currentIssue.Subscribers.Nodes {
+						subscriberIDs = append(subscriberIDs, sub.ID)
+					}
+				}
+
+				// Add new subscribers
+				for _, email := range subscriberEmails {
+					var found bool
+					for _, user := range users.Nodes {
+						if user.Email == email || user.Name == email {
+							// Check if already subscribed
+							alreadySubscribed := false
+							for _, existingID := range subscriberIDs {
+								if existingID == user.ID {
+									alreadySubscribed = true
+									break
+								}
+							}
+							if !alreadySubscribed {
+								subscriberIDs = append(subscriberIDs, user.ID)
+							}
+							found = true
+							break
+						}
+					}
+					if !found {
+						output.Error(fmt.Sprintf("User '%s' not found", email), plaintext, jsonOut)
+						os.Exit(1)
+					}
+				}
+				input["subscriberIds"] = subscriberIDs
+			}
+		}
+
+		// Handle remove-subscriber flag
+		if cmd.Flags().Changed("remove-subscriber") {
+			subscriberEmails, _ := cmd.Flags().GetStringSlice("remove-subscriber")
+			if len(subscriberEmails) > 0 {
+				users, err := client.GetUsers(context.Background(), 100, "", "")
+				if err != nil {
+					output.Error(fmt.Sprintf("Failed to get users: %v", err), plaintext, jsonOut)
+					os.Exit(1)
+				}
+
+				// Get current issue to find existing subscribers
+				currentIssue, err := client.GetIssue(context.Background(), args[0])
+				if err != nil {
+					output.Error(fmt.Sprintf("Failed to get issue: %v", err), plaintext, jsonOut)
+					os.Exit(1)
+				}
+
+				// Build list of IDs to remove
+				removeIDs := make(map[string]bool)
+				for _, email := range subscriberEmails {
+					var found bool
+					for _, user := range users.Nodes {
+						if user.Email == email || user.Name == email {
+							removeIDs[user.ID] = true
+							found = true
+							break
+						}
+					}
+					if !found {
+						output.Error(fmt.Sprintf("User '%s' not found", email), plaintext, jsonOut)
+						os.Exit(1)
+					}
+				}
+
+				// Filter out removed subscribers
+				subscriberIDs := []string{}
+				if currentIssue.Subscribers != nil {
+					for _, sub := range currentIssue.Subscribers.Nodes {
+						if !removeIDs[sub.ID] {
+							subscriberIDs = append(subscriberIDs, sub.ID)
+						}
+					}
+				}
+				input["subscriberIds"] = subscriberIDs
 			}
 		}
 
@@ -1988,6 +2209,11 @@ func init() {
 	issueCreateCmd.Flags().String("project", "", "Project ID to associate with")
 	issueCreateCmd.Flags().String("milestone", "", "Milestone ID or name (requires --project)")
 	issueCreateCmd.Flags().StringSliceP("label", "L", nil, "Label name (repeatable, case-insensitive)")
+	issueCreateCmd.Flags().String("cycle", "", "Cycle ID to assign to")
+	issueCreateCmd.Flags().IntP("estimate", "e", -1, "Estimate points")
+	issueCreateCmd.Flags().String("due-date", "", "Due date (YYYY-MM-DD format)")
+	issueCreateCmd.Flags().StringP("state", "s", "", "Initial state name")
+	issueCreateCmd.Flags().StringSlice("subscriber", nil, "Add subscriber by email (repeatable)")
 	_ = issueCreateCmd.MarkFlagRequired("title")
 	_ = issueCreateCmd.MarkFlagRequired("team")
 
@@ -2007,6 +2233,9 @@ func init() {
 	issueUpdateCmd.Flags().StringP("team", "t", "", "Move issue to different team (team key)")
 	issueUpdateCmd.Flags().StringSlice("add-label", nil, "Add labels by name (repeatable)")
 	issueUpdateCmd.Flags().StringSlice("remove-label", nil, "Remove labels by name (repeatable)")
+	issueUpdateCmd.Flags().String("snooze-until", "", "Snooze until date/time (YYYY-MM-DD or YYYY-MM-DDTHH:MM:SS, or empty to unsnooze)")
+	issueUpdateCmd.Flags().StringSlice("add-subscriber", nil, "Add subscribers by email (repeatable)")
+	issueUpdateCmd.Flags().StringSlice("remove-subscriber", nil, "Remove subscribers by email (repeatable)")
 
 	// Issue create parent flag
 	issueCreateCmd.Flags().String("parent", "", "Parent issue identifier")
