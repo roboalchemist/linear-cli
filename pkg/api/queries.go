@@ -592,23 +592,33 @@ type ProjectLink struct {
 	UpdatedAt time.Time `json:"updatedAt"`
 }
 
+// CustomViewOrganization represents minimal organization info for a custom view
+type CustomViewOrganization struct {
+	ID   string `json:"id"`
+	Name string `json:"name"`
+}
+
 // CustomView represents a Linear custom view (saved filter)
 type CustomView struct {
-	ID                string                 `json:"id"`
-	Name              string                 `json:"name"`
-	Description       *string                `json:"description"`
-	Icon              *string                `json:"icon"`
-	Color             *string                `json:"color"`
-	Shared            bool                   `json:"shared"`
-	SlugId            string                 `json:"slugId"`
-	ModelName         string                 `json:"modelName"`
-	FilterData        map[string]interface{} `json:"filterData"`
-	ProjectFilterData map[string]interface{} `json:"projectFilterData"`
-	Creator           *User                  `json:"creator"`
-	Owner             *User                  `json:"owner"`
-	Team              *Team                  `json:"team"`
-	CreatedAt         time.Time              `json:"createdAt"`
-	UpdatedAt         time.Time              `json:"updatedAt"`
+	ID                   string                  `json:"id"`
+	Name                 string                  `json:"name"`
+	Description          *string                 `json:"description"`
+	Icon                 *string                 `json:"icon"`
+	Color                *string                 `json:"color"`
+	Shared               bool                    `json:"shared"`
+	SlugId               string                  `json:"slugId"`
+	ModelName            string                  `json:"modelName"`
+	FilterData           map[string]interface{}  `json:"filterData"`
+	ProjectFilterData    map[string]interface{}  `json:"projectFilterData"`
+	InitiativeFilterData map[string]interface{}  `json:"initiativeFilterData"`
+	Creator              *User                   `json:"creator"`
+	Owner                *User                   `json:"owner"`
+	UpdatedBy            *User                   `json:"updatedBy"`
+	Team                 *Team                   `json:"team"`
+	Organization         *CustomViewOrganization `json:"organization"`
+	CreatedAt            time.Time               `json:"createdAt"`
+	UpdatedAt            time.Time               `json:"updatedAt"`
+	ArchivedAt           *time.Time              `json:"archivedAt"`
 }
 
 // CustomViews represents a paginated list of custom views
@@ -3400,6 +3410,7 @@ func (c *Client) GetCustomViews(ctx context.Context, filter map[string]interface
 					modelName
 					filterData
 					projectFilterData
+					initiativeFilterData
 					creator {
 						id
 						name
@@ -3410,13 +3421,23 @@ func (c *Client) GetCustomViews(ctx context.Context, filter map[string]interface
 						name
 						email
 					}
+					updatedBy {
+						id
+						name
+						email
+					}
 					team {
 						id
 						key
 						name
 					}
+					organization {
+						id
+						name
+					}
 					createdAt
 					updatedAt
+					archivedAt
 				}
 				pageInfo {
 					hasNextPage
@@ -3463,6 +3484,7 @@ func (c *Client) GetCustomView(ctx context.Context, id string) (*CustomView, err
 				modelName
 				filterData
 				projectFilterData
+				initiativeFilterData
 				creator {
 					id
 					name
@@ -3473,13 +3495,23 @@ func (c *Client) GetCustomView(ctx context.Context, id string) (*CustomView, err
 					name
 					email
 				}
+				updatedBy {
+					id
+					name
+					email
+				}
 				team {
 					id
 					key
 					name
 				}
+				organization {
+					id
+					name
+				}
 				createdAt
 				updatedAt
+				archivedAt
 			}
 		}
 	`
@@ -3649,6 +3681,7 @@ func (c *Client) CreateCustomView(ctx context.Context, input map[string]interfac
 					modelName
 					filterData
 					projectFilterData
+					initiativeFilterData
 					creator {
 						id
 						name
@@ -3659,13 +3692,23 @@ func (c *Client) CreateCustomView(ctx context.Context, input map[string]interfac
 						name
 						email
 					}
+					updatedBy {
+						id
+						name
+						email
+					}
 					team {
 						id
 						key
 						name
 					}
+					organization {
+						id
+						name
+					}
 					createdAt
 					updatedAt
+					archivedAt
 				}
 				success
 			}
@@ -3711,6 +3754,7 @@ func (c *Client) UpdateCustomView(ctx context.Context, id string, input map[stri
 					modelName
 					filterData
 					projectFilterData
+					initiativeFilterData
 					creator {
 						id
 						name
@@ -3721,13 +3765,23 @@ func (c *Client) UpdateCustomView(ctx context.Context, id string, input map[stri
 						name
 						email
 					}
+					updatedBy {
+						id
+						name
+						email
+					}
 					team {
 						id
 						key
 						name
 					}
+					organization {
+						id
+						name
+					}
 					createdAt
 					updatedAt
+					archivedAt
 				}
 				success
 			}

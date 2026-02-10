@@ -215,17 +215,26 @@ var viewGetCmd = &cobra.Command{
 			if view.Color != nil && *view.Color != "" {
 				fmt.Printf("- **Color**: %s\n", *view.Color)
 			}
+			if view.Organization != nil {
+				fmt.Printf("- **Organization**: %s\n", view.Organization.Name)
+			}
 			if view.Creator != nil {
 				fmt.Printf("- **Creator**: %s (%s)\n", view.Creator.Name, view.Creator.Email)
 			}
 			if view.Owner != nil {
 				fmt.Printf("- **Owner**: %s (%s)\n", view.Owner.Name, view.Owner.Email)
 			}
+			if view.UpdatedBy != nil {
+				fmt.Printf("- **Updated By**: %s (%s)\n", view.UpdatedBy.Name, view.UpdatedBy.Email)
+			}
 			if view.Team != nil {
 				fmt.Printf("- **Team**: %s (%s)\n", view.Team.Name, view.Team.Key)
 			}
 			fmt.Printf("- **Created**: %s\n", view.CreatedAt.Format("2006-01-02 15:04:05"))
 			fmt.Printf("- **Updated**: %s\n", view.UpdatedAt.Format("2006-01-02 15:04:05"))
+			if view.ArchivedAt != nil {
+				fmt.Printf("- **Archived**: %s\n", view.ArchivedAt.Format("2006-01-02 15:04:05"))
+			}
 
 			if len(view.FilterData) > 0 {
 				filterJSON, _ := json.MarshalIndent(view.FilterData, "", "  ")
@@ -234,6 +243,10 @@ var viewGetCmd = &cobra.Command{
 			if len(view.ProjectFilterData) > 0 {
 				filterJSON, _ := json.MarshalIndent(view.ProjectFilterData, "", "  ")
 				fmt.Printf("\n## Project Filter Data\n```json\n%s\n```\n", string(filterJSON))
+			}
+			if len(view.InitiativeFilterData) > 0 {
+				filterJSON, _ := json.MarshalIndent(view.InitiativeFilterData, "", "  ")
+				fmt.Printf("\n## Initiative Filter Data\n```json\n%s\n```\n", string(filterJSON))
 			}
 			return
 		}
@@ -262,11 +275,17 @@ var viewGetCmd = &cobra.Command{
 		}
 		fmt.Printf("%s %s\n", color.New(color.Bold).Sprint("Shared:"), shared)
 
+		if view.Organization != nil {
+			fmt.Printf("%s %s\n", color.New(color.Bold).Sprint("Organization:"), view.Organization.Name)
+		}
 		if view.Creator != nil {
 			fmt.Printf("%s %s\n", color.New(color.Bold).Sprint("Creator:"), view.Creator.Name)
 		}
 		if view.Owner != nil {
 			fmt.Printf("%s %s\n", color.New(color.Bold).Sprint("Owner:"), view.Owner.Name)
+		}
+		if view.UpdatedBy != nil {
+			fmt.Printf("%s %s\n", color.New(color.Bold).Sprint("Updated By:"), view.UpdatedBy.Name)
 		}
 		if view.Team != nil {
 			fmt.Printf("%s %s (%s)\n", color.New(color.Bold).Sprint("Team:"), view.Team.Name, view.Team.Key)
@@ -274,6 +293,9 @@ var viewGetCmd = &cobra.Command{
 
 		fmt.Printf("%s %s\n", color.New(color.Bold).Sprint("Created:"), view.CreatedAt.Format("2006-01-02 15:04:05"))
 		fmt.Printf("%s %s\n", color.New(color.Bold).Sprint("Updated:"), view.UpdatedAt.Format("2006-01-02 15:04:05"))
+		if view.ArchivedAt != nil {
+			fmt.Printf("%s %s\n", color.New(color.Bold).Sprint("Archived:"), view.ArchivedAt.Format("2006-01-02 15:04:05"))
+		}
 
 		if len(view.FilterData) > 0 {
 			filterJSON, _ := json.MarshalIndent(view.FilterData, "", "  ")
@@ -282,6 +304,10 @@ var viewGetCmd = &cobra.Command{
 		if len(view.ProjectFilterData) > 0 {
 			filterJSON, _ := json.MarshalIndent(view.ProjectFilterData, "", "  ")
 			fmt.Printf("\n%s\n%s\n", color.New(color.Bold).Sprint("Project Filter Data:"), string(filterJSON))
+		}
+		if len(view.InitiativeFilterData) > 0 {
+			filterJSON, _ := json.MarshalIndent(view.InitiativeFilterData, "", "  ")
+			fmt.Printf("\n%s\n%s\n", color.New(color.Bold).Sprint("Initiative Filter Data:"), string(filterJSON))
 		}
 
 		fmt.Println()
@@ -457,13 +483,15 @@ var viewCreateCmd = &cobra.Command{
 	Short:   "Create a new custom view",
 	Long: `Create a new custom view with a name and optional filter configuration.
 
-The --filter-json flag accepts raw JSON matching Linear's IssueFilter or ProjectFilter schema.
+The --filter-json flag accepts raw JSON matching Linear's IssueFilter, ProjectFilter, or InitiativeFilter schema.
 
 Examples:
   linear-cli view create --name "My Bugs" --model issue
   linear-cli view create --name "Active Projects" --model project --shared
   linear-cli view create --name "Urgent Issues" --filter-json '{"priority":{"eq":1}}'
-  linear-cli view create --name "Team Bugs" --team ENG --filter-json '{"state":{"type":{"eq":"started"}}}'`,
+  linear-cli view create --name "Team Bugs" --team ENG --filter-json '{"state":{"type":{"eq":"started"}}}'
+  linear-cli view create --name "My View" --icon "🎯" --color "#FF5733"
+  linear-cli view create --name "Team View" --owner me --team ENG`,
 	Run: func(cmd *cobra.Command, args []string) {
 		plaintext := viper.GetBool("plaintext")
 		jsonOut := viper.GetBool("json")
@@ -482,6 +510,11 @@ Examples:
 		teamKey, _ := cmd.Flags().GetString("team")
 		shared, _ := cmd.Flags().GetBool("shared")
 		filterJSON, _ := cmd.Flags().GetString("filter-json")
+		icon, _ := cmd.Flags().GetString("icon")
+		colorVal, _ := cmd.Flags().GetString("color")
+		ownerFlag, _ := cmd.Flags().GetString("owner")
+		projectID, _ := cmd.Flags().GetString("project-id")
+		initiativeID, _ := cmd.Flags().GetString("initiative-id")
 
 		if name == "" {
 			output.Error("Name is required (--name)", plaintext, jsonOut)
@@ -497,6 +530,14 @@ Examples:
 			input["description"] = description
 		}
 
+		if icon != "" {
+			input["icon"] = icon
+		}
+
+		if colorVal != "" {
+			input["color"] = colorVal
+		}
+
 		if teamKey != "" {
 			team, err := client.GetTeam(context.Background(), teamKey)
 			if err != nil {
@@ -506,15 +547,44 @@ Examples:
 			input["teamId"] = team.ID
 		}
 
+		if ownerFlag != "" {
+			if ownerFlag == "me" {
+				viewer, err := client.GetViewer(context.Background())
+				if err != nil {
+					output.Error(fmt.Sprintf("Failed to get current user: %v", err), plaintext, jsonOut)
+					os.Exit(1)
+				}
+				input["ownerId"] = viewer.ID
+			} else {
+				user, err := client.GetUser(context.Background(), ownerFlag)
+				if err != nil {
+					output.Error(fmt.Sprintf("Failed to find user '%s': %v", ownerFlag, err), plaintext, jsonOut)
+					os.Exit(1)
+				}
+				input["ownerId"] = user.ID
+			}
+		}
+
+		if projectID != "" {
+			input["projectId"] = projectID
+		}
+
+		if initiativeID != "" {
+			input["initiativeId"] = initiativeID
+		}
+
 		if filterJSON != "" {
 			var filterData map[string]interface{}
 			if err := json.Unmarshal([]byte(filterJSON), &filterData); err != nil {
 				output.Error(fmt.Sprintf("Invalid filter JSON: %v", err), plaintext, jsonOut)
 				os.Exit(1)
 			}
-			if modelName == "project" {
+			switch modelName {
+			case "project":
 				input["projectFilterData"] = filterData
-			} else {
+			case "initiative":
+				input["initiativeFilterData"] = filterData
+			default:
 				input["filterData"] = filterData
 			}
 		}
@@ -547,7 +617,9 @@ var viewUpdateCmd = &cobra.Command{
 Examples:
   linear-cli view update VIEW-ID --name "Renamed View"
   linear-cli view update VIEW-ID --shared
-  linear-cli view update VIEW-ID --filter-json '{"priority":{"eq":1}}'`,
+  linear-cli view update VIEW-ID --filter-json '{"priority":{"eq":1}}'
+  linear-cli view update VIEW-ID --icon "🎯" --color "#FF5733"
+  linear-cli view update VIEW-ID --owner me --team ENG`,
 	Args: cobra.ExactArgs(1),
 	Run: func(cmd *cobra.Command, args []string) {
 		plaintext := viper.GetBool("plaintext")
@@ -578,6 +650,55 @@ Examples:
 			input["shared"] = shared
 		}
 
+		if cmd.Flags().Changed("icon") {
+			icon, _ := cmd.Flags().GetString("icon")
+			input["icon"] = icon
+		}
+
+		if cmd.Flags().Changed("color") {
+			colorVal, _ := cmd.Flags().GetString("color")
+			input["color"] = colorVal
+		}
+
+		if cmd.Flags().Changed("team") {
+			teamKey, _ := cmd.Flags().GetString("team")
+			team, err := client.GetTeam(context.Background(), teamKey)
+			if err != nil {
+				output.Error(fmt.Sprintf("Failed to find team '%s': %v", teamKey, err), plaintext, jsonOut)
+				os.Exit(1)
+			}
+			input["teamId"] = team.ID
+		}
+
+		if cmd.Flags().Changed("owner") {
+			ownerFlag, _ := cmd.Flags().GetString("owner")
+			if ownerFlag == "me" {
+				viewer, err := client.GetViewer(context.Background())
+				if err != nil {
+					output.Error(fmt.Sprintf("Failed to get current user: %v", err), plaintext, jsonOut)
+					os.Exit(1)
+				}
+				input["ownerId"] = viewer.ID
+			} else {
+				user, err := client.GetUser(context.Background(), ownerFlag)
+				if err != nil {
+					output.Error(fmt.Sprintf("Failed to find user '%s': %v", ownerFlag, err), plaintext, jsonOut)
+					os.Exit(1)
+				}
+				input["ownerId"] = user.ID
+			}
+		}
+
+		if cmd.Flags().Changed("project-id") {
+			projectID, _ := cmd.Flags().GetString("project-id")
+			input["projectId"] = projectID
+		}
+
+		if cmd.Flags().Changed("initiative-id") {
+			initiativeID, _ := cmd.Flags().GetString("initiative-id")
+			input["initiativeId"] = initiativeID
+		}
+
 		if cmd.Flags().Changed("filter-json") {
 			filterJSON, _ := cmd.Flags().GetString("filter-json")
 			var filterData map[string]interface{}
@@ -592,9 +713,12 @@ Examples:
 				output.Error(fmt.Sprintf("Failed to fetch view: %v", err), plaintext, jsonOut)
 				os.Exit(1)
 			}
-			if strings.ToLower(view.ModelName) == "project" {
+			switch strings.ToLower(view.ModelName) {
+			case "project":
 				input["projectFilterData"] = filterData
-			} else {
+			case "initiative":
+				input["initiativeFilterData"] = filterData
+			default:
 				input["filterData"] = filterData
 			}
 		}
@@ -689,10 +813,15 @@ func init() {
 	// Create flags
 	viewCreateCmd.Flags().String("name", "", "View name (required)")
 	viewCreateCmd.Flags().StringP("description", "d", "", "View description")
-	viewCreateCmd.Flags().StringP("model", "m", "issue", "Model type: issue (default), project")
+	viewCreateCmd.Flags().StringP("model", "m", "issue", "Model type: issue (default), project, initiative")
 	viewCreateCmd.Flags().StringP("team", "t", "", "Team key")
 	viewCreateCmd.Flags().Bool("shared", false, "Make the view shared")
-	viewCreateCmd.Flags().String("filter-json", "", "Raw JSON filter (IssueFilter or ProjectFilter schema)")
+	viewCreateCmd.Flags().String("filter-json", "", "Raw JSON filter (IssueFilter, ProjectFilter, or InitiativeFilter schema)")
+	viewCreateCmd.Flags().String("icon", "", "View icon (emoji)")
+	viewCreateCmd.Flags().String("color", "", "View color (hex code)")
+	viewCreateCmd.Flags().String("owner", "", "Owner email or 'me'")
+	viewCreateCmd.Flags().String("project-id", "", "Associated project ID")
+	viewCreateCmd.Flags().String("initiative-id", "", "Associated initiative ID")
 	_ = viewCreateCmd.MarkFlagRequired("name")
 
 	// Update flags
@@ -700,4 +829,10 @@ func init() {
 	viewUpdateCmd.Flags().StringP("description", "d", "", "New description")
 	viewUpdateCmd.Flags().Bool("shared", false, "Set shared status")
 	viewUpdateCmd.Flags().String("filter-json", "", "New raw JSON filter")
+	viewUpdateCmd.Flags().String("icon", "", "View icon (emoji)")
+	viewUpdateCmd.Flags().String("color", "", "View color (hex code)")
+	viewUpdateCmd.Flags().String("owner", "", "New owner email or 'me'")
+	viewUpdateCmd.Flags().StringP("team", "t", "", "Team key")
+	viewUpdateCmd.Flags().String("project-id", "", "Associated project ID")
+	viewUpdateCmd.Flags().String("initiative-id", "", "Associated initiative ID")
 }
