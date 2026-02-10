@@ -102,7 +102,7 @@ fi
 echo -e "\n${YELLOW}Testing project commands...${NC}"
 run_test "project list" "go run main.go project list"
 run_test "project list (plaintext)" "go run main.go project list -p" "# Projects"
-run_test "project list (json)" "go run main.go project list -j" "\"id\""
+run_test "project list (json)" "go run main.go project list -j --newer-than all_time" "\"id\""
 # Note: project list doesn't support team filter in the API
 # run_test "project list (with team filter)" "go run main.go project list --team $team_key" 
 run_test "project list (state filter)" "go run main.go project list --state started"
