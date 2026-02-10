@@ -75,6 +75,7 @@ var milestoneListCmd = &cobra.Command{
 				if ms.TargetDate != nil {
 					fmt.Printf("- **Target Date**: %s\n", *ms.TargetDate)
 				}
+				fmt.Printf("- **Sort Order**: %.2f\n", ms.SortOrder)
 				if ms.Description != nil && *ms.Description != "" {
 					fmt.Printf("- **Description**: %s\n", *ms.Description)
 				}
@@ -85,7 +86,7 @@ var milestoneListCmd = &cobra.Command{
 		}
 
 		// Table output
-		headers := []string{"Name", "Status", "Progress", "Target Date", "ID"}
+		headers := []string{"Name", "Status", "Progress", "Target Date", "Sort", "ID"}
 		rows := [][]string{}
 
 		for _, ms := range milestones.Nodes {
@@ -101,6 +102,7 @@ var milestoneListCmd = &cobra.Command{
 				statusColor.Sprint(ms.Status),
 				fmt.Sprintf("%.0f%%", ms.Progress*100),
 				targetDate,
+				fmt.Sprintf("%.2f", ms.SortOrder),
 				ms.ID,
 			})
 		}
@@ -319,6 +321,11 @@ Examples:
 			input["targetDate"] = targetDate
 		}
 
+		if cmd.Flags().Changed("sort-order") {
+			sortOrder, _ := cmd.Flags().GetFloat64("sort-order")
+			input["sortOrder"] = sortOrder
+		}
+
 		ms, err := client.CreateProjectMilestone(context.Background(), input)
 		if err != nil {
 			output.Error(fmt.Sprintf("Failed to create milestone: %v", err), plaintext, jsonOut)
@@ -390,6 +397,11 @@ Examples:
 			} else {
 				input["targetDate"] = targetDate
 			}
+		}
+
+		if cmd.Flags().Changed("sort-order") {
+			sortOrder, _ := cmd.Flags().GetFloat64("sort-order")
+			input["sortOrder"] = sortOrder
 		}
 
 		if len(input) == 0 {
@@ -488,6 +500,7 @@ func init() {
 	milestoneCreateCmd.Flags().StringP("description", "d", "", "Milestone description")
 	milestoneCreateCmd.Flags().String("description-file", "", "Read description from a markdown file (use - for stdin)")
 	milestoneCreateCmd.Flags().String("target-date", "", "Target date (YYYY-MM-DD)")
+	milestoneCreateCmd.Flags().Float64("sort-order", 0, "Sort order (float, controls position in list)")
 	_ = milestoneCreateCmd.MarkFlagRequired("name")
 
 	// Update flags
@@ -495,4 +508,5 @@ func init() {
 	milestoneUpdateCmd.Flags().StringP("description", "d", "", "New description")
 	milestoneUpdateCmd.Flags().String("description-file", "", "Read description from a markdown file (use - for stdin)")
 	milestoneUpdateCmd.Flags().String("target-date", "", "New target date (YYYY-MM-DD, or empty to remove)")
+	milestoneUpdateCmd.Flags().Float64("sort-order", 0, "New sort order (float, controls position in list)")
 }
