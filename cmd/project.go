@@ -987,7 +987,7 @@ Examples:
 
 				var foundUser *api.User
 				for _, user := range users.Nodes {
-					if user.Email == lead || user.Name == lead {
+					if user.ID == lead || user.Email == lead || user.Name == lead {
 						foundUser = &user
 						break
 					}
@@ -1285,7 +1285,7 @@ func init() {
 	projectUpdateCmd.Flags().String("state", "", "New state: planned, started, paused, completed, canceled")
 	projectUpdateCmd.Flags().String("start-date", "", "New start date (YYYY-MM-DD)")
 	projectUpdateCmd.Flags().String("target-date", "", "New target date (YYYY-MM-DD)")
-	projectUpdateCmd.Flags().StringP("lead", "L", "", "Project lead (email, name, 'me', or 'none' to unset)")
+	projectUpdateCmd.Flags().StringP("lead", "L", "", "Project lead (email, name, UUID, 'me', or 'none' to unset)")
 	projectUpdateCmd.Flags().String("icon", "", "Project icon (emoji or empty to remove)")
 	projectUpdateCmd.Flags().StringP("color", "c", "", "Project color (hex, e.g., #4285F4)")
 	projectUpdateCmd.Flags().Int("priority", -1, "Project priority (0=None, 1=Urgent, 2=High, 3=Medium, 4=Low)")
