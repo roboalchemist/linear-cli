@@ -486,6 +486,38 @@ Examples:
 			icon, _ := cmd.Flags().GetString("icon")
 			input["icon"] = icon
 		}
+		if cmd.Flags().Changed("owner") {
+			owner, _ := cmd.Flags().GetString("owner")
+			switch strings.ToLower(owner) {
+			case "me":
+				viewer, err := client.GetViewer(context.Background())
+				if err != nil {
+					output.Error(fmt.Sprintf("Failed to get current user: %v", err), plaintext, jsonOut)
+					os.Exit(1)
+				}
+				input["ownerId"] = viewer.ID
+			case "none", "unassigned", "":
+				input["ownerId"] = nil
+			default:
+				users, err := client.GetUsers(context.Background(), 100, "", "")
+				if err != nil {
+					output.Error(fmt.Sprintf("Failed to get users: %v", err), plaintext, jsonOut)
+					os.Exit(1)
+				}
+				var foundUser *api.User
+				for _, user := range users.Nodes {
+					if strings.EqualFold(user.Email, owner) || strings.EqualFold(user.Name, owner) {
+						foundUser = &user
+						break
+					}
+				}
+				if foundUser == nil {
+					output.Error(fmt.Sprintf("User not found: %s", owner), plaintext, jsonOut)
+					os.Exit(1)
+				}
+				input["ownerId"] = foundUser.ID
+			}
+		}
 
 		if len(input) == 0 {
 			output.Error("No updates specified. Use flags to specify what to update.", plaintext, jsonOut)
@@ -889,4 +921,5 @@ func init() {
 	initiativeUpdateCmd.Flags().String("target-date", "", "New target date (YYYY-MM-DD, or empty to remove)")
 	initiativeUpdateCmd.Flags().String("color", "", "New color (hex)")
 	initiativeUpdateCmd.Flags().String("icon", "", "New icon")
+	initiativeUpdateCmd.Flags().StringP("owner", "o", "", "Initiative owner (email, name, 'me', or 'none' to unset)")
 }

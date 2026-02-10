@@ -1217,6 +1217,105 @@ Examples:
 			}
 		}
 
+		// Handle estimate update
+		if cmd.Flags().Changed("estimate") {
+			estimate, _ := cmd.Flags().GetInt("estimate")
+			if estimate < 0 {
+				input["estimate"] = nil
+			} else {
+				input["estimate"] = estimate
+			}
+		}
+
+		// Handle project update
+		if cmd.Flags().Changed("project") {
+			projectVal, _ := cmd.Flags().GetString("project")
+			if projectVal == "" || strings.EqualFold(projectVal, "none") {
+				input["projectId"] = nil
+			} else {
+				input["projectId"] = projectVal
+			}
+		}
+
+		// Handle cycle update
+		if cmd.Flags().Changed("cycle") {
+			cycleVal, _ := cmd.Flags().GetString("cycle")
+			if cycleVal == "" || strings.EqualFold(cycleVal, "none") {
+				input["cycleId"] = nil
+			} else {
+				input["cycleId"] = cycleVal
+			}
+		}
+
+		// Handle team update (move issue to different team)
+		if cmd.Flags().Changed("team") {
+			teamKey, _ := cmd.Flags().GetString("team")
+			team, err := client.GetTeam(context.Background(), teamKey)
+			if err != nil {
+				output.Error(fmt.Sprintf("Failed to find team '%s': %v", teamKey, err), plaintext, jsonOut)
+				os.Exit(1)
+			}
+			input["teamId"] = team.ID
+		}
+
+		// Handle adding labels
+		if cmd.Flags().Changed("add-label") {
+			labelNames, _ := cmd.Flags().GetStringSlice("add-label")
+			if len(labelNames) > 0 {
+				allLabels, err := client.GetLabels(context.Background(), nil, 250, "")
+				if err != nil {
+					output.Error(fmt.Sprintf("Failed to fetch labels: %v", err), plaintext, jsonOut)
+					os.Exit(1)
+				}
+
+				var labelIDs []string
+				for _, name := range labelNames {
+					var found bool
+					for _, label := range allLabels.Nodes {
+						if strings.EqualFold(label.Name, name) {
+							labelIDs = append(labelIDs, label.ID)
+							found = true
+							break
+						}
+					}
+					if !found {
+						output.Error(fmt.Sprintf("Label '%s' not found", name), plaintext, jsonOut)
+						os.Exit(1)
+					}
+				}
+				input["addedLabelIds"] = labelIDs
+			}
+		}
+
+		// Handle removing labels
+		if cmd.Flags().Changed("remove-label") {
+			labelNames, _ := cmd.Flags().GetStringSlice("remove-label")
+			if len(labelNames) > 0 {
+				allLabels, err := client.GetLabels(context.Background(), nil, 250, "")
+				if err != nil {
+					output.Error(fmt.Sprintf("Failed to fetch labels: %v", err), plaintext, jsonOut)
+					os.Exit(1)
+				}
+
+				var labelIDs []string
+				for _, name := range labelNames {
+					var found bool
+					for _, label := range allLabels.Nodes {
+						if strings.EqualFold(label.Name, name) {
+							labelIDs = append(labelIDs, label.ID)
+							found = true
+							break
+						}
+					}
+					if !found {
+						output.Error(fmt.Sprintf("Label '%s' not found", name), plaintext, jsonOut)
+						os.Exit(1)
+					}
+				}
+				input["removedLabelIds"] = labelIDs
+			}
+		}
+
 		// Check if any updates were specified
 		if len(input) == 0 {
 			output.Error("No updates specified. Use flags to specify what to update.", plaintext, jsonOut)
@@ -1876,6 +1975,12 @@ func init() {
 	issueUpdateCmd.Flags().String("due-date", "", "Due date (YYYY-MM-DD format, or empty to remove)")
 	issueUpdateCmd.Flags().String("milestone", "", "Milestone ID or name (or 'none' to unset)")
 	issueUpdateCmd.Flags().String("parent", "", "Parent issue identifier (or 'none' to unset)")
+	issueUpdateCmd.Flags().IntP("estimate", "e", -1, "Estimate points (or -1 to remove)")
+	issueUpdateCmd.Flags().String("project", "", "Project ID (or 'none' to remove from project)")
+	issueUpdateCmd.Flags().String("cycle", "", "Cycle ID (or 'none' to remove from cycle)")
+	issueUpdateCmd.Flags().StringP("team", "t", "", "Move issue to different team (team key)")
+	issueUpdateCmd.Flags().StringSlice("add-label", nil, "Add labels by name (repeatable)")
+	issueUpdateCmd.Flags().StringSlice("remove-label", nil, "Remove labels by name (repeatable)")
 
 	// Issue create parent flag
 	issueCreateCmd.Flags().String("parent", "", "Parent issue identifier")

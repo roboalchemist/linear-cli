@@ -1002,6 +1002,76 @@ Examples:
 			}
 		}
 
+		// Handle icon update
+		if cmd.Flags().Changed("icon") {
+			icon, _ := cmd.Flags().GetString("icon")
+			if icon == "" {
+				input["icon"] = nil
+			} else {
+				input["icon"] = icon
+			}
+		}
+
+		// Handle color update
+		if cmd.Flags().Changed("color") {
+			c, _ := cmd.Flags().GetString("color")
+			input["color"] = c
+		}
+
+		// Handle priority update
+		if cmd.Flags().Changed("priority") {
+			priority, _ := cmd.Flags().GetInt("priority")
+			input["priority"] = priority
+		}
+
+		// Handle content update (rich markdown content)
+		if cmd.Flags().Changed("content") {
+			content, _ := cmd.Flags().GetString("content")
+			input["content"] = content
+		}
+
+		// Handle members update
+		if cmd.Flags().Changed("members") {
+			membersArg, _ := cmd.Flags().GetStringSlice("members")
+			if len(membersArg) == 1 && strings.ToLower(membersArg[0]) == "none" {
+				input["memberIds"] = []string{}
+			} else {
+				// Resolve member emails/names to IDs
+				users, err := client.GetUsers(context.Background(), 100, "", "")
+				if err != nil {
+					output.Error(fmt.Sprintf("Failed to get users: %v", err), plaintext, jsonOut)
+					os.Exit(1)
+				}
+
+				var memberIDs []string
+				for _, member := range membersArg {
+					var foundUser *api.User
+					memberLower := strings.ToLower(member)
+					if memberLower == "me" {
+						viewer, err := client.GetViewer(context.Background())
+						if err != nil {
+							output.Error(fmt.Sprintf("Failed to get current user: %v", err), plaintext, jsonOut)
+							os.Exit(1)
+						}
+						memberIDs = append(memberIDs, viewer.ID)
+						continue
+					}
+					for _, user := range users.Nodes {
+						if strings.EqualFold(user.Email, member) || strings.EqualFold(user.Name, member) {
+							foundUser = &user
+							break
+						}
+					}
+					if foundUser == nil {
+						output.Error(fmt.Sprintf("User not found: %s", member), plaintext, jsonOut)
+						os.Exit(1)
+					}
+					memberIDs = append(memberIDs, foundUser.ID)
+				}
+				input["memberIds"] = memberIDs
+			}
+		}
+
 		if len(input) == 0 {
 			output.Error("No fields to update.", plaintext, jsonOut)
 			os.Exit(1)
@@ -1215,7 +1285,12 @@ func init() {
 	projectUpdateCmd.Flags().String("state", "", "New state: planned, started, paused, completed, canceled")
 	projectUpdateCmd.Flags().String("start-date", "", "New start date (YYYY-MM-DD)")
 	projectUpdateCmd.Flags().String("target-date", "", "New target date (YYYY-MM-DD)")
-	projectUpdateCmd.Flags().StringP("lead", "l", "", "Project lead (email, name, 'me', or 'none' to unset)")
+	projectUpdateCmd.Flags().StringP("lead", "L", "", "Project lead (email, name, 'me', or 'none' to unset)")
+	projectUpdateCmd.Flags().String("icon", "", "Project icon (emoji or empty to remove)")
+	projectUpdateCmd.Flags().StringP("color", "c", "", "Project color (hex, e.g., #4285F4)")
+	projectUpdateCmd.Flags().Int("priority", -1, "Project priority (0=None, 1=Urgent, 2=High, 3=Medium, 4=Low)")
+	projectUpdateCmd.Flags().String("content", "", "Project content (rich markdown)")
+	projectUpdateCmd.Flags().StringSlice("members", nil, "Project members (emails/names, repeatable, or 'none' to clear)")
 
 	// List command flags
 	projectListCmd.Flags().StringP("team", "t", "", "Filter by team key")
