@@ -72,7 +72,7 @@ var labelListCmd = &cobra.Command{
 
 		if plaintext {
 			fmt.Println("# Labels")
-			fmt.Println("Name\tColor\tDescription\tParent")
+			fmt.Println("Name\tColor\tGroup\tDescription\tParent\tTeam")
 			for _, l := range labels.Nodes {
 				desc := ""
 				if l.Description != nil {
@@ -82,10 +82,18 @@ var labelListCmd = &cobra.Command{
 				if l.Parent != nil {
 					parent = l.Parent.Name
 				}
-				fmt.Printf("%s\t%s\t%s\t%s\n", l.Name, l.Color, desc, parent)
+				team := ""
+				if l.Team != nil {
+					team = l.Team.Key
+				}
+				isGroup := ""
+				if l.IsGroup {
+					isGroup = "yes"
+				}
+				fmt.Printf("%s\t%s\t%s\t%s\t%s\t%s\n", l.Name, l.Color, isGroup, desc, parent, team)
 			}
 		} else {
-			headers := []string{"Name", "Color", "Description", "Parent"}
+			headers := []string{"Name", "Color", "Group", "Description", "Parent", "Team"}
 			rows := [][]string{}
 
 			for _, l := range labels.Nodes {
@@ -97,12 +105,22 @@ var labelListCmd = &cobra.Command{
 				if l.Parent != nil {
 					parent = l.Parent.Name
 				}
+				team := ""
+				if l.Team != nil {
+					team = l.Team.Key
+				}
+				isGroup := ""
+				if l.IsGroup {
+					isGroup = "✓"
+				}
 
 				rows = append(rows, []string{
 					color.New(color.FgWhite, color.Bold).Sprint(l.Name),
 					l.Color,
+					isGroup,
 					desc,
 					parent,
+					team,
 				})
 			}
 
@@ -138,6 +156,9 @@ var labelCreateCmd = &cobra.Command{
 		name, _ := cmd.Flags().GetString("name")
 		labelColor, _ := cmd.Flags().GetString("color")
 		teamID, _ := cmd.Flags().GetString("team-id")
+		description, _ := cmd.Flags().GetString("description")
+		parentID, _ := cmd.Flags().GetString("parent-id")
+		isGroup, _ := cmd.Flags().GetBool("is-group")
 
 		input := map[string]interface{}{
 			"name": name,
@@ -147,6 +168,15 @@ var labelCreateCmd = &cobra.Command{
 		}
 		if teamID != "" {
 			input["teamId"] = teamID
+		}
+		if description != "" {
+			input["description"] = description
+		}
+		if parentID != "" {
+			input["parentId"] = parentID
+		}
+		if cmd.Flags().Changed("is-group") {
+			input["isGroup"] = isGroup
 		}
 
 		label, err := client.CreateLabel(context.Background(), input)
@@ -197,8 +227,16 @@ var labelUpdateCmd = &cobra.Command{
 			d, _ := cmd.Flags().GetString("description")
 			input["description"] = d
 		}
+		if cmd.Flags().Changed("parent-id") {
+			parentID, _ := cmd.Flags().GetString("parent-id")
+			input["parentId"] = parentID
+		}
+		if cmd.Flags().Changed("is-group") {
+			isGroup, _ := cmd.Flags().GetBool("is-group")
+			input["isGroup"] = isGroup
+		}
 		if len(input) == 0 {
-			output.Error("No fields to update. Use --name, --color, or --description.", plaintext, jsonOut)
+			output.Error("No fields to update. Use --name, --color, --description, --parent-id, or --is-group.", plaintext, jsonOut)
 			os.Exit(1)
 		}
 
@@ -259,11 +297,16 @@ func init() {
 	// Create flags
 	labelCreateCmd.Flags().StringP("name", "n", "", "Label name (required)")
 	labelCreateCmd.Flags().StringP("color", "c", "", "Label color (hex, e.g., #e11d48)")
+	labelCreateCmd.Flags().StringP("description", "d", "", "Label description")
 	labelCreateCmd.Flags().String("team-id", "", "Team ID to scope the label to")
+	labelCreateCmd.Flags().String("parent-id", "", "Parent label ID (for nested labels)")
+	labelCreateCmd.Flags().Bool("is-group", false, "Whether this is a group label (container for child labels)")
 	_ = labelCreateCmd.MarkFlagRequired("name")
 
 	// Update flags
 	labelUpdateCmd.Flags().StringP("name", "n", "", "New label name")
 	labelUpdateCmd.Flags().StringP("color", "c", "", "New label color (hex)")
 	labelUpdateCmd.Flags().StringP("description", "d", "", "New label description")
+	labelUpdateCmd.Flags().String("parent-id", "", "New parent label ID (for nested labels)")
+	labelUpdateCmd.Flags().Bool("is-group", false, "Whether this is a group label")
 }

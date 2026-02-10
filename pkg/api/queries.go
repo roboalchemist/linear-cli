@@ -227,11 +227,22 @@ type Labels struct {
 }
 
 type Label struct {
-	ID          string  `json:"id"`
-	Name        string  `json:"name"`
-	Color       string  `json:"color"`
-	Description *string `json:"description"`
-	Parent      *Label  `json:"parent"`
+	ID            string     `json:"id"`
+	Name          string     `json:"name"`
+	Color         string     `json:"color"`
+	Description   *string    `json:"description"`
+	IsGroup       bool       `json:"isGroup"`
+	Parent        *Label     `json:"parent"`
+	Children      *Labels    `json:"children"`
+	Team          *Team      `json:"team"`
+	Creator       *User      `json:"creator"`
+	InheritedFrom *Label     `json:"inheritedFrom"`
+	CreatedAt     time.Time  `json:"createdAt"`
+	UpdatedAt     time.Time  `json:"updatedAt"`
+	ArchivedAt    *time.Time `json:"archivedAt"`
+	LastAppliedAt *time.Time `json:"lastAppliedAt"`
+	RetiredAt     *time.Time `json:"retiredAt"`
+	RetiredBy     *User      `json:"retiredBy"`
 }
 
 // Cycle represents a Linear cycle (sprint)
@@ -4385,7 +4396,37 @@ func (c *Client) GetLabels(ctx context.Context, filter map[string]interface{}, f
 					name
 					description
 					color
+					isGroup
+					createdAt
+					updatedAt
+					archivedAt
+					lastAppliedAt
+					retiredAt
 					parent {
+						id
+						name
+					}
+					children {
+						nodes {
+							id
+							name
+							color
+						}
+					}
+					team {
+						id
+						key
+						name
+					}
+					creator {
+						id
+						name
+					}
+					inheritedFrom {
+						id
+						name
+					}
+					retiredBy {
 						id
 						name
 					}
@@ -4430,6 +4471,18 @@ func (c *Client) CreateLabel(ctx context.Context, input map[string]interface{}) 
 					name
 					description
 					color
+					isGroup
+					createdAt
+					updatedAt
+					parent {
+						id
+						name
+					}
+					team {
+						id
+						key
+						name
+					}
 				}
 				success
 			}
@@ -4787,6 +4840,18 @@ func (c *Client) UpdateLabel(ctx context.Context, id string, input map[string]in
 					name
 					description
 					color
+					isGroup
+					createdAt
+					updatedAt
+					parent {
+						id
+						name
+					}
+					team {
+						id
+						key
+						name
+					}
 				}
 				success
 			}
