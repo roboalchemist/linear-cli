@@ -79,21 +79,21 @@ var cycleListCmd = &cobra.Command{
 
 		if plaintext {
 			fmt.Println("# Cycles")
-			fmt.Println("Number\tName\tTeam\tStarts\tEnds\tProgress")
+			fmt.Println("Number\tName\tTeam\tStarts\tEnds\tProgress\tStatus")
 			for _, c := range cycles.Nodes {
 				teamName := ""
 				if c.Team != nil {
 					teamName = c.Team.Key
 				}
-				fmt.Printf("%d\t%s\t%s\t%s\t%s\t%.0f%%\n",
+				status := getCycleStatus(c)
+				fmt.Printf("%d\t%s\t%s\t%s\t%s\t%.0f%%\t%s\n",
 					c.Number, c.Name, teamName,
 					formatDateShort(c.StartsAt), formatDateShort(c.EndsAt),
-					c.Progress*100)
+					c.Progress*100, status)
 			}
 		} else {
-			headers := []string{"#", "Name", "Team", "Starts", "Ends", "Progress"}
+			headers := []string{"#", "Name", "Team", "Starts", "Ends", "Progress", "Status"}
 			rows := [][]string{}
-			now := time.Now()
 
 			for _, c := range cycles.Nodes {
 				teamName := ""
@@ -103,16 +103,24 @@ var cycleListCmd = &cobra.Command{
 
 				progressStr := fmt.Sprintf("%.0f%%", c.Progress*100)
 
-				// Determine if active
-				startsAt, _ := time.Parse(time.RFC3339, c.StartsAt)
-				endsAt, _ := time.Parse(time.RFC3339, c.EndsAt)
+				// Use API-provided status flags
 				nameStr := c.Name
-				if now.After(startsAt) && now.Before(endsAt) {
-					nameStr = color.New(color.FgGreen, color.Bold).Sprint(c.Name + " (active)")
-				} else if now.Before(startsAt) {
-					nameStr = color.New(color.FgCyan).Sprint(c.Name + " (upcoming)")
-				} else {
+				status := getCycleStatus(c)
+				if c.IsActive {
+					nameStr = color.New(color.FgGreen, color.Bold).Sprint(c.Name)
+					status = color.New(color.FgGreen).Sprint("active")
+				} else if c.IsNext {
+					nameStr = color.New(color.FgCyan).Sprint(c.Name)
+					status = color.New(color.FgCyan).Sprint("next")
+				} else if c.IsFuture {
+					nameStr = color.New(color.FgCyan).Sprint(c.Name)
+					status = color.New(color.FgCyan).Sprint("upcoming")
+				} else if c.IsPrevious {
 					nameStr = color.New(color.FgWhite, color.Faint).Sprint(c.Name)
+					status = color.New(color.FgWhite, color.Faint).Sprint("previous")
+				} else if c.IsPast {
+					nameStr = color.New(color.FgWhite, color.Faint).Sprint(c.Name)
+					status = color.New(color.FgWhite, color.Faint).Sprint("past")
 				}
 
 				rows = append(rows, []string{
@@ -122,6 +130,7 @@ var cycleListCmd = &cobra.Command{
 					formatDateShort(c.StartsAt),
 					formatDateShort(c.EndsAt),
 					progressStr,
+					status,
 				})
 			}
 
@@ -165,13 +174,25 @@ var cycleGetCmd = &cobra.Command{
 
 		if plaintext {
 			fmt.Printf("# Cycle %d: %s\n", cycle.Number, cycle.Name)
-			if cycle.Description != nil {
+			if cycle.Description != nil && *cycle.Description != "" {
 				fmt.Printf("Description: %s\n", *cycle.Description)
 			}
 			fmt.Printf("Team: %s\n", cycle.Team.Key)
+			fmt.Printf("Status: %s\n", getCycleStatus(*cycle))
 			fmt.Printf("Starts: %s\n", formatDateShort(cycle.StartsAt))
 			fmt.Printf("Ends: %s\n", formatDateShort(cycle.EndsAt))
 			fmt.Printf("Progress: %.0f%%\n", cycle.Progress*100)
+			if cycle.CompletedAt != nil {
+				fmt.Printf("Completed: %s\n", cycle.CompletedAt.Format("2006-01-02"))
+			}
+			fmt.Printf("Created: %s\n", cycle.CreatedAt.Format("2006-01-02"))
+			fmt.Printf("Updated: %s\n", cycle.UpdatedAt.Format("2006-01-02"))
+			if cycle.ArchivedAt != nil {
+				fmt.Printf("Archived: %s\n", cycle.ArchivedAt.Format("2006-01-02"))
+			}
+			if len(cycle.ScopeHistory) > 0 {
+				fmt.Printf("Scope History: %v\n", cycle.ScopeHistory)
+			}
 			if cycle.Issues != nil {
 				fmt.Println("\nIssues:")
 				for _, issue := range cycle.Issues.Nodes {
@@ -195,10 +216,30 @@ var cycleGetCmd = &cobra.Command{
 				color.New(color.FgCyan, color.Bold).Sprint("🔄"),
 				cycle.Number,
 				color.New(color.FgWhite, color.Bold).Sprint(cycle.Name))
+			if cycle.Description != nil && *cycle.Description != "" {
+				fmt.Printf("   %s\n", *cycle.Description)
+			}
 			fmt.Printf("   Team: %s\n", color.New(color.FgCyan).Sprint(teamKey))
+			status := getCycleStatus(*cycle)
+			if cycle.IsActive {
+				fmt.Printf("   Status: %s\n", color.New(color.FgGreen, color.Bold).Sprint(status))
+			} else if cycle.IsFuture || cycle.IsNext {
+				fmt.Printf("   Status: %s\n", color.New(color.FgCyan).Sprint(status))
+			} else {
+				fmt.Printf("   Status: %s\n", color.New(color.FgWhite, color.Faint).Sprint(status))
+			}
 			fmt.Printf("   Period: %s → %s\n", formatDateShort(cycle.StartsAt), formatDateShort(cycle.EndsAt))
 			fmt.Printf("   Progress: %s\n",
 				color.New(color.FgGreen).Sprintf("%.0f%%", cycle.Progress*100))
+			if cycle.CompletedAt != nil {
+				fmt.Printf("   Completed: %s\n", cycle.CompletedAt.Format("2006-01-02"))
+			}
+			fmt.Printf("   Created: %s | Updated: %s\n",
+				cycle.CreatedAt.Format("2006-01-02"),
+				cycle.UpdatedAt.Format("2006-01-02"))
+			if cycle.ArchivedAt != nil {
+				fmt.Printf("   Archived: %s\n", cycle.ArchivedAt.Format("2006-01-02"))
+			}
 
 			if cycle.Issues != nil && len(cycle.Issues.Nodes) > 0 {
 				fmt.Printf("\n   %s Issues:\n\n", color.New(color.FgCyan, color.Bold).Sprint("📋"))
@@ -242,6 +283,26 @@ func formatDateShort(dateStr string) string {
 	return t.Format("2006-01-02")
 }
 
+// getCycleStatus returns a human-readable status for a cycle
+func getCycleStatus(c api.Cycle) string {
+	if c.IsActive {
+		return "active"
+	}
+	if c.IsNext {
+		return "next"
+	}
+	if c.IsFuture {
+		return "upcoming"
+	}
+	if c.IsPrevious {
+		return "previous"
+	}
+	if c.IsPast {
+		return "past"
+	}
+	return ""
+}
+
 var cycleCreateCmd = &cobra.Command{
 	Use:     "create",
 	Aliases: []string{"new"},
@@ -264,8 +325,10 @@ Examples:
 
 		teamID, _ := cmd.Flags().GetString("team-id")
 		name, _ := cmd.Flags().GetString("name")
+		description, _ := cmd.Flags().GetString("description")
 		starts, _ := cmd.Flags().GetString("starts")
 		ends, _ := cmd.Flags().GetString("ends")
+		completedAt, _ := cmd.Flags().GetString("completed-at")
 
 		input := map[string]interface{}{
 			"teamId":   teamID,
@@ -274,6 +337,12 @@ Examples:
 		}
 		if name != "" {
 			input["name"] = name
+		}
+		if description != "" {
+			input["description"] = description
+		}
+		if completedAt != "" {
+			input["completedAt"] = completedAt + "T00:00:00.000Z"
 		}
 
 		cycle, err := client.CreateCycle(context.Background(), input)
@@ -330,8 +399,16 @@ Examples:
 			d, _ := cmd.Flags().GetString("ends")
 			input["endsAt"] = d + "T00:00:00.000Z"
 		}
+		if cmd.Flags().Changed("completed-at") {
+			d, _ := cmd.Flags().GetString("completed-at")
+			if d == "" || d == "none" {
+				input["completedAt"] = nil
+			} else {
+				input["completedAt"] = d + "T00:00:00.000Z"
+			}
+		}
 		if len(input) == 0 {
-			output.Error("No fields to update. Use --name, --description, --starts, or --ends.", plaintext, jsonOut)
+			output.Error("No fields to update. Use --name, --description, --starts, --ends, or --completed-at.", plaintext, jsonOut)
 			os.Exit(1)
 		}
 
@@ -389,6 +466,7 @@ func init() {
 	cycleUpdateCmd.Flags().String("description", "", "New description")
 	cycleUpdateCmd.Flags().String("starts", "", "New start date YYYY-MM-DD")
 	cycleUpdateCmd.Flags().String("ends", "", "New end date YYYY-MM-DD")
+	cycleUpdateCmd.Flags().String("completed-at", "", "Completion date YYYY-MM-DD (or 'none' to clear)")
 
 	// List flags
 	cycleListCmd.Flags().IntP("limit", "l", 25, "Maximum number of cycles to return")
@@ -398,8 +476,10 @@ func init() {
 	// Create flags
 	cycleCreateCmd.Flags().String("team-id", "", "Team ID (required)")
 	cycleCreateCmd.Flags().String("name", "", "Cycle name")
+	cycleCreateCmd.Flags().StringP("description", "d", "", "Cycle description")
 	cycleCreateCmd.Flags().String("starts", "", "Start date YYYY-MM-DD (required)")
 	cycleCreateCmd.Flags().String("ends", "", "End date YYYY-MM-DD (required)")
+	cycleCreateCmd.Flags().String("completed-at", "", "Completion date YYYY-MM-DD (for completed cycles)")
 	_ = cycleCreateCmd.MarkFlagRequired("team-id")
 	_ = cycleCreateCmd.MarkFlagRequired("starts")
 	_ = cycleCreateCmd.MarkFlagRequired("ends")

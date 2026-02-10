@@ -236,17 +236,30 @@ type Label struct {
 
 // Cycle represents a Linear cycle (sprint)
 type Cycle struct {
-	ID              string     `json:"id"`
-	Number          int        `json:"number"`
-	Name            string     `json:"name"`
-	Description     *string    `json:"description"`
-	StartsAt        string     `json:"startsAt"`
-	EndsAt          string     `json:"endsAt"`
-	Progress        float64    `json:"progress"`
-	CompletedAt     *time.Time `json:"completedAt"`
-	ScopeHistory    []float64  `json:"scopeHistory"`
-	Team            *Team      `json:"team"`
-	Issues          *Issues    `json:"issues"`
+	ID                          string     `json:"id"`
+	Number                      int        `json:"number"`
+	Name                        string     `json:"name"`
+	Description                 *string    `json:"description"`
+	StartsAt                    string     `json:"startsAt"`
+	EndsAt                      string     `json:"endsAt"`
+	Progress                    float64    `json:"progress"`
+	CompletedAt                 *time.Time `json:"completedAt"`
+	CreatedAt                   time.Time  `json:"createdAt"`
+	UpdatedAt                   time.Time  `json:"updatedAt"`
+	ArchivedAt                  *time.Time `json:"archivedAt"`
+	AutoArchivedAt              *time.Time `json:"autoArchivedAt"`
+	IsActive                    bool       `json:"isActive"`
+	IsFuture                    bool       `json:"isFuture"`
+	IsPast                      bool       `json:"isPast"`
+	IsNext                      bool       `json:"isNext"`
+	IsPrevious                  bool       `json:"isPrevious"`
+	ScopeHistory                []float64  `json:"scopeHistory"`
+	CompletedScopeHistory       []float64  `json:"completedScopeHistory"`
+	InProgressScopeHistory      []float64  `json:"inProgressScopeHistory"`
+	IssueCountHistory           []float64  `json:"issueCountHistory"`
+	CompletedIssueCountHistory  []float64  `json:"completedIssueCountHistory"`
+	Team                        *Team      `json:"team"`
+	Issues                      *Issues    `json:"issues"`
 }
 
 type Cycles struct {
@@ -4096,6 +4109,20 @@ func (c *Client) GetCycles(ctx context.Context, filter map[string]interface{}, f
 					endsAt
 					progress
 					completedAt
+					createdAt
+					updatedAt
+					archivedAt
+					autoArchivedAt
+					isActive
+					isFuture
+					isPast
+					isNext
+					isPrevious
+					scopeHistory
+					completedScopeHistory
+					inProgressScopeHistory
+					issueCountHistory
+					completedIssueCountHistory
 					team {
 						id
 						key
@@ -4145,6 +4172,20 @@ func (c *Client) GetCycle(ctx context.Context, id string) (*Cycle, error) {
 				endsAt
 				progress
 				completedAt
+				createdAt
+				updatedAt
+				archivedAt
+				autoArchivedAt
+				isActive
+				isFuture
+				isPast
+				isNext
+				isPrevious
+				scopeHistory
+				completedScopeHistory
+				inProgressScopeHistory
+				issueCountHistory
+				completedIssueCountHistory
 				team {
 					id
 					key
@@ -4202,6 +4243,14 @@ func (c *Client) CreateCycle(ctx context.Context, input map[string]interface{}) 
 					startsAt
 					endsAt
 					progress
+					completedAt
+					createdAt
+					updatedAt
+					isActive
+					isFuture
+					isPast
+					isNext
+					isPrevious
 					team {
 						id
 						key
@@ -4892,6 +4941,14 @@ func (c *Client) UpdateCycle(ctx context.Context, id string, input map[string]in
 					startsAt
 					endsAt
 					progress
+					completedAt
+					createdAt
+					updatedAt
+					isActive
+					isFuture
+					isPast
+					isNext
+					isPrevious
 					team {
 						id
 						key
