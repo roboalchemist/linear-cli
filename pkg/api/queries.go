@@ -1797,14 +1797,25 @@ func (c *Client) GetTeam(ctx context.Context, key string) (*Team, error) {
 
 // Comment represents a Linear comment
 type Comment struct {
-	ID        string     `json:"id"`
-	Body      string     `json:"body"`
-	CreatedAt time.Time  `json:"createdAt"`
-	UpdatedAt time.Time  `json:"updatedAt"`
-	EditedAt  *time.Time `json:"editedAt"`
-	User      *User      `json:"user"`
-	Parent    *Comment   `json:"parent"`
-	Children  *Comments  `json:"children"`
+	ID                 string                 `json:"id"`
+	Body               string                 `json:"body"`
+	CreatedAt          time.Time              `json:"createdAt"`
+	UpdatedAt          time.Time              `json:"updatedAt"`
+	EditedAt           *time.Time             `json:"editedAt"`
+	ArchivedAt         *time.Time             `json:"archivedAt"`
+	User               *User                  `json:"user"`
+	ExternalUser       *ExternalUser          `json:"externalUser"`
+	BotActor           *ActorBot              `json:"botActor"`
+	Parent             *Comment               `json:"parent"`
+	ParentID           *string                `json:"parentId"`
+	Children           *Comments              `json:"children"`
+	URL                string                 `json:"url"`
+	ResolvedAt         *time.Time             `json:"resolvedAt"`
+	ResolvingUser      *User                  `json:"resolvingUser"`
+	ResolvingCommentID *string                `json:"resolvingCommentId"`
+	QuotedText         *string                `json:"quotedText"`
+	ReactionData       interface{}            `json:"reactionData"`
+	IssueID            *string                `json:"issueId"`
 }
 
 // Comments represents a paginated list of comments
@@ -2012,7 +2023,32 @@ func (c *Client) GetIssueComments(ctx context.Context, issueID string, first int
 						body
 						createdAt
 						updatedAt
+						editedAt
+						archivedAt
+						url
+						parentId
+						quotedText
+						resolvedAt
+						resolvingCommentId
+						reactionData
 						user {
+							id
+							name
+							email
+						}
+						externalUser {
+							id
+							name
+							email
+						}
+						botActor {
+							id
+							type
+							subType
+							name
+							userDisplayName
+						}
+						resolvingUser {
 							id
 							name
 							email
@@ -2052,8 +2088,15 @@ func (c *Client) GetIssueComments(ctx context.Context, issueID string, first int
 	return &response.Issue.Comments, nil
 }
 
+// CommentCreateOptions contains optional parameters for creating a comment
+type CommentCreateOptions struct {
+	ParentID           string // ID of parent comment (for replies)
+	QuotedText         string // Text being quoted/referenced
+	DoNotSubscribe     bool   // Don't subscribe the author to the issue
+}
+
 // CreateComment creates a new comment on an issue
-func (c *Client) CreateComment(ctx context.Context, issueID string, body string) (*Comment, error) {
+func (c *Client) CreateComment(ctx context.Context, issueID string, body string, opts *CommentCreateOptions) (*Comment, error) {
 	query := `
 		mutation CreateComment($input: CommentCreateInput!) {
 			commentCreate(input: $input) {
@@ -2062,7 +2105,31 @@ func (c *Client) CreateComment(ctx context.Context, issueID string, body string)
 					body
 					createdAt
 					updatedAt
+					editedAt
+					url
+					parentId
+					quotedText
+					resolvedAt
+					resolvingCommentId
+					reactionData
 					user {
+						id
+						name
+						email
+					}
+					externalUser {
+						id
+						name
+						email
+					}
+					botActor {
+						id
+						type
+						subType
+						name
+						userDisplayName
+					}
+					resolvingUser {
 						id
 						name
 						email
@@ -2075,6 +2142,18 @@ func (c *Client) CreateComment(ctx context.Context, issueID string, body string)
 	input := map[string]interface{}{
 		"issueId": issueID,
 		"body":    body,
+	}
+
+	if opts != nil {
+		if opts.ParentID != "" {
+			input["parentId"] = opts.ParentID
+		}
+		if opts.QuotedText != "" {
+			input["quotedText"] = opts.QuotedText
+		}
+		if opts.DoNotSubscribe {
+			input["doNotSubscribeToIssue"] = true
+		}
 	}
 
 	variables := map[string]interface{}{
@@ -4865,8 +4944,16 @@ func (c *Client) GetProjectIssues(ctx context.Context, projectID string, first i
 	return &response.Project.Issues, nil
 }
 
+// CommentUpdateOptions contains optional parameters for updating a comment
+type CommentUpdateOptions struct {
+	Body               *string // New body (nil means no change)
+	QuotedText         *string // Text being quoted/referenced (nil means no change)
+	ResolvingUserID    *string // User ID to mark as resolver (use empty string to unresolve)
+	DoNotSubscribe     bool    // Don't subscribe the user to the issue
+}
+
 // UpdateComment updates an existing comment
-func (c *Client) UpdateComment(ctx context.Context, commentID string, body string) (*Comment, error) {
+func (c *Client) UpdateComment(ctx context.Context, commentID string, opts *CommentUpdateOptions) (*Comment, error) {
 	query := `
 		mutation UpdateComment($id: String!, $input: CommentUpdateInput!) {
 			commentUpdate(id: $id, input: $input) {
@@ -4876,7 +4963,30 @@ func (c *Client) UpdateComment(ctx context.Context, commentID string, body strin
 					createdAt
 					updatedAt
 					editedAt
+					url
+					parentId
+					quotedText
+					resolvedAt
+					resolvingCommentId
+					reactionData
 					user {
+						id
+						name
+						email
+					}
+					externalUser {
+						id
+						name
+						email
+					}
+					botActor {
+						id
+						type
+						subType
+						name
+						userDisplayName
+					}
+					resolvingUser {
 						id
 						name
 						email
@@ -4886,9 +4996,32 @@ func (c *Client) UpdateComment(ctx context.Context, commentID string, body strin
 			}
 		}
 	`
+	input := make(map[string]interface{})
+
+	if opts != nil {
+		if opts.Body != nil {
+			input["body"] = *opts.Body
+		}
+		if opts.QuotedText != nil {
+			input["quotedText"] = *opts.QuotedText
+		}
+		if opts.ResolvingUserID != nil {
+			if *opts.ResolvingUserID == "" {
+				// Empty string means unresolve (set to null)
+				input["resolvingUserId"] = nil
+			} else {
+				// Set the resolving user ID
+				input["resolvingUserId"] = *opts.ResolvingUserID
+			}
+		}
+		if opts.DoNotSubscribe {
+			input["doNotSubscribeToIssue"] = true
+		}
+	}
+
 	variables := map[string]interface{}{
 		"id":    commentID,
-		"input": map[string]interface{}{"body": body},
+		"input": input,
 	}
 	var response struct {
 		CommentUpdate struct {
