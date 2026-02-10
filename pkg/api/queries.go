@@ -2,7 +2,6 @@ package api
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"time"
 )
@@ -302,48 +301,21 @@ type Release struct {
 
 // Attachment represents a file attachment or link
 type Attachment struct {
-	ID        string                 `json:"id"`
-	Title     string                 `json:"title"`
-	Subtitle  *string                `json:"subtitle"`
-	URL       string                 `json:"url"`
-	Metadata  map[string]interface{} `json:"metadata"`
-	CreatedAt time.Time              `json:"createdAt"`
-	Creator   *User                  `json:"creator"`
-
-	// Use a map to capture any extra fields Linear might return
-	Extra map[string]interface{} `json:"-"`
+	ID                  string                 `json:"id"`
+	Title               string                 `json:"title"`
+	Subtitle            *string                `json:"subtitle"`
+	URL                 string                 `json:"url"`
+	Metadata            map[string]interface{} `json:"metadata"`
+	Source              map[string]interface{} `json:"source"`
+	SourceType          *string                `json:"sourceType"`
+	GroupBySource       bool                   `json:"groupBySource"`
+	CreatedAt           time.Time              `json:"createdAt"`
+	UpdatedAt           time.Time              `json:"updatedAt"`
+	ArchivedAt          *time.Time             `json:"archivedAt"`
+	Creator             *User                  `json:"creator"`
+	ExternalUserCreator *ExternalUser          `json:"externalUserCreator"`
 }
 
-// UnmarshalJSON implements custom unmarshaling to handle unexpected fields from Linear API
-func (a *Attachment) UnmarshalJSON(data []byte) error {
-	// Create an alias to avoid infinite recursion
-	type Alias Attachment
-	aux := &struct {
-		*Alias
-		// Capture extra fields that might come from Linear
-		Source     interface{} `json:"source,omitempty"`
-		SourceType interface{} `json:"sourceType,omitempty"`
-	}{
-		Alias: (*Alias)(a),
-	}
-
-	if err := json.Unmarshal(data, &aux); err != nil {
-		return err
-	}
-
-	// Store unexpected fields in Extra map if needed
-	if aux.Source != nil || aux.SourceType != nil {
-		a.Extra = make(map[string]interface{})
-		if aux.Source != nil {
-			a.Extra["source"] = aux.Source
-		}
-		if aux.SourceType != nil {
-			a.Extra["sourceType"] = aux.SourceType
-		}
-	}
-
-	return nil
-}
 
 // Attachments represents a paginated list of attachments
 type Attachments struct {
@@ -4172,8 +4144,18 @@ func (c *Client) GetIssueAttachments(ctx context.Context, issueID string, first 
 						subtitle
 						url
 						metadata
+						source
+						sourceType
+						groupBySource
 						createdAt
+						updatedAt
+						archivedAt
 						creator {
+							id
+							name
+							email
+						}
+						externalUserCreator {
 							id
 							name
 							email
@@ -4217,8 +4199,18 @@ func (c *Client) CreateAttachment(ctx context.Context, input map[string]interfac
 					subtitle
 					url
 					metadata
+					source
+					sourceType
+					groupBySource
 					createdAt
+					updatedAt
+					archivedAt
 					creator {
+						id
+						name
+						email
+					}
+					externalUserCreator {
 						id
 						name
 						email
@@ -4263,8 +4255,18 @@ func (c *Client) LinkURL(ctx context.Context, issueID string, url string, title 
 					subtitle
 					url
 					metadata
+					source
+					sourceType
+					groupBySource
 					createdAt
+					updatedAt
+					archivedAt
 					creator {
+						id
+						name
+						email
+					}
+					externalUserCreator {
 						id
 						name
 						email
@@ -4313,8 +4315,18 @@ func (c *Client) UpdateAttachment(ctx context.Context, id string, input map[stri
 					subtitle
 					url
 					metadata
+					source
+					sourceType
+					groupBySource
 					createdAt
+					updatedAt
+					archivedAt
 					creator {
+						id
+						name
+						email
+					}
+					externalUserCreator {
 						id
 						name
 						email
@@ -4413,8 +4425,19 @@ func (c *Client) GetIssueActivity(ctx context.Context, issueID string, historyFi
 						subtitle
 						url
 						metadata
+						source
+						sourceType
+						groupBySource
 						createdAt
+						updatedAt
+						archivedAt
 						creator {
+							id
+							name
+							email
+						}
+						externalUserCreator {
+							id
 							name
 							email
 						}

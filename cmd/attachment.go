@@ -2,13 +2,14 @@ package cmd
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"os"
 
+	"github.com/fatih/color"
 	"github.com/roboalchemist/linear-cli/pkg/api"
 	"github.com/roboalchemist/linear-cli/pkg/auth"
 	"github.com/roboalchemist/linear-cli/pkg/output"
-	"github.com/fatih/color"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 )
@@ -70,27 +71,43 @@ var attachmentListCmd = &cobra.Command{
 				if att.Subtitle != nil && *att.Subtitle != "" {
 					fmt.Printf("- **Subtitle**: %s\n", *att.Subtitle)
 				}
+				if att.SourceType != nil && *att.SourceType != "" {
+					fmt.Printf("- **Source Type**: %s\n", *att.SourceType)
+				}
 				if att.Creator != nil {
 					fmt.Printf("- **Creator**: %s\n", att.Creator.Name)
+				} else if att.ExternalUserCreator != nil {
+					fmt.Printf("- **Creator**: %s (external)\n", att.ExternalUserCreator.Name)
 				}
 				fmt.Printf("- **Created**: %s\n", att.CreatedAt.Format("2006-01-02 15:04"))
+				fmt.Printf("- **Updated**: %s\n", att.UpdatedAt.Format("2006-01-02 15:04"))
+				if att.ArchivedAt != nil {
+					fmt.Printf("- **Archived**: %s\n", att.ArchivedAt.Format("2006-01-02 15:04"))
+				}
 				fmt.Println()
 			}
 			fmt.Printf("\nTotal: %d attachments\n", len(attachments.Nodes))
 			return
 		}
 
-		headers := []string{"Title", "URL", "Creator", "Created"}
+		headers := []string{"Title", "URL", "Source", "Creator", "Created"}
 		rows := make([][]string, len(attachments.Nodes))
 
 		for i, att := range attachments.Nodes {
 			creator := ""
 			if att.Creator != nil {
 				creator = att.Creator.Name
+			} else if att.ExternalUserCreator != nil {
+				creator = att.ExternalUserCreator.Name + " (ext)"
+			}
+			sourceType := ""
+			if att.SourceType != nil {
+				sourceType = *att.SourceType
 			}
 			rows[i] = []string{
 				truncateString(att.Title, 35),
-				truncateString(att.URL, 50),
+				truncateString(att.URL, 45),
+				sourceType,
 				creator,
 				att.CreatedAt.Format("2006-01-02"),
 			}
@@ -151,6 +168,31 @@ var attachmentCreateCmd = &cobra.Command{
 		if cmd.Flags().Changed("subtitle") {
 			subtitle, _ := cmd.Flags().GetString("subtitle")
 			input["subtitle"] = subtitle
+		}
+		if cmd.Flags().Changed("icon-url") {
+			iconURL, _ := cmd.Flags().GetString("icon-url")
+			input["iconUrl"] = iconURL
+		}
+		if cmd.Flags().Changed("metadata") {
+			metadataStr, _ := cmd.Flags().GetString("metadata")
+			var metadata map[string]interface{}
+			if err := json.Unmarshal([]byte(metadataStr), &metadata); err != nil {
+				output.Error(fmt.Sprintf("Invalid metadata JSON: %v", err), plaintext, jsonOut)
+				os.Exit(1)
+			}
+			input["metadata"] = metadata
+		}
+		if cmd.Flags().Changed("group-by-source") {
+			groupBySource, _ := cmd.Flags().GetBool("group-by-source")
+			input["groupBySource"] = groupBySource
+		}
+		if cmd.Flags().Changed("comment-body") {
+			commentBody, _ := cmd.Flags().GetString("comment-body")
+			input["commentBody"] = commentBody
+		}
+		if cmd.Flags().Changed("create-as-user") {
+			createAsUser, _ := cmd.Flags().GetString("create-as-user")
+			input["createAsUser"] = createAsUser
 		}
 
 		attachment, err := client.CreateAttachment(context.Background(), input)
@@ -251,9 +293,22 @@ var attachmentUpdateCmd = &cobra.Command{
 			subtitle, _ := cmd.Flags().GetString("subtitle")
 			input["subtitle"] = subtitle
 		}
+		if cmd.Flags().Changed("icon-url") {
+			iconURL, _ := cmd.Flags().GetString("icon-url")
+			input["iconUrl"] = iconURL
+		}
+		if cmd.Flags().Changed("metadata") {
+			metadataStr, _ := cmd.Flags().GetString("metadata")
+			var metadata map[string]interface{}
+			if err := json.Unmarshal([]byte(metadataStr), &metadata); err != nil {
+				output.Error(fmt.Sprintf("Invalid metadata JSON: %v", err), plaintext, jsonOut)
+				os.Exit(1)
+			}
+			input["metadata"] = metadata
+		}
 
 		if len(input) == 0 {
-			output.Error("No updates specified. Use --title or --subtitle.", plaintext, jsonOut)
+			output.Error("No updates specified. Use --title, --subtitle, --icon-url, or --metadata.", plaintext, jsonOut)
 			os.Exit(1)
 		}
 
@@ -327,6 +382,11 @@ func init() {
 	attachmentCreateCmd.Flags().String("url", "", "URL to attach (required)")
 	attachmentCreateCmd.Flags().String("title", "", "Attachment title")
 	attachmentCreateCmd.Flags().String("subtitle", "", "Attachment subtitle")
+	attachmentCreateCmd.Flags().String("icon-url", "", "Custom icon URL for the attachment")
+	attachmentCreateCmd.Flags().String("metadata", "", "Metadata as JSON object")
+	attachmentCreateCmd.Flags().Bool("group-by-source", false, "Group by source in Linear UI")
+	attachmentCreateCmd.Flags().String("comment-body", "", "Create a comment with the attachment")
+	attachmentCreateCmd.Flags().String("create-as-user", "", "Create as a specific user (user ID)")
 	_ = attachmentCreateCmd.MarkFlagRequired("url")
 
 	// Link flags
@@ -337,4 +397,6 @@ func init() {
 	// Update flags
 	attachmentUpdateCmd.Flags().String("title", "", "New title")
 	attachmentUpdateCmd.Flags().String("subtitle", "", "New subtitle")
+	attachmentUpdateCmd.Flags().String("icon-url", "", "New icon URL")
+	attachmentUpdateCmd.Flags().String("metadata", "", "New metadata as JSON object")
 }
