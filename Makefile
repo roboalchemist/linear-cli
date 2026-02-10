@@ -1,6 +1,6 @@
 # linear-cli Makefile
 
-.PHONY: build clean test install lint fmt deps help
+.PHONY: build clean test test-verbose test-crud test-crud-verbose install lint fmt deps help
 
 # Build variables
 BINARY_NAME=linear-cli
@@ -32,6 +32,16 @@ test:
 test-verbose:
 	@echo "🧪 Running smoke tests (verbose)..."
 	@bash -x ./smoke_test.sh
+
+# Run CRUD integration tests (live API)
+test-crud:
+	@echo "Running CRUD integration tests (live API)..."
+	@go test -v -run TestCRUD -count=1 -timeout 10m .
+
+# Run CRUD integration tests with log file
+test-crud-verbose:
+	@echo "Running CRUD integration tests (verbose, with log)..."
+	@go test -v -run TestCRUD -count=1 -timeout 10m . 2>&1 | tee crud_test.log
 
 # Install dependencies
 deps:
@@ -88,6 +98,8 @@ help:
 	@echo "  clean            - Clean build artifacts"
 	@echo "  test             - Run smoke tests"
 	@echo "  test-verbose     - Run smoke tests with verbose output"
+	@echo "  test-crud        - Run CRUD integration tests (live API)"
+	@echo "  test-crud-verbose - Run CRUD tests with log file"
 	@echo "  deps             - Install dependencies"
 	@echo "  fmt              - Format code"
 	@echo "  lint             - Lint code"

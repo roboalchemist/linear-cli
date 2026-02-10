@@ -41,6 +41,10 @@ dist/
 
 # Log files
 *.log
+logs/
+
+# CRUD test log
+crud_test.log
 
 # Test files
 .env.test
