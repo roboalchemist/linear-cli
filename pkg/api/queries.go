@@ -333,6 +333,23 @@ type Attachments struct {
 	Nodes []Attachment `json:"nodes"`
 }
 
+// UploadFileHeader represents a header for file upload
+type UploadFileHeader struct {
+	Key   string `json:"key"`
+	Value string `json:"value"`
+}
+
+// UploadFile represents the response from a file upload mutation
+type UploadFile struct {
+	Filename    string                 `json:"filename"`
+	ContentType string                 `json:"contentType"`
+	Size        int                    `json:"size"`
+	UploadURL   string                 `json:"uploadUrl"`
+	AssetURL    string                 `json:"assetUrl"`
+	MetaData    map[string]interface{} `json:"metaData"`
+	Headers     []UploadFileHeader     `json:"headers"`
+}
+
 // Initiative represents a Linear initiative
 type Initiative struct {
 	ID                   string       `json:"id"`
@@ -4440,6 +4457,54 @@ func (c *Client) DeleteAttachment(ctx context.Context, id string) error {
 	}
 
 	return nil
+}
+
+// FileUpload requests a presigned upload URL from Linear
+func (c *Client) FileUpload(ctx context.Context, filename string, contentType string, size int, makePublic bool) (*UploadFile, error) {
+	query := `
+		mutation FileUpload($filename: String!, $contentType: String!, $size: Int!, $makePublic: Boolean) {
+			fileUpload(filename: $filename, contentType: $contentType, size: $size, makePublic: $makePublic) {
+				success
+				uploadFile {
+					filename
+					contentType
+					size
+					uploadUrl
+					assetUrl
+					metaData
+					headers {
+						key
+						value
+					}
+				}
+			}
+		}
+	`
+
+	variables := map[string]interface{}{
+		"filename":    filename,
+		"contentType": contentType,
+		"size":        size,
+		"makePublic":  makePublic,
+	}
+
+	var response struct {
+		FileUpload struct {
+			Success    bool       `json:"success"`
+			UploadFile UploadFile `json:"uploadFile"`
+		} `json:"fileUpload"`
+	}
+
+	err := c.Execute(ctx, query, variables, &response)
+	if err != nil {
+		return nil, err
+	}
+
+	if !response.FileUpload.Success {
+		return nil, fmt.Errorf("failed to initiate file upload")
+	}
+
+	return &response.FileUpload.UploadFile, nil
 }
 
 // GetIssueActivity returns an issue with expanded history for activity timeline

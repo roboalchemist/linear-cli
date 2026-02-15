@@ -367,11 +367,120 @@ var attachmentDeleteCmd = &cobra.Command{
 	},
 }
 
+var attachmentUploadCmd = &cobra.Command{
+	Use:     "upload [issue-id]",
+	Aliases: []string{"up"},
+	Short:   "Upload a file as an attachment to an issue",
+	Long:    `Upload local files (CSV, images, PDFs, etc.) as attachments to a Linear issue.`,
+	Args:    cobra.ExactArgs(1),
+	Run: func(cmd *cobra.Command, args []string) {
+		plaintext := viper.GetBool("plaintext")
+		jsonOut := viper.GetBool("json")
+
+		authHeader, err := auth.GetAuthHeader()
+		if err != nil {
+			output.Error("Not authenticated. Run 'linear-cli auth' first.", plaintext, jsonOut)
+			os.Exit(1)
+		}
+
+		client := api.NewClient(authHeader)
+
+		// Get file paths from flag
+		filePaths, _ := cmd.Flags().GetStringArray("file")
+		if len(filePaths) == 0 {
+			output.Error("At least one file is required (--file)", plaintext, jsonOut)
+			os.Exit(1)
+		}
+
+		// Resolve issue ID
+		issue, err := client.GetIssue(context.Background(), args[0])
+		if err != nil {
+			output.Error(fmt.Sprintf("Failed to resolve issue: %v", err), plaintext, jsonOut)
+			os.Exit(1)
+		}
+
+		// Process each file
+		for _, filePath := range filePaths {
+			// Read file
+			fileData, err := os.ReadFile(filePath)
+			if err != nil {
+				output.Error(fmt.Sprintf("Failed to read file %s: %v", filePath, err), plaintext, jsonOut)
+				continue
+			}
+
+			// Get file info
+			fileInfo, err := os.Stat(filePath)
+			if err != nil {
+				output.Error(fmt.Sprintf("Failed to stat file %s: %v", filePath, err), plaintext, jsonOut)
+				continue
+			}
+
+			filename := fileInfo.Name()
+			size := int(fileInfo.Size())
+
+			// Auto-detect content type
+			contentType := "application/octet-stream"
+			if detected := detectContentType(filename); detected != "" {
+				contentType = detected
+			}
+
+			// Get custom title or use filename
+			title := filename
+			if cmd.Flags().Changed("title") {
+				title, _ = cmd.Flags().GetString("title")
+			}
+
+			if !plaintext && !jsonOut {
+				fmt.Printf("Uploading %s (%d bytes)...\n", filename, size)
+			}
+
+			// Step 1: Request presigned upload URL
+			uploadFile, err := client.FileUpload(context.Background(), filename, contentType, size, false)
+			if err != nil {
+				output.Error(fmt.Sprintf("Failed to get upload URL: %v", err), plaintext, jsonOut)
+				continue
+			}
+
+			// Step 2: Upload file to presigned URL
+			err = client.UploadFileToURL(context.Background(), uploadFile.UploadURL, uploadFile.Headers, fileData, contentType)
+			if err != nil {
+				output.Error(fmt.Sprintf("Failed to upload file: %v", err), plaintext, jsonOut)
+				continue
+			}
+
+			// Step 3: Create attachment with the asset URL
+			input := map[string]interface{}{
+				"issueId": issue.ID,
+				"url":     uploadFile.AssetURL,
+				"title":   title,
+			}
+
+			attachment, err := client.CreateAttachment(context.Background(), input)
+			if err != nil {
+				output.Error(fmt.Sprintf("Failed to create attachment: %v", err), plaintext, jsonOut)
+				continue
+			}
+
+			if jsonOut {
+				output.JSON(attachment)
+			} else if plaintext {
+				fmt.Printf("Uploaded: %s (%s)\n", attachment.Title, attachment.URL)
+			} else {
+				fmt.Printf("%s Uploaded %s\n",
+					color.New(color.FgGreen).Sprint("✓"),
+					color.New(color.FgCyan, color.Bold).Sprint(attachment.Title))
+				fmt.Printf("  URL: %s\n", color.New(color.FgBlue, color.Underline).Sprint(attachment.URL))
+			}
+		}
+	},
+}
+
 func init() {
 	issueCmd.AddCommand(attachmentCmd)
 	attachmentCmd.AddCommand(attachmentListCmd)
 	attachmentCmd.AddCommand(attachmentCreateCmd)
 	attachmentCmd.AddCommand(attachmentLinkCmd)
+	attachmentCmd.AddCommand(attachmentUploadCmd)
 	attachmentCmd.AddCommand(attachmentUpdateCmd)
 	attachmentCmd.AddCommand(attachmentDeleteCmd)
 
@@ -394,9 +503,75 @@ func init() {
 	attachmentLinkCmd.Flags().String("title", "", "Optional title override")
 	_ = attachmentLinkCmd.MarkFlagRequired("url")
 
+	// Upload flags
+	attachmentUploadCmd.Flags().StringArray("file", []string{}, "File path to upload (can be specified multiple times)")
+	attachmentUploadCmd.Flags().String("title", "", "Custom title for the attachment (defaults to filename)")
+	_ = attachmentUploadCmd.MarkFlagRequired("file")
+
 	// Update flags
 	attachmentUpdateCmd.Flags().String("title", "", "New title")
 	attachmentUpdateCmd.Flags().String("subtitle", "", "New subtitle")
 	attachmentUpdateCmd.Flags().String("icon-url", "", "New icon URL")
 	attachmentUpdateCmd.Flags().String("metadata", "", "New metadata as JSON object")
+}
+
+// detectContentType returns the MIME type for a file based on its extension
+func detectContentType(filename string) string {
+	ext := ""
+	for i := len(filename) - 1; i >= 0 && filename[i] != '.'; i-- {
+		if filename[i] == '/' || filename[i] == '\\' {
+			return ""
+		}
+	}
+	if idx := len(filename) - 1; idx >= 0 && filename[idx] != '/' && filename[idx] != '\\' {
+		for i := idx; i >= 0; i-- {
+			if filename[i] == '.' {
+				ext = filename[i:]
+				break
+			}
+			if filename[i] == '/' || filename[i] == '\\' {
+				break
+			}
+		}
+	}
+
+	// Common MIME types
+	mimeTypes := map[string]string{
+		".csv":  "text/csv",
+		".txt":  "text/plain",
+		".pdf":  "application/pdf",
+		".png":  "image/png",
+		".jpg":  "image/jpeg",
+		".jpeg": "image/jpeg",
+		".gif":  "image/gif",
+		".svg":  "image/svg+xml",
+		".webp": "image/webp",
+		".mp4":  "video/mp4",
+		".mov":  "video/quicktime",
+		".avi":  "video/x-msvideo",
+		".webm": "video/webm",
+		".mp3":  "audio/mpeg",
+		".wav":  "audio/wav",
+		".zip":  "application/zip",
+		".tar":  "application/x-tar",
+		".gz":   "application/gzip",
+		".json": "application/json",
+		".xml":  "application/xml",
+		".html": "text/html",
+		".css":  "text/css",
+		".js":   "application/javascript",
+		".md":   "text/markdown",
+		".doc":  "application/msword",
+		".docx": "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+		".xls":  "application/vnd.ms-excel",
+		".xlsx": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+		".ppt":  "application/vnd.ms-powerpoint",
+		".pptx": "application/vnd.openxmlformats-officedocument.presentationml.presentation",
+	}
+
+	if contentType, ok := mimeTypes[ext]; ok {
+		return contentType
+	}
+
+	return ""
 }

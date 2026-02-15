@@ -226,3 +226,32 @@ func (c *Client) GetRateLimit(ctx context.Context) (*RateLimit, error) {
 	}
 	return c.LastRateLimit, nil
 }
+
+// UploadFileToURL uploads file data to a presigned URL
+func (c *Client) UploadFileToURL(ctx context.Context, uploadURL string, headers []UploadFileHeader, data []byte, contentType string) error {
+	req, err := http.NewRequestWithContext(ctx, "PUT", uploadURL, bytes.NewReader(data))
+	if err != nil {
+		return fmt.Errorf("failed to create upload request: %w", err)
+	}
+
+	// Set content type
+	req.Header.Set("Content-Type", contentType)
+
+	// Add any headers provided by the upload response
+	for _, header := range headers {
+		req.Header.Set(header.Key, header.Value)
+	}
+
+	resp, err := c.httpClient.Do(req)
+	if err != nil {
+		return fmt.Errorf("upload failed: %w", err)
+	}
+	defer func() { _ = resp.Body.Close() }()
+
+	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
+		body, _ := io.ReadAll(resp.Body)
+		return fmt.Errorf("upload failed with status %d: %s", resp.StatusCode, string(body))
+	}
+
+	return nil
+}
