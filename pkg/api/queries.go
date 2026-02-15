@@ -5222,6 +5222,57 @@ func (c *Client) RemoveProjectFromInitiative(ctx context.Context, initiativeID s
 	return nil
 }
 
+// GetInitiativeLinksForProject returns all initiative IDs linked to a given project
+func (c *Client) GetInitiativeLinksForProject(ctx context.Context, projectID string) ([]string, error) {
+	query := `
+		query InitiativeToProjects($first: Int) {
+			initiativeToProjects(first: $first) {
+				nodes {
+					id
+					initiative {
+						id
+					}
+					project {
+						id
+					}
+				}
+			}
+		}
+	`
+
+	variables := map[string]interface{}{
+		"first": 250,
+	}
+
+	var response struct {
+		InitiativeToProjects struct {
+			Nodes []struct {
+				ID         string `json:"id"`
+				Initiative struct {
+					ID string `json:"id"`
+				} `json:"initiative"`
+				Project struct {
+					ID string `json:"id"`
+				} `json:"project"`
+			} `json:"nodes"`
+		} `json:"initiativeToProjects"`
+	}
+
+	err := c.Execute(ctx, query, variables, &response)
+	if err != nil {
+		return nil, err
+	}
+
+	var initiativeIDs []string
+	for _, link := range response.InitiativeToProjects.Nodes {
+		if link.Project.ID == projectID {
+			initiativeIDs = append(initiativeIDs, link.Initiative.ID)
+		}
+	}
+
+	return initiativeIDs, nil
+}
+
 // GetProjectIssues returns issues for a specific project
 func (c *Client) GetProjectIssues(ctx context.Context, projectID string, first int, after string) (*Issues, error) {
 	query := `
