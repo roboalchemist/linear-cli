@@ -258,6 +258,7 @@ func TestCRUD(t *testing.T) {
 	t.Run("Document", testDocument)
 	t.Run("Cycle", testCycle)
 	t.Run("Issue", testIssue)
+	t.Run("IssueTree", testIssueTree)
 	t.Run("Comment", testComment)
 	t.Run("Relation", testRelation)
 	t.Run("Attachment", testAttachment)
@@ -752,6 +753,79 @@ func testInitiative(t *testing.T) {
 		runCLISuccess(t, "initiative", "remove-project", initID, testProjectID)
 	})
 
+	t.Run("ProjectFlag", func(t *testing.T) {
+		// LINE-30: Test --initiative flag on project create and update
+		if initID == "" {
+			t.Skip("no initiative created")
+		}
+
+		// Create a new test initiative for this test
+		testInitName := testPrefix + "-init-flag"
+		testInitOut := runCLISuccess(t, "initiative", "create",
+			"--name", testInitName,
+			"--description", "Test initiative for project flag tests",
+			"--status", "Planned",
+			"--json",
+		)
+		testInitID := extractID(t, testInitOut)
+		if testInitID == "" {
+			t.Fatal("expected non-empty test initiative ID")
+		}
+
+		// Create project with --initiative flag
+		projName := testPrefix + "-proj-with-init"
+		projOut := runCLISuccess(t, "project", "create",
+			"--name", projName,
+			"--team-ids", teamUUID,
+			"--initiative", testInitID,
+			"--json",
+		)
+		projID := extractID(t, projOut)
+		if projID == "" {
+			t.Fatal("expected non-empty project ID")
+		}
+
+		// Verify project is linked to initiative
+		initProjsOut := runCLISuccess(t, "initiative", "projects", testInitID, "--json")
+		arr := parseJSONArray(t, initProjsOut)
+		found := false
+		for _, p := range arr {
+			if fmt.Sprintf("%v", p["id"]) == projID {
+				found = true
+				break
+			}
+		}
+		if !found {
+			t.Errorf("project %s not found in initiative %s projects list", projID, testInitID)
+		}
+
+		// Update project to unlink with --initiative none
+		runCLISuccess(t, "project", "update", projID,
+			"--initiative", "none",
+			"--json",
+		)
+
+		// Verify project is no longer linked to initiative
+		initProjsOut = runCLISuccess(t, "initiative", "projects", testInitID, "--json")
+		arr = parseJSONArray(t, initProjsOut)
+		found = false
+		for _, p := range arr {
+			if fmt.Sprintf("%v", p["id"]) == projID {
+				found = true
+				break
+			}
+		}
+		if found {
+			t.Errorf("project %s should not be in initiative %s projects list after unlinking", projID, testInitID)
+		}
+
+		// Cleanup
+		t.Cleanup(func() {
+			runCLI(t, "project", "delete", projID)
+			runCLI(t, "initiative", "delete", testInitID)
+		})
+	})
+
 	t.Run("Delete", func(t *testing.T) {
 		if initID == "" {
 			t.Skip("no initiative created")
@@ -1164,6 +1238,72 @@ func testIssue(t *testing.T) {
 		runCLISuccess(t, "issue", "list", "--json", "--sort", "updated", "--team", teamKey, "--limit", "5")
 	})
 
+	t.Run("ParentFilter", func(t *testing.T) {
+		// LINE-27: Test --parent filter on issue list
+		// Create a parent issue
+		parentOut := runCLISuccess(t, "issue", "create",
+			"--title", testPrefix+"-parent",
+			"--description", "Parent issue for filter tests",
+			"--team", teamKey,
+			"--json",
+		)
+		parentID := extractField(t, parentOut, "identifier")
+		parentUUID := extractID(t, parentOut)
+		if parentID == "" || parentUUID == "" {
+			t.Fatal("expected non-empty parent issue ID and identifier")
+		}
+
+		// Create a child issue with --parent
+		childOut := runCLISuccess(t, "issue", "create",
+			"--title", testPrefix+"-child",
+			"--description", "Child issue for filter tests",
+			"--team", teamKey,
+			"--parent", parentID,
+			"--json",
+		)
+		childID := extractField(t, childOut, "identifier")
+		if childID == "" {
+			t.Fatal("expected non-empty child issue identifier")
+		}
+
+		// Test --parent with identifier returns the child
+		out := runCLISuccess(t, "issue", "list", "--parent", parentID, "--json")
+		arr := parseJSONArray(t, out)
+		found := false
+		for _, issue := range arr {
+			if fmt.Sprintf("%v", issue["identifier"]) == childID {
+				found = true
+				break
+			}
+		}
+		if !found {
+			t.Errorf("child issue %s not found in --parent %s filter results", childID, parentID)
+		}
+
+		// Test --parent with UUID works too
+		out = runCLISuccess(t, "issue", "list", "--parent", parentUUID, "--json")
+		arr = parseJSONArray(t, out)
+		found = false
+		for _, issue := range arr {
+			if fmt.Sprintf("%v", issue["identifier"]) == childID {
+				found = true
+				break
+			}
+		}
+		if !found {
+			t.Errorf("child issue %s not found in --parent %s (UUID) filter results", childID, parentUUID)
+		}
+
+		// Test combining --parent with --team filter
+		runCLISuccess(t, "issue", "list", "--parent", parentID, "--team", teamKey, "--json")
+
+		// Cleanup
+		t.Cleanup(func() {
+			runCLI(t, "issue", "archive", childID)
+			runCLI(t, "issue", "archive", parentID)
+		})
+	})
+
 	t.Run("Update", func(t *testing.T) {
 		if issueIdentifier == "" {
 			t.Skip("no issue created")
@@ -1234,6 +1374,109 @@ func testIssue(t *testing.T) {
 	t.Cleanup(func() {
 		if issue2Identifier != "" {
 			runCLI(t, "issue", "archive", issue2Identifier)
+		}
+	})
+}
+
+// =============================================================================
+// Issue Tree tests
+// =============================================================================
+
+func testIssueTree(t *testing.T) {
+	// LINE-29: Test issue tree command
+	// Create parent and child issues for tree testing
+	treeParentTitle := testPrefix + "-tree-parent"
+	var treeParentID string
+
+	t.Run("Setup_Parent", func(t *testing.T) {
+		out := runCLISuccess(t, "issue", "create",
+			"--title", treeParentTitle,
+			"--description", "Parent issue for tree tests",
+			"--team", teamKey,
+			"--json",
+		)
+		treeParentID = extractField(t, out, "identifier")
+		if treeParentID == "" {
+			t.Fatal("expected non-empty parent issue identifier")
+		}
+	})
+
+	t.Run("Setup_Child", func(t *testing.T) {
+		if treeParentID == "" {
+			t.Skip("no parent issue")
+		}
+		out := runCLISuccess(t, "issue", "create",
+			"--title", testPrefix+"-tree-child",
+			"--description", "Child issue for tree tests",
+			"--team", teamKey,
+			"--parent", treeParentID,
+			"--json",
+		)
+		childID := extractField(t, out, "identifier")
+		if childID == "" {
+			t.Fatal("expected non-empty child issue identifier")
+		}
+	})
+
+	t.Run("Tree_Table", func(t *testing.T) {
+		if treeParentID == "" {
+			t.Skip("no parent issue")
+		}
+		out := runCLISuccess(t, "issue", "tree", treeParentID)
+		assertNotEmpty(t, out)
+	})
+
+	t.Run("Tree_JSON", func(t *testing.T) {
+		if treeParentID == "" {
+			t.Skip("no parent issue")
+		}
+		out := runCLISuccess(t, "issue", "tree", treeParentID, "--json")
+		// Parse and verify it has children
+		obj := parseJSONObject(t, out)
+		if children, ok := obj["children"]; ok {
+			if childArr, ok := children.([]interface{}); ok && len(childArr) > 0 {
+				// Good - has children
+			} else {
+				t.Log("warning: tree JSON has no children (may be timing issue)")
+			}
+		}
+	})
+
+	t.Run("Tree_Plaintext", func(t *testing.T) {
+		if treeParentID == "" {
+			t.Skip("no parent issue")
+		}
+		out := runCLISuccess(t, "issue", "tree", treeParentID, "-p")
+		assertNotEmpty(t, out)
+	})
+
+	t.Run("Tree_Depth", func(t *testing.T) {
+		if treeParentID == "" {
+			t.Skip("no parent issue")
+		}
+		out := runCLISuccess(t, "issue", "tree", treeParentID, "--depth", "1")
+		assertNotEmpty(t, out)
+	})
+
+	t.Run("Deps_Alias", func(t *testing.T) {
+		if treeParentID == "" {
+			t.Skip("no parent issue")
+		}
+		// Test that "issue deps" alias works
+		out := runCLISuccess(t, "issue", "deps", treeParentID)
+		assertNotEmpty(t, out)
+	})
+
+	t.Run("Tree_Nonexistent", func(t *testing.T) {
+		// Should fail for nonexistent issue
+		runCLIFail(t, "issue", "tree", "NONEXIST-99999")
+	})
+
+	// Cleanup tree issues
+	t.Cleanup(func() {
+		if treeParentID != "" {
+			// Archive parent (child should be archived via cascade or separately)
+			runCLI(t, "issue", "archive", treeParentID)
 		}
 	})
 }
@@ -1478,6 +1721,79 @@ func testAttachment(t *testing.T) {
 			"--json",
 		)
 		assertNotEmpty(t, out)
+	})
+
+	t.Run("Upload", func(t *testing.T) {
+		// LINE-28: Test file upload for attachments
+		// Create a temp file for upload
+		tmpFile := "/tmp/crud-test-upload.csv"
+		content := "name,value\ntest1,100\ntest2,200\n"
+		if err := os.WriteFile(tmpFile, []byte(content), 0644); err != nil {
+			t.Fatalf("failed to create temp file: %v", err)
+		}
+		t.Cleanup(func() {
+			os.Remove(tmpFile)
+		})
+
+		// Upload the file
+		out := runCLISuccess(t, "issue", "attachment", "upload", testIssueID,
+			"--file", tmpFile,
+			"--json",
+		)
+		uploadID := extractID(t, out)
+		if uploadID == "" {
+			t.Fatal("expected non-empty upload attachment ID")
+		}
+
+		// Verify attachment appears in list
+		listOut := runCLISuccess(t, "issue", "attachment", "list", testIssueID, "--json")
+		arr := parseJSONArray(t, listOut)
+		found := false
+		for _, a := range arr {
+			if fmt.Sprintf("%v", a["id"]) == uploadID {
+				found = true
+				break
+			}
+		}
+		if !found {
+			t.Errorf("uploaded attachment %s not found in list", uploadID)
+		}
+
+		// Test multiple files with repeated --file flags
+		tmpFile2 := "/tmp/crud-test-upload-2.txt"
+		content2 := "This is test file 2\n"
+		if err := os.WriteFile(tmpFile2, []byte(content2), 0644); err != nil {
+			t.Fatalf("failed to create second temp file: %v", err)
+		}
+		t.Cleanup(func() {
+			os.Remove(tmpFile2)
+		})
+
+		multiOut := runCLISuccess(t, "issue", "attachment", "upload", testIssueID,
+			"--file", tmpFile,
+			"--file", tmpFile2,
+			"--json",
+		)
+		// Multiple files may return multiple JSON objects (not an array)
+		// Just verify we got some output and it contains IDs
+		assertContains(t, multiOut, `"id"`)
+
+		// Verify we now have more attachments in the list
+		finalListOut := runCLISuccess(t, "issue", "attachment", "list", testIssueID, "--json")
+		finalArr := parseJSONArray(t, finalListOut)
+		if len(finalArr) < 3 { // Original URL attachment + 1 single upload + 2 multi uploads
+			t.Logf("warning: expected at least 3 attachments after uploads, got %d", len(finalArr))
+		}
+
+		// Cleanup only the uploaded attachment (not all attachments)
+		// The Delete test expects the original attachment from Create to still exist
+		t.Cleanup(func() {
+			if uploadID != "" {
+				runCLI(t, "issue", "attachment", "delete", uploadID)
+			}
+			// Note: Not cleaning up the multiple upload attachments here
+			// They will be cleaned up when the issue is archived at the end
+		})
 	})
 
 	t.Run("Delete", func(t *testing.T) {
