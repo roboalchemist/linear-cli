@@ -67,6 +67,23 @@ var issueListCmd = &cobra.Command{
 		// Build filter from flags
 		filter := buildIssueFilter(cmd)
 
+		// Handle --parent filter: resolve identifier to UUID if needed
+		if parentVal, _ := cmd.Flags().GetString("parent"); parentVal != "" {
+			parentID := parentVal
+			// If it looks like an identifier (contains hyphen, not a UUID), resolve it
+			if strings.Contains(parentVal, "-") && !isUUID(parentVal) {
+				parentIssue, err := client.GetIssue(context.Background(), parentVal)
+				if err != nil {
+					output.Error(fmt.Sprintf("Failed to resolve parent issue '%s': %v", parentVal, err), plaintext, jsonOut)
+					os.Exit(1)
+				}
+				parentID = parentIssue.ID
+			}
+			filter["parent"] = map[string]interface{}{
+				"id": map[string]interface{}{"eq": parentID},
+			}
+		}
+
 		limit, _ := cmd.Flags().GetInt("limit")
 		if limit == 0 {
 			limit = 50
@@ -2345,6 +2362,7 @@ func init() {
 	issueListCmd.Flags().StringP("sort", "o", "linear", "Sort order: linear (default), created, updated")
 	issueListCmd.Flags().StringP("newer-than", "n", "", "Show issues created after this time (default: 6_months_ago, use 'all_time' for no filter)")
 	issueListCmd.Flags().String("view", "", "Execute a custom view by ID (overrides other filters)")
+	issueListCmd.Flags().String("parent", "", "Filter by parent issue (identifier like ROB-27 or UUID)")
 
 	// Issue search flags
 	issueSearchCmd.Flags().StringP("assignee", "a", "", "Filter by assignee (email or 'me')")
