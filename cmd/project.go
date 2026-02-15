@@ -33,6 +33,26 @@ func constructProjectURL(projectID string, originalURL string) string {
 	return originalURL
 }
 
+// resolveInitiativeID resolves an initiative name or UUID to an initiative ID.
+// If the value looks like a UUID, it is returned as-is. Otherwise, initiatives are
+// listed and the first one whose name matches (case-insensitive) is returned.
+func resolveInitiativeID(client *api.Client, ctx context.Context, value string) (string, error) {
+	if isUUID(value) {
+		return value, nil
+	}
+	// Treat as a name — list all initiatives and match
+	initiatives, err := client.GetInitiatives(ctx, nil, 250, "", "", true)
+	if err != nil {
+		return "", fmt.Errorf("failed to list initiatives: %w", err)
+	}
+	for _, init := range initiatives.Nodes {
+		if strings.EqualFold(init.Name, value) {
+			return init.ID, nil
+		}
+	}
+	return "", fmt.Errorf("initiative not found: %s", value)
+}
+
 // projectCmd represents the project command
 var projectCmd = &cobra.Command{
 	Use:   "project",
@@ -923,7 +943,8 @@ Use --description-file - to read from stdin.
 Examples:
   linear-cli project create --name "My Project" --team-ids TEAM-UUID
   linear-cli project create --name "My Project" --description "Details" --state started
-  linear-cli project create --name "My Project" --description-file project-brief.md`,
+  linear-cli project create --name "My Project" --description-file project-brief.md
+  linear-cli project create --name "My Project" --team-ids TEAM-UUID --initiative "Q1 Goals"`,
 	Run: func(cmd *cobra.Command, args []string) {
 		plaintext := viper.GetBool("plaintext")
 		jsonOut := viper.GetBool("json")
@@ -1097,6 +1118,24 @@ Examples:
 			os.Exit(1)
 		}
 
+		// Handle --initiative: link the newly created project to an initiative
+		if cmd.Flags().Changed("initiative") {
+			initiativeVal, _ := cmd.Flags().GetString("initiative")
+			initiativeID, err := resolveInitiativeID(client, context.Background(), initiativeVal)
+			if err != nil {
+				output.Error(fmt.Sprintf("Failed to resolve initiative '%s': %v", initiativeVal, err), plaintext, jsonOut)
+				os.Exit(1)
+			}
+			_, err = client.AddProjectToInitiative(context.Background(), initiativeID, project.ID)
+			if err != nil {
+				output.Error(fmt.Sprintf("Project created but failed to add to initiative: %v", err), plaintext, jsonOut)
+				os.Exit(1)
+			}
+			if !jsonOut {
+				fmt.Fprintf(os.Stderr, "Linked project to initiative %s\n", initiativeVal)
+			}
+		}
+
 		if jsonOut {
 			output.JSON(project)
 		} else {
@@ -1111,7 +1150,7 @@ var projectUpdateCmd = &cobra.Command{
 	Use:     "update PROJECT-ID",
 	Aliases: []string{"edit"},
 	Short:   "Update a project",
-	Long: `Update a project's name, description, state, dates, or lead.
+	Long: `Update a project's name, description, state, dates, lead, or initiative.
 
 The description can be provided inline via --description or read from a markdown file via --description-file.
 Use --description-file - to read from stdin.
@@ -1121,7 +1160,9 @@ Examples:
   linear-cli project update PROJECT-ID --state started
   linear-cli project update PROJECT-ID --lead user@example.com
   linear-cli project update PROJECT-ID --lead me
-  linear-cli project update PROJECT-ID --lead none`,
+  linear-cli project update PROJECT-ID --lead none
+  linear-cli project update PROJECT-ID --initiative "Q1 Goals"
+  linear-cli project update PROJECT-ID --initiative none`,
 	Args: cobra.ExactArgs(1),
 	Run: func(cmd *cobra.Command, args []string) {
 		plaintext := viper.GetBool("plaintext")
@@ -1367,15 +1408,68 @@ Examples:
 			}
 		}
 
-		if len(input) == 0 {
+		initiativeChanged := cmd.Flags().Changed("initiative")
+		if len(input) == 0 && !initiativeChanged {
 			output.Error("No fields to update.", plaintext, jsonOut)
 			os.Exit(1)
 		}
 
-		project, err := client.UpdateProject(context.Background(), projectID, input)
-		if err != nil {
-			output.Error(fmt.Sprintf("Failed to update project: %v", err), plaintext, jsonOut)
-			os.Exit(1)
+		// Update project fields if any were specified
+		var project *api.Project
+		if len(input) > 0 {
+			project, err = client.UpdateProject(context.Background(), projectID, input)
+			if err != nil {
+				output.Error(fmt.Sprintf("Failed to update project: %v", err), plaintext, jsonOut)
+				os.Exit(1)
+			}
+		}
+
+		// Handle --initiative flag
+		if initiativeChanged {
+			initiativeVal, _ := cmd.Flags().GetString("initiative")
+			ctx := context.Background()
+
+			if strings.ToLower(initiativeVal) == "none" {
+				// Remove project from all initiatives
+				initiativeIDs, err := client.GetInitiativeLinksForProject(ctx, projectID)
+				if err != nil {
+					output.Error(fmt.Sprintf("Failed to get initiative links: %v", err), plaintext, jsonOut)
+					os.Exit(1)
+				}
+				for _, initID := range initiativeIDs {
+					err := client.RemoveProjectFromInitiative(ctx, initID, projectID)
+					if err != nil {
+						fmt.Fprintf(os.Stderr, "Warning: failed to remove from initiative %s: %v\n", initID, err)
+					}
+				}
+				if !jsonOut && len(initiativeIDs) > 0 {
+					fmt.Fprintf(os.Stderr, "Removed project from %d initiative(s)\n", len(initiativeIDs))
+				}
+			} else {
+				// Add project to the specified initiative
+				initiativeID, err := resolveInitiativeID(client, ctx, initiativeVal)
+				if err != nil {
+					output.Error(fmt.Sprintf("Failed to resolve initiative '%s': %v", initiativeVal, err), plaintext, jsonOut)
+					os.Exit(1)
+				}
+				_, err = client.AddProjectToInitiative(ctx, initiativeID, projectID)
+				if err != nil {
+					output.Error(fmt.Sprintf("Failed to add project to initiative: %v", err), plaintext, jsonOut)
+					os.Exit(1)
+				}
+				if !jsonOut {
+					fmt.Fprintf(os.Stderr, "Linked project to initiative %s\n", initiativeVal)
+				}
+			}
+
+			// If we didn't update any project fields, fetch the project for output
+			if project == nil {
+				project, err = client.GetProject(ctx, projectID)
+				if err != nil {
+					output.Error(fmt.Sprintf("Failed to get project: %v", err), plaintext, jsonOut)
+					os.Exit(1)
+				}
+			}
 		}
 
 		if jsonOut {
@@ -1584,6 +1678,7 @@ func init() {
 	projectCreateCmd.Flags().String("converted-from-issue", "", "Issue ID this project was converted from")
 	projectCreateCmd.Flags().String("start-date-resolution", "", "Start date resolution (day, month, quarter, year)")
 	projectCreateCmd.Flags().String("target-date-resolution", "", "Target date resolution (day, month, quarter, year)")
+	projectCreateCmd.Flags().StringP("initiative", "I", "", "Initiative to link project to (name or UUID)")
 	_ = projectCreateCmd.MarkFlagRequired("name")
 
 	// Project update flags
@@ -1618,6 +1713,7 @@ func init() {
 	projectUpdateCmd.Flags().String("update-reminders-day", "", "Day for update reminders (Monday, Tuesday, etc.)")
 	projectUpdateCmd.Flags().Int("update-reminders-hour", -1, "Hour for update reminders (0-23)")
 	projectUpdateCmd.Flags().String("update-reminders-paused-until", "", "Pause reminders until (ISO 8601 timestamp or 'none' to resume)")
+	projectUpdateCmd.Flags().StringP("initiative", "I", "", "Initiative to link project to (name, UUID, or 'none' to unset)")
 
 	// List command flags
 	projectListCmd.Flags().StringP("team", "t", "", "Filter by team key")
