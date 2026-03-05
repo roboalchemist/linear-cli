@@ -1007,8 +1007,14 @@ Examples:
 		}
 
 		// Handle content (rich markdown)
-		if cmd.Flags().Changed("content") {
-			content, _ := cmd.Flags().GetString("content")
+		contentFlag, _ := cmd.Flags().GetString("content")
+		contentFilePath, _ := cmd.Flags().GetString("content-file")
+		if cmd.Flags().Changed("content") || contentFilePath != "" {
+			content, err := resolveBodyFromFlags(contentFlag, cmd.Flags().Changed("content"), contentFilePath, "content", "content-file")
+			if err != nil {
+				output.Error(err.Error(), plaintext, jsonOut)
+				os.Exit(1)
+			}
 			input["content"] = content
 		}
 
@@ -1267,8 +1273,14 @@ Examples:
 		}
 
 		// Handle content update (rich markdown content)
-		if cmd.Flags().Changed("content") {
-			content, _ := cmd.Flags().GetString("content")
+		contentFlag, _ := cmd.Flags().GetString("content")
+		contentFilePath, _ := cmd.Flags().GetString("content-file")
+		if cmd.Flags().Changed("content") || contentFilePath != "" {
+			content, err := resolveBodyFromFlags(contentFlag, cmd.Flags().Changed("content"), contentFilePath, "content", "content-file")
+			if err != nil {
+				output.Error(err.Error(), plaintext, jsonOut)
+				os.Exit(1)
+			}
 			input["content"] = content
 		}
 
@@ -1671,6 +1683,7 @@ func init() {
 	projectCreateCmd.Flags().StringP("color", "c", "", "Project color (hex, e.g., #4285F4)")
 	projectCreateCmd.Flags().Int("priority", -1, "Project priority (0=None, 1=Urgent, 2=High, 3=Medium, 4=Low)")
 	projectCreateCmd.Flags().String("content", "", "Project content (rich markdown)")
+	projectCreateCmd.Flags().String("content-file", "", "Read content from a markdown file (use - for stdin)")
 	projectCreateCmd.Flags().StringP("lead", "L", "", "Project lead (email, name, UUID, or 'me')")
 	projectCreateCmd.Flags().StringSlice("members", nil, "Project members (emails/names, repeatable)")
 	projectCreateCmd.Flags().String("template-id", "", "Template ID to apply")
@@ -1693,6 +1706,7 @@ func init() {
 	projectUpdateCmd.Flags().StringP("color", "c", "", "Project color (hex, e.g., #4285F4)")
 	projectUpdateCmd.Flags().Int("priority", -1, "Project priority (0=None, 1=Urgent, 2=High, 3=Medium, 4=Low)")
 	projectUpdateCmd.Flags().String("content", "", "Project content (rich markdown)")
+	projectUpdateCmd.Flags().String("content-file", "", "Read content from a markdown file (use - for stdin)")
 	projectUpdateCmd.Flags().StringSlice("members", nil, "Project members (emails/names, repeatable, or 'none' to clear)")
 	// Slack integration flags
 	projectUpdateCmd.Flags().Bool("slack-new-issue", false, "Notify Slack on new issues")
