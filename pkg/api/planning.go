@@ -37,6 +37,30 @@ type RoadmapDetail struct {
 	Projects    *Projects  `json:"projects"`
 }
 
+// roadmapDetailFields is the shared field selection for a single roadmap.
+const roadmapDetailFields = `
+	id
+	name
+	description
+	slugId
+	color
+	sortOrder
+	url
+	createdAt
+	updatedAt
+	archivedAt
+	owner {
+		id
+		name
+		email
+	}
+	creator {
+		id
+		name
+		email
+	}
+`
+
 // GetRoadmaps returns all roadmaps in the workspace.
 func (c *Client) GetRoadmaps(ctx context.Context, first int, after string, orderBy string, includeArchived bool) (*RoadmapDetails, error) {
 	query := `
@@ -305,6 +329,68 @@ func (c *Client) GetInitiativeLabels(ctx context.Context, filter map[string]inte
 // ---------------------------------------------------------------------------
 // Project relations
 // ---------------------------------------------------------------------------
+
+// CreateRoadmap creates a new roadmap.
+func (c *Client) CreateRoadmap(ctx context.Context, input map[string]interface{}) (*RoadmapDetail, error) {
+	query := `
+		mutation RoadmapCreate($input: RoadmapCreateInput!) {
+			roadmapCreate(input: $input) {
+				success
+				roadmap {` + roadmapDetailFields + `}
+			}
+		}
+	`
+
+	var response struct {
+		RoadmapCreate struct {
+			Success bool          `json:"success"`
+			Roadmap RoadmapDetail `json:"roadmap"`
+		} `json:"roadmapCreate"`
+	}
+
+	if err := c.Execute(ctx, query, map[string]interface{}{"input": input}, &response); err != nil {
+		return nil, err
+	}
+	return &response.RoadmapCreate.Roadmap, nil
+}
+
+// UpdateRoadmap updates an existing roadmap.
+func (c *Client) UpdateRoadmap(ctx context.Context, id string, input map[string]interface{}) (*RoadmapDetail, error) {
+	query := `
+		mutation RoadmapUpdate($id: String!, $input: RoadmapUpdateInput!) {
+			roadmapUpdate(id: $id, input: $input) {
+				success
+				roadmap {` + roadmapDetailFields + `}
+			}
+		}
+	`
+
+	var response struct {
+		RoadmapUpdate struct {
+			Success bool          `json:"success"`
+			Roadmap RoadmapDetail `json:"roadmap"`
+		} `json:"roadmapUpdate"`
+	}
+
+	if err := c.Execute(ctx, query, map[string]interface{}{"id": id, "input": input}, &response); err != nil {
+		return nil, err
+	}
+	return &response.RoadmapUpdate.Roadmap, nil
+}
+
+// DeleteRoadmap permanently deletes a roadmap.
+func (c *Client) DeleteRoadmap(ctx context.Context, id string) error {
+	return c.mutationOK(ctx,
+		`mutation($id: String!) { roadmapDelete(id: $id) { success } }`,
+		map[string]interface{}{"id": id}, "roadmapDelete")
+}
+
+// ArchiveRoadmap archives a roadmap.
+func (c *Client) ArchiveRoadmap(ctx context.Context, id string) error {
+	return c.mutationOK(ctx,
+		`mutation($id: String!) { roadmapArchive(id: $id) { success } }`,
+		map[string]interface{}{"id": id}, "roadmapArchive")
+}
 
 // ProjectRelation represents a dependency between two projects.
 type ProjectRelation struct {

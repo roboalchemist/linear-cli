@@ -146,10 +146,217 @@ var scheduleGetCmd = &cobra.Command{
 	},
 }
 
+var scheduleCreateCmd = &cobra.Command{
+	Use:     "create",
+	Aliases: []string{"new"},
+	Short:   "Create a time schedule",
+	Long: `Create a new time schedule.
+
+The Linear API requires schedule entries, supplied as a JSON array via
+--entries. Each entry has startsAt/endsAt (ISO 8601) and a userId or userEmail.
+
+Examples:
+  linear-cli schedule create --name "Primary on-call" \
+    --entries '[{"startsAt":"2026-08-01T00:00:00Z","endsAt":"2026-08-08T00:00:00Z","userId":"USER-ID"}]'`,
+	Run: func(cmd *cobra.Command, args []string) {
+		plaintext := viper.GetBool("plaintext")
+		jsonOut := viper.GetBool("json")
+
+		authHeader, err := auth.GetAuthHeader()
+		if err != nil {
+			output.Error(fmt.Sprintf("Authentication failed: %v", err), plaintext, jsonOut)
+			os.Exit(1)
+		}
+
+		client := api.NewClient(authHeader)
+
+		name, _ := cmd.Flags().GetString("name")
+		teamID, _ := cmd.Flags().GetString("team-id")
+		externalID, _ := cmd.Flags().GetString("external-id")
+		externalURL, _ := cmd.Flags().GetString("external-url")
+		entriesRaw, _ := cmd.Flags().GetString("entries")
+		configRaw, _ := cmd.Flags().GetString("config")
+		inputJSON, _ := cmd.Flags().GetString("input-json")
+
+		if teamID != "" {
+			fmt.Fprintln(os.Stderr, "Warning: the Linear time schedule API does not accept a team; --team-id was ignored.")
+		}
+
+		input := map[string]interface{}{"name": name}
+		if externalID != "" {
+			input["externalId"] = externalID
+		}
+		if externalURL != "" {
+			input["externalUrl"] = externalURL
+		}
+		if entriesRaw != "" {
+			entries, err := parseJSONValue(entriesRaw)
+			if err != nil {
+				output.Error(fmt.Sprintf("Invalid --entries: %v", err), plaintext, jsonOut)
+				os.Exit(1)
+			}
+			input["entries"] = entries
+		}
+		if configRaw != "" {
+			config, err := parseJSONValue(configRaw)
+			if err != nil {
+				output.Error(fmt.Sprintf("Invalid --config: %v", err), plaintext, jsonOut)
+				os.Exit(1)
+			}
+			input["config"] = config
+		}
+		if err := mergeJSONInput(input, inputJSON); err != nil {
+			output.Error(fmt.Sprintf("Invalid --input-json: %v", err), plaintext, jsonOut)
+			os.Exit(1)
+		}
+		if _, ok := input["entries"]; !ok {
+			output.Error("--entries is required (a JSON array of TimeScheduleEntryInput objects, or provide entries via --input-json).", plaintext, jsonOut)
+			os.Exit(1)
+		}
+
+		schedule, err := client.CreateTimeSchedule(context.Background(), input)
+		if err != nil {
+			output.Error(fmt.Sprintf("Failed to create time schedule: %v", err), plaintext, jsonOut)
+			os.Exit(1)
+		}
+
+		if jsonOut {
+			output.JSON(schedule)
+		} else {
+			output.Success(fmt.Sprintf("Created time schedule %s",
+				color.New(color.FgWhite, color.Bold).Sprint(schedule.Name)), plaintext, jsonOut)
+		}
+	},
+}
+
+var scheduleUpdateCmd = &cobra.Command{
+	Use:     "update SCHEDULE-ID",
+	Aliases: []string{"edit"},
+	Short:   "Update a time schedule",
+	Long: `Update a time schedule's name, entries, or external references.
+
+Examples:
+  linear-cli schedule update SCHEDULE-ID --name "Renamed schedule"
+  linear-cli schedule update SCHEDULE-ID --entries '[{"startsAt":"2026-08-01T00:00:00Z","endsAt":"2026-08-08T00:00:00Z","userId":"USER-ID"}]'`,
+	Args: cobra.ExactArgs(1),
+	Run: func(cmd *cobra.Command, args []string) {
+		plaintext := viper.GetBool("plaintext")
+		jsonOut := viper.GetBool("json")
+
+		authHeader, err := auth.GetAuthHeader()
+		if err != nil {
+			output.Error(fmt.Sprintf("Authentication failed: %v", err), plaintext, jsonOut)
+			os.Exit(1)
+		}
+
+		client := api.NewClient(authHeader)
+		input := map[string]interface{}{}
+		if cmd.Flags().Changed("name") {
+			v, _ := cmd.Flags().GetString("name")
+			input["name"] = v
+		}
+		if cmd.Flags().Changed("external-id") {
+			v, _ := cmd.Flags().GetString("external-id")
+			input["externalId"] = v
+		}
+		if cmd.Flags().Changed("external-url") {
+			v, _ := cmd.Flags().GetString("external-url")
+			input["externalUrl"] = v
+		}
+		if cmd.Flags().Changed("entries") {
+			raw, _ := cmd.Flags().GetString("entries")
+			v, err := parseJSONValue(raw)
+			if err != nil {
+				output.Error(fmt.Sprintf("Invalid --entries: %v", err), plaintext, jsonOut)
+				os.Exit(1)
+			}
+			input["entries"] = v
+		}
+		if cmd.Flags().Changed("config") {
+			raw, _ := cmd.Flags().GetString("config")
+			v, err := parseJSONValue(raw)
+			if err != nil {
+				output.Error(fmt.Sprintf("Invalid --config: %v", err), plaintext, jsonOut)
+				os.Exit(1)
+			}
+			input["config"] = v
+		}
+		inputJSON, _ := cmd.Flags().GetString("input-json")
+		if err := mergeJSONInput(input, inputJSON); err != nil {
+			output.Error(fmt.Sprintf("Invalid --input-json: %v", err), plaintext, jsonOut)
+			os.Exit(1)
+		}
+		if len(input) == 0 {
+			output.Error("No fields to update. Use --name, --entries, --external-id, --external-url, --config, or --input-json.", plaintext, jsonOut)
+			os.Exit(1)
+		}
+
+		schedule, err := client.UpdateTimeSchedule(context.Background(), args[0], input)
+		if err != nil {
+			output.Error(fmt.Sprintf("Failed to update time schedule: %v", err), plaintext, jsonOut)
+			os.Exit(1)
+		}
+
+		if jsonOut {
+			output.JSON(schedule)
+		} else {
+			output.Success(fmt.Sprintf("Updated time schedule %s",
+				color.New(color.FgWhite, color.Bold).Sprint(schedule.Name)), plaintext, jsonOut)
+		}
+	},
+}
+
+var scheduleDeleteCmd = &cobra.Command{
+	Use:     "delete SCHEDULE-ID",
+	Aliases: []string{"rm"},
+	Short:   "Delete a time schedule",
+	Long:    `Delete a time schedule.`,
+	Args:    cobra.ExactArgs(1),
+	Run: func(cmd *cobra.Command, args []string) {
+		plaintext := viper.GetBool("plaintext")
+		jsonOut := viper.GetBool("json")
+
+		authHeader, err := auth.GetAuthHeader()
+		if err != nil {
+			output.Error(fmt.Sprintf("Authentication failed: %v", err), plaintext, jsonOut)
+			os.Exit(1)
+		}
+
+		client := api.NewClient(authHeader)
+		if err := client.DeleteTimeSchedule(context.Background(), args[0]); err != nil {
+			output.Error(fmt.Sprintf("Failed to delete time schedule: %v", err), plaintext, jsonOut)
+			os.Exit(1)
+		}
+
+		output.Success("Deleted time schedule", plaintext, jsonOut)
+	},
+}
+
 func init() {
 	rootCmd.AddCommand(scheduleCmd)
 	scheduleCmd.AddCommand(scheduleListCmd)
 	scheduleCmd.AddCommand(scheduleGetCmd)
+	scheduleCmd.AddCommand(scheduleCreateCmd)
+	scheduleCmd.AddCommand(scheduleUpdateCmd)
+	scheduleCmd.AddCommand(scheduleDeleteCmd)
 
 	scheduleListCmd.Flags().IntP("limit", "l", 50, "Maximum number of time schedules to return")
+
+	// Create flags
+	scheduleCreateCmd.Flags().StringP("name", "n", "", "Time schedule name (required)")
+	scheduleCreateCmd.Flags().String("team-id", "", "Team ID (accepted for compatibility; not sent to the API)")
+	scheduleCreateCmd.Flags().String("external-id", "", "External schedule identifier")
+	scheduleCreateCmd.Flags().String("external-url", "", "URL to the external schedule")
+	scheduleCreateCmd.Flags().String("entries", "", "Schedule entries as a JSON array (required)")
+	scheduleCreateCmd.Flags().String("config", "", "[ALPHA] Schedule configuration as JSON")
+	scheduleCreateCmd.Flags().String("input-json", "", "Additional TimeScheduleCreateInput fields as a JSON object")
+	_ = scheduleCreateCmd.MarkFlagRequired("name")
+
+	// Update flags
+	scheduleUpdateCmd.Flags().StringP("name", "n", "", "New time schedule name")
+	scheduleUpdateCmd.Flags().String("external-id", "", "New external schedule identifier")
+	scheduleUpdateCmd.Flags().String("external-url", "", "New external schedule URL")
+	scheduleUpdateCmd.Flags().String("entries", "", "New schedule entries as a JSON array")
+	scheduleUpdateCmd.Flags().String("config", "", "[ALPHA] New schedule configuration as JSON")
+	scheduleUpdateCmd.Flags().String("input-json", "", "Additional TimeScheduleUpdateInput fields as a JSON object")
 }

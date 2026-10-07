@@ -30,6 +30,10 @@ workflow-state CRUD (`team state create/update/archive`), cycle start-today/
 shift-all, and bulk inbox actions (mark-all-read/unread, snooze-all,
 unsnooze-all, archive-all).
 
+**Closed — entity CRUD (write).** create/update/delete/archive for roadmaps,
+releases, templates, webhooks, time schedules, and customers (+ status/tier,
+plus customer merge); emoji create/delete; webhook secret rotation.
+
 **Verified live (read-only).** `live_read_test.sh` runs every read/list command
 against the real API: **65 pass, 6 skip (workspace feature/scope gates), 0 fail**.
 Automated via `make test-live-read` and the *Live read-only tests* workflow.

@@ -213,10 +213,190 @@ var roadmapGetCmd = &cobra.Command{
 	},
 }
 
+var roadmapCreateCmd = &cobra.Command{
+	Use:     "create",
+	Aliases: []string{"new"},
+	Short:   "Create a roadmap",
+	Long: `Create a new roadmap.
+
+Examples:
+  linear-cli roadmap create --name "Q3 Roadmap" --description "H2 planning"
+  linear-cli roadmap create --name "Q3 Roadmap" --owner-id USER-ID`,
+	Run: func(cmd *cobra.Command, args []string) {
+		plaintext := viper.GetBool("plaintext")
+		jsonOut := viper.GetBool("json")
+
+		authHeader, err := auth.GetAuthHeader()
+		if err != nil {
+			output.Error(fmt.Sprintf("Authentication failed: %v", err), plaintext, jsonOut)
+			os.Exit(1)
+		}
+
+		client := api.NewClient(authHeader)
+
+		name, _ := cmd.Flags().GetString("name")
+		description, _ := cmd.Flags().GetString("description")
+		ownerID, _ := cmd.Flags().GetString("owner-id")
+		inputJSON, _ := cmd.Flags().GetString("input-json")
+
+		input := map[string]interface{}{"name": name}
+		if description != "" {
+			input["description"] = description
+		}
+		if ownerID != "" {
+			input["ownerId"] = ownerID
+		}
+		if err := mergeJSONInput(input, inputJSON); err != nil {
+			output.Error(fmt.Sprintf("Invalid --input-json: %v", err), plaintext, jsonOut)
+			os.Exit(1)
+		}
+
+		roadmap, err := client.CreateRoadmap(context.Background(), input)
+		if err != nil {
+			output.Error(fmt.Sprintf("Failed to create roadmap: %v", err), plaintext, jsonOut)
+			os.Exit(1)
+		}
+
+		if jsonOut {
+			output.JSON(roadmap)
+		} else {
+			output.Success(fmt.Sprintf("Created roadmap %s",
+				color.New(color.FgWhite, color.Bold).Sprint(roadmap.Name)), plaintext, jsonOut)
+		}
+	},
+}
+
+var roadmapUpdateCmd = &cobra.Command{
+	Use:     "update ROADMAP-ID",
+	Aliases: []string{"edit"},
+	Short:   "Update a roadmap",
+	Long: `Update a roadmap's name, description, or owner.
+
+Examples:
+  linear-cli roadmap update ROADMAP-ID --name "Renamed Roadmap"
+  linear-cli roadmap update ROADMAP-ID --owner-id USER-ID`,
+	Args: cobra.ExactArgs(1),
+	Run: func(cmd *cobra.Command, args []string) {
+		plaintext := viper.GetBool("plaintext")
+		jsonOut := viper.GetBool("json")
+
+		authHeader, err := auth.GetAuthHeader()
+		if err != nil {
+			output.Error(fmt.Sprintf("Authentication failed: %v", err), plaintext, jsonOut)
+			os.Exit(1)
+		}
+
+		client := api.NewClient(authHeader)
+		input := map[string]interface{}{}
+		if cmd.Flags().Changed("name") {
+			name, _ := cmd.Flags().GetString("name")
+			input["name"] = name
+		}
+		if cmd.Flags().Changed("description") {
+			d, _ := cmd.Flags().GetString("description")
+			input["description"] = d
+		}
+		if cmd.Flags().Changed("owner-id") {
+			o, _ := cmd.Flags().GetString("owner-id")
+			input["ownerId"] = o
+		}
+		inputJSON, _ := cmd.Flags().GetString("input-json")
+		if err := mergeJSONInput(input, inputJSON); err != nil {
+			output.Error(fmt.Sprintf("Invalid --input-json: %v", err), plaintext, jsonOut)
+			os.Exit(1)
+		}
+		if len(input) == 0 {
+			output.Error("No fields to update. Use --name, --description, --owner-id, or --input-json.", plaintext, jsonOut)
+			os.Exit(1)
+		}
+
+		roadmap, err := client.UpdateRoadmap(context.Background(), args[0], input)
+		if err != nil {
+			output.Error(fmt.Sprintf("Failed to update roadmap: %v", err), plaintext, jsonOut)
+			os.Exit(1)
+		}
+
+		if jsonOut {
+			output.JSON(roadmap)
+		} else {
+			output.Success(fmt.Sprintf("Updated roadmap %s",
+				color.New(color.FgWhite, color.Bold).Sprint(roadmap.Name)), plaintext, jsonOut)
+		}
+	},
+}
+
+var roadmapDeleteCmd = &cobra.Command{
+	Use:     "delete ROADMAP-ID",
+	Aliases: []string{"rm"},
+	Short:   "Delete a roadmap",
+	Long:    `Permanently delete a roadmap.`,
+	Args:    cobra.ExactArgs(1),
+	Run: func(cmd *cobra.Command, args []string) {
+		plaintext := viper.GetBool("plaintext")
+		jsonOut := viper.GetBool("json")
+
+		authHeader, err := auth.GetAuthHeader()
+		if err != nil {
+			output.Error(fmt.Sprintf("Authentication failed: %v", err), plaintext, jsonOut)
+			os.Exit(1)
+		}
+
+		client := api.NewClient(authHeader)
+		if err := client.DeleteRoadmap(context.Background(), args[0]); err != nil {
+			output.Error(fmt.Sprintf("Failed to delete roadmap: %v", err), plaintext, jsonOut)
+			os.Exit(1)
+		}
+
+		output.Success("Deleted roadmap", plaintext, jsonOut)
+	},
+}
+
+var roadmapArchiveCmd = &cobra.Command{
+	Use:   "archive ROADMAP-ID",
+	Short: "Archive a roadmap",
+	Long:  `Archive a roadmap. Archived roadmaps are hidden from the default list.`,
+	Args:  cobra.ExactArgs(1),
+	Run: func(cmd *cobra.Command, args []string) {
+		plaintext := viper.GetBool("plaintext")
+		jsonOut := viper.GetBool("json")
+
+		authHeader, err := auth.GetAuthHeader()
+		if err != nil {
+			output.Error(fmt.Sprintf("Authentication failed: %v", err), plaintext, jsonOut)
+			os.Exit(1)
+		}
+
+		client := api.NewClient(authHeader)
+		if err := client.ArchiveRoadmap(context.Background(), args[0]); err != nil {
+			output.Error(fmt.Sprintf("Failed to archive roadmap: %v", err), plaintext, jsonOut)
+			os.Exit(1)
+		}
+
+		output.Success("Archived roadmap", plaintext, jsonOut)
+	},
+}
+
 func init() {
 	rootCmd.AddCommand(roadmapCmd)
 	roadmapCmd.AddCommand(roadmapListCmd)
 	roadmapCmd.AddCommand(roadmapGetCmd)
+	roadmapCmd.AddCommand(roadmapCreateCmd)
+	roadmapCmd.AddCommand(roadmapUpdateCmd)
+	roadmapCmd.AddCommand(roadmapDeleteCmd)
+	roadmapCmd.AddCommand(roadmapArchiveCmd)
 
 	roadmapListCmd.Flags().IntP("limit", "l", 25, "Maximum number of roadmaps to return")
+
+	// Create flags
+	roadmapCreateCmd.Flags().StringP("name", "n", "", "Roadmap name (required)")
+	roadmapCreateCmd.Flags().StringP("description", "d", "", "Roadmap description")
+	roadmapCreateCmd.Flags().String("owner-id", "", "Owner user ID")
+	roadmapCreateCmd.Flags().String("input-json", "", "Additional RoadmapCreateInput fields as a JSON object")
+	_ = roadmapCreateCmd.MarkFlagRequired("name")
+
+	// Update flags
+	roadmapUpdateCmd.Flags().StringP("name", "n", "", "New roadmap name")
+	roadmapUpdateCmd.Flags().StringP("description", "d", "", "New roadmap description")
+	roadmapUpdateCmd.Flags().String("owner-id", "", "New owner user ID")
+	roadmapUpdateCmd.Flags().String("input-json", "", "Additional RoadmapUpdateInput fields as a JSON object")
 }

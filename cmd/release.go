@@ -398,6 +398,282 @@ var releaseStageListCmd = &cobra.Command{
 	},
 }
 
+var releaseCreateCmd = &cobra.Command{
+	Use:     "create",
+	Aliases: []string{"new"},
+	Short:   "Create a release",
+	Long: `Create a new release in a pipeline.
+
+The Linear API requires a pipeline ID. Dates use YYYY-MM-DD format.
+
+Examples:
+  linear-cli release create --name "v1.2.0" --pipeline-id PIPE-ID
+  linear-cli release create --name "v1.2.0" --pipeline-id PIPE-ID --stage-id STAGE-ID --target-date 2026-08-01`,
+	Run: func(cmd *cobra.Command, args []string) {
+		plaintext := viper.GetBool("plaintext")
+		jsonOut := viper.GetBool("json")
+
+		authHeader, err := auth.GetAuthHeader()
+		if err != nil {
+			output.Error(fmt.Sprintf("Authentication failed: %v", err), plaintext, jsonOut)
+			os.Exit(1)
+		}
+
+		client := api.NewClient(authHeader)
+
+		name, _ := cmd.Flags().GetString("name")
+		description, _ := cmd.Flags().GetString("description")
+		pipelineID, _ := cmd.Flags().GetString("pipeline-id")
+		stageID, _ := cmd.Flags().GetString("stage-id")
+		startDate, _ := cmd.Flags().GetString("start-date")
+		targetDate, _ := cmd.Flags().GetString("target-date")
+		version, _ := cmd.Flags().GetString("version")
+		commitSha, _ := cmd.Flags().GetString("commit-sha")
+		inputJSON, _ := cmd.Flags().GetString("input-json")
+
+		input := map[string]interface{}{"name": name}
+		if description != "" {
+			input["description"] = description
+		}
+		if pipelineID != "" {
+			input["pipelineId"] = pipelineID
+		}
+		if stageID != "" {
+			input["stageId"] = stageID
+		}
+		if startDate != "" {
+			input["startDate"] = startDate
+		}
+		if targetDate != "" {
+			input["targetDate"] = targetDate
+		}
+		if version != "" {
+			input["version"] = version
+		}
+		if commitSha != "" {
+			input["commitSha"] = commitSha
+		}
+		if err := mergeJSONInput(input, inputJSON); err != nil {
+			output.Error(fmt.Sprintf("Invalid --input-json: %v", err), plaintext, jsonOut)
+			os.Exit(1)
+		}
+		if _, ok := input["pipelineId"]; !ok {
+			output.Error("--pipeline-id is required (or provide pipelineId via --input-json).", plaintext, jsonOut)
+			os.Exit(1)
+		}
+
+		release, err := client.CreateRelease(context.Background(), input)
+		if err != nil {
+			output.Error(fmt.Sprintf("Failed to create release: %v", err), plaintext, jsonOut)
+			os.Exit(1)
+		}
+
+		if jsonOut {
+			output.JSON(release)
+		} else {
+			output.Success(fmt.Sprintf("Created release %s",
+				color.New(color.FgWhite, color.Bold).Sprint(release.Name)), plaintext, jsonOut)
+		}
+	},
+}
+
+var releaseUpdateCmd = &cobra.Command{
+	Use:     "update RELEASE-ID",
+	Aliases: []string{"edit"},
+	Short:   "Update a release",
+	Long: `Update a release's name, description, stage, version, or dates.
+
+Dates use YYYY-MM-DD format.
+
+Examples:
+  linear-cli release update RELEASE-ID --version 1.2.1
+  linear-cli release update RELEASE-ID --stage-id STAGE-ID --target-date 2026-09-01`,
+	Args: cobra.ExactArgs(1),
+	Run: func(cmd *cobra.Command, args []string) {
+		plaintext := viper.GetBool("plaintext")
+		jsonOut := viper.GetBool("json")
+
+		authHeader, err := auth.GetAuthHeader()
+		if err != nil {
+			output.Error(fmt.Sprintf("Authentication failed: %v", err), plaintext, jsonOut)
+			os.Exit(1)
+		}
+
+		client := api.NewClient(authHeader)
+		input := map[string]interface{}{}
+		if cmd.Flags().Changed("name") {
+			v, _ := cmd.Flags().GetString("name")
+			input["name"] = v
+		}
+		if cmd.Flags().Changed("description") {
+			v, _ := cmd.Flags().GetString("description")
+			input["description"] = v
+		}
+		if cmd.Flags().Changed("stage-id") {
+			v, _ := cmd.Flags().GetString("stage-id")
+			input["stageId"] = v
+		}
+		if cmd.Flags().Changed("start-date") {
+			v, _ := cmd.Flags().GetString("start-date")
+			input["startDate"] = v
+		}
+		if cmd.Flags().Changed("target-date") {
+			v, _ := cmd.Flags().GetString("target-date")
+			input["targetDate"] = v
+		}
+		if cmd.Flags().Changed("version") {
+			v, _ := cmd.Flags().GetString("version")
+			input["version"] = v
+		}
+		if cmd.Flags().Changed("commit-sha") {
+			v, _ := cmd.Flags().GetString("commit-sha")
+			input["commitSha"] = v
+		}
+		if cmd.Flags().Changed("trashed") {
+			v, _ := cmd.Flags().GetBool("trashed")
+			input["trashed"] = v
+		}
+		inputJSON, _ := cmd.Flags().GetString("input-json")
+		if err := mergeJSONInput(input, inputJSON); err != nil {
+			output.Error(fmt.Sprintf("Invalid --input-json: %v", err), plaintext, jsonOut)
+			os.Exit(1)
+		}
+		if len(input) == 0 {
+			output.Error("No fields to update. Use --name, --description, --stage-id, --start-date, --target-date, --version, --commit-sha, --trashed, or --input-json.", plaintext, jsonOut)
+			os.Exit(1)
+		}
+
+		release, err := client.UpdateRelease(context.Background(), args[0], input)
+		if err != nil {
+			output.Error(fmt.Sprintf("Failed to update release: %v", err), plaintext, jsonOut)
+			os.Exit(1)
+		}
+
+		if jsonOut {
+			output.JSON(release)
+		} else {
+			output.Success(fmt.Sprintf("Updated release %s",
+				color.New(color.FgWhite, color.Bold).Sprint(release.Name)), plaintext, jsonOut)
+		}
+	},
+}
+
+var releaseArchiveCmd = &cobra.Command{
+	Use:   "archive RELEASE-ID",
+	Short: "Archive a release",
+	Long:  `Archive a release. Archived releases are hidden from the default list.`,
+	Args:  cobra.ExactArgs(1),
+	Run: func(cmd *cobra.Command, args []string) {
+		plaintext := viper.GetBool("plaintext")
+		jsonOut := viper.GetBool("json")
+
+		authHeader, err := auth.GetAuthHeader()
+		if err != nil {
+			output.Error(fmt.Sprintf("Authentication failed: %v", err), plaintext, jsonOut)
+			os.Exit(1)
+		}
+
+		client := api.NewClient(authHeader)
+		if err := client.ArchiveRelease(context.Background(), args[0]); err != nil {
+			output.Error(fmt.Sprintf("Failed to archive release: %v", err), plaintext, jsonOut)
+			os.Exit(1)
+		}
+
+		output.Success("Archived release", plaintext, jsonOut)
+	},
+}
+
+var releaseDeleteCmd = &cobra.Command{
+	Use:     "delete RELEASE-ID",
+	Aliases: []string{"rm"},
+	Short:   "Delete a release",
+	Long:    `Move a release to the trash bin. Trashed releases are permanently deleted after a retention period.`,
+	Args:    cobra.ExactArgs(1),
+	Run: func(cmd *cobra.Command, args []string) {
+		plaintext := viper.GetBool("plaintext")
+		jsonOut := viper.GetBool("json")
+
+		authHeader, err := auth.GetAuthHeader()
+		if err != nil {
+			output.Error(fmt.Sprintf("Authentication failed: %v", err), plaintext, jsonOut)
+			os.Exit(1)
+		}
+
+		client := api.NewClient(authHeader)
+		if err := client.DeleteRelease(context.Background(), args[0]); err != nil {
+			output.Error(fmt.Sprintf("Failed to delete release: %v", err), plaintext, jsonOut)
+			os.Exit(1)
+		}
+
+		output.Success("Deleted release", plaintext, jsonOut)
+	},
+}
+
+var releaseCompleteCmd = &cobra.Command{
+	Use:   "complete PIPELINE-ID",
+	Short: "Mark a release as completed",
+	Long: `Mark a release as completed.
+
+The Linear releaseComplete mutation is keyed by pipeline, so PIPELINE-ID is
+required. When --version is omitted, the most recently started release in the
+pipeline is completed. Use --input-json to pass any additional
+ReleaseCompleteInput fields.
+
+Examples:
+  linear-cli release complete PIPE-ID
+  linear-cli release complete PIPE-ID --version 1.2.0
+  linear-cli release complete PIPE-ID --input-json '{"version":"1.2.0","commitSha":"abc123"}'`,
+	Args: cobra.ExactArgs(1),
+	Run: func(cmd *cobra.Command, args []string) {
+		plaintext := viper.GetBool("plaintext")
+		jsonOut := viper.GetBool("json")
+
+		authHeader, err := auth.GetAuthHeader()
+		if err != nil {
+			output.Error(fmt.Sprintf("Authentication failed: %v", err), plaintext, jsonOut)
+			os.Exit(1)
+		}
+
+		client := api.NewClient(authHeader)
+
+		input := map[string]interface{}{"pipelineId": args[0]}
+		if cmd.Flags().Changed("version") {
+			v, _ := cmd.Flags().GetString("version")
+			input["version"] = v
+		}
+		if cmd.Flags().Changed("commit-sha") {
+			v, _ := cmd.Flags().GetString("commit-sha")
+			input["commitSha"] = v
+		}
+		if cmd.Flags().Changed("name") {
+			v, _ := cmd.Flags().GetString("name")
+			input["name"] = v
+		}
+		if cmd.Flags().Changed("description") {
+			v, _ := cmd.Flags().GetString("description")
+			input["description"] = v
+		}
+		inputJSON, _ := cmd.Flags().GetString("input-json")
+		if err := mergeJSONInput(input, inputJSON); err != nil {
+			output.Error(fmt.Sprintf("Invalid --input-json: %v", err), plaintext, jsonOut)
+			os.Exit(1)
+		}
+
+		release, err := client.CompleteRelease(context.Background(), input)
+		if err != nil {
+			output.Error(fmt.Sprintf("Failed to complete release: %v", err), plaintext, jsonOut)
+			os.Exit(1)
+		}
+
+		if jsonOut {
+			output.JSON(release)
+		} else {
+			output.Success(fmt.Sprintf("Completed release %s",
+				color.New(color.FgWhite, color.Bold).Sprint(release.Name)), plaintext, jsonOut)
+		}
+	},
+}
+
 // releaseVersion returns the release version or "—" when unset.
 func releaseVersion(r api.ReleaseDetail) string {
 	if r.Version != nil && *r.Version != "" {
@@ -503,9 +779,44 @@ func init() {
 	releasePipelineCmd.AddCommand(releasePipelineListCmd)
 	releaseCmd.AddCommand(releaseStageCmd)
 	releaseStageCmd.AddCommand(releaseStageListCmd)
+	releaseCmd.AddCommand(releaseCreateCmd)
+	releaseCmd.AddCommand(releaseUpdateCmd)
+	releaseCmd.AddCommand(releaseArchiveCmd)
+	releaseCmd.AddCommand(releaseDeleteCmd)
+	releaseCmd.AddCommand(releaseCompleteCmd)
 
 	releaseListCmd.Flags().IntP("limit", "l", 25, "Maximum number of releases to return")
 	releaseListCmd.Flags().Bool("include-archived", false, "Include archived releases")
+
+	// Create flags
+	releaseCreateCmd.Flags().StringP("name", "n", "", "Release name (required)")
+	releaseCreateCmd.Flags().StringP("description", "d", "", "Release description")
+	releaseCreateCmd.Flags().String("pipeline-id", "", "Pipeline ID (required)")
+	releaseCreateCmd.Flags().String("stage-id", "", "Stage ID")
+	releaseCreateCmd.Flags().String("start-date", "", "Estimated start date YYYY-MM-DD")
+	releaseCreateCmd.Flags().String("target-date", "", "Estimated completion date YYYY-MM-DD")
+	releaseCreateCmd.Flags().String("version", "", "Release version")
+	releaseCreateCmd.Flags().String("commit-sha", "", "Commit SHA associated with the release")
+	releaseCreateCmd.Flags().String("input-json", "", "Additional ReleaseCreateInput fields as a JSON object")
+	_ = releaseCreateCmd.MarkFlagRequired("name")
+
+	// Update flags
+	releaseUpdateCmd.Flags().StringP("name", "n", "", "New release name")
+	releaseUpdateCmd.Flags().StringP("description", "d", "", "New description")
+	releaseUpdateCmd.Flags().String("stage-id", "", "New stage ID")
+	releaseUpdateCmd.Flags().String("start-date", "", "New start date YYYY-MM-DD")
+	releaseUpdateCmd.Flags().String("target-date", "", "New target date YYYY-MM-DD")
+	releaseUpdateCmd.Flags().String("version", "", "New version")
+	releaseUpdateCmd.Flags().String("commit-sha", "", "New commit SHA")
+	releaseUpdateCmd.Flags().Bool("trashed", false, "Whether the release is trashed")
+	releaseUpdateCmd.Flags().String("input-json", "", "Additional ReleaseUpdateInput fields as a JSON object")
+
+	// Complete flags
+	releaseCompleteCmd.Flags().String("version", "", "Version of the release to complete")
+	releaseCompleteCmd.Flags().String("commit-sha", "", "Commit SHA to store when completing")
+	releaseCompleteCmd.Flags().String("name", "", "Optional name to apply when completing")
+	releaseCompleteCmd.Flags().String("description", "", "Optional description to apply when completing")
+	releaseCompleteCmd.Flags().String("input-json", "", "Additional ReleaseCompleteInput fields as a JSON object")
 
 	releaseNoteListCmd.Flags().IntP("limit", "l", 25, "Maximum number of release notes to return")
 	releasePipelineListCmd.Flags().IntP("limit", "l", 25, "Maximum number of release pipelines to return")

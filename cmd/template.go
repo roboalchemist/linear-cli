@@ -218,12 +218,218 @@ var templateSearchCmd = &cobra.Command{
 	},
 }
 
+var templateCreateCmd = &cobra.Command{
+	Use:     "create",
+	Aliases: []string{"new"},
+	Short:   "Create a template",
+	Long: `Create a new template.
+
+--type must be one of: issue, project. --template-data is a JSON object of
+pre-filled attributes for the target entity type and defaults to {}.
+
+Examples:
+  linear-cli template create --name "Bug report" --type issue --team-id TEAM-ID
+  linear-cli template create --name "Feature" --type project \
+    --template-data '{"description":"Describe the feature"}'`,
+	Run: func(cmd *cobra.Command, args []string) {
+		plaintext := viper.GetBool("plaintext")
+		jsonOut := viper.GetBool("json")
+
+		authHeader, err := auth.GetAuthHeader()
+		if err != nil {
+			output.Error(fmt.Sprintf("Authentication failed: %v", err), plaintext, jsonOut)
+			os.Exit(1)
+		}
+
+		client := api.NewClient(authHeader)
+
+		name, _ := cmd.Flags().GetString("name")
+		templateType, _ := cmd.Flags().GetString("type")
+		teamID, _ := cmd.Flags().GetString("team-id")
+		description, _ := cmd.Flags().GetString("description")
+		templateDataRaw, _ := cmd.Flags().GetString("template-data")
+		inputJSON, _ := cmd.Flags().GetString("input-json")
+
+		if templateType != "issue" && templateType != "project" {
+			output.Error("--type must be one of: issue, project.", plaintext, jsonOut)
+			os.Exit(1)
+		}
+
+		var templateData interface{} = map[string]interface{}{}
+		if templateDataRaw != "" {
+			templateData, err = parseJSONValue(templateDataRaw)
+			if err != nil {
+				output.Error(fmt.Sprintf("Invalid --template-data: %v", err), plaintext, jsonOut)
+				os.Exit(1)
+			}
+		}
+
+		input := map[string]interface{}{
+			"name":         name,
+			"type":         templateType,
+			"templateData": templateData,
+		}
+		if teamID != "" {
+			input["teamId"] = teamID
+		}
+		if description != "" {
+			input["description"] = description
+		}
+		if err := mergeJSONInput(input, inputJSON); err != nil {
+			output.Error(fmt.Sprintf("Invalid --input-json: %v", err), plaintext, jsonOut)
+			os.Exit(1)
+		}
+
+		template, err := client.CreateTemplate(context.Background(), input)
+		if err != nil {
+			output.Error(fmt.Sprintf("Failed to create template: %v", err), plaintext, jsonOut)
+			os.Exit(1)
+		}
+
+		if jsonOut {
+			output.JSON(template)
+		} else {
+			output.Success(fmt.Sprintf("Created template %s (%s)",
+				color.New(color.FgWhite, color.Bold).Sprint(template.Name), template.Type), plaintext, jsonOut)
+		}
+	},
+}
+
+var templateUpdateCmd = &cobra.Command{
+	Use:     "update TEMPLATE-ID",
+	Aliases: []string{"edit"},
+	Short:   "Update a template",
+	Long: `Update a template's name, description, team, or template data.
+
+Examples:
+  linear-cli template update TEMPLATE-ID --name "Renamed template"
+  linear-cli template update TEMPLATE-ID --template-data '{"title":"Updated"}'`,
+	Args: cobra.ExactArgs(1),
+	Run: func(cmd *cobra.Command, args []string) {
+		plaintext := viper.GetBool("plaintext")
+		jsonOut := viper.GetBool("json")
+
+		authHeader, err := auth.GetAuthHeader()
+		if err != nil {
+			output.Error(fmt.Sprintf("Authentication failed: %v", err), plaintext, jsonOut)
+			os.Exit(1)
+		}
+
+		client := api.NewClient(authHeader)
+		input := map[string]interface{}{}
+		if cmd.Flags().Changed("name") {
+			v, _ := cmd.Flags().GetString("name")
+			input["name"] = v
+		}
+		if cmd.Flags().Changed("description") {
+			v, _ := cmd.Flags().GetString("description")
+			input["description"] = v
+		}
+		if cmd.Flags().Changed("team-id") {
+			v, _ := cmd.Flags().GetString("team-id")
+			input["teamId"] = v
+		}
+		if cmd.Flags().Changed("color") {
+			v, _ := cmd.Flags().GetString("color")
+			input["color"] = v
+		}
+		if cmd.Flags().Changed("icon") {
+			v, _ := cmd.Flags().GetString("icon")
+			input["icon"] = v
+		}
+		if cmd.Flags().Changed("sort-order") {
+			v, _ := cmd.Flags().GetFloat64("sort-order")
+			input["sortOrder"] = v
+		}
+		if cmd.Flags().Changed("template-data") {
+			raw, _ := cmd.Flags().GetString("template-data")
+			v, err := parseJSONValue(raw)
+			if err != nil {
+				output.Error(fmt.Sprintf("Invalid --template-data: %v", err), plaintext, jsonOut)
+				os.Exit(1)
+			}
+			input["templateData"] = v
+		}
+		inputJSON, _ := cmd.Flags().GetString("input-json")
+		if err := mergeJSONInput(input, inputJSON); err != nil {
+			output.Error(fmt.Sprintf("Invalid --input-json: %v", err), plaintext, jsonOut)
+			os.Exit(1)
+		}
+		if len(input) == 0 {
+			output.Error("No fields to update. Use --name, --description, --team-id, --template-data, --color, --icon, --sort-order, or --input-json.", plaintext, jsonOut)
+			os.Exit(1)
+		}
+
+		template, err := client.UpdateTemplate(context.Background(), args[0], input)
+		if err != nil {
+			output.Error(fmt.Sprintf("Failed to update template: %v", err), plaintext, jsonOut)
+			os.Exit(1)
+		}
+
+		if jsonOut {
+			output.JSON(template)
+		} else {
+			output.Success(fmt.Sprintf("Updated template %s",
+				color.New(color.FgWhite, color.Bold).Sprint(template.Name)), plaintext, jsonOut)
+		}
+	},
+}
+
+var templateDeleteCmd = &cobra.Command{
+	Use:     "delete TEMPLATE-ID",
+	Aliases: []string{"rm"},
+	Short:   "Delete a template",
+	Long:    `Delete a template.`,
+	Args:    cobra.ExactArgs(1),
+	Run: func(cmd *cobra.Command, args []string) {
+		plaintext := viper.GetBool("plaintext")
+		jsonOut := viper.GetBool("json")
+
+		authHeader, err := auth.GetAuthHeader()
+		if err != nil {
+			output.Error(fmt.Sprintf("Authentication failed: %v", err), plaintext, jsonOut)
+			os.Exit(1)
+		}
+
+		client := api.NewClient(authHeader)
+		if err := client.DeleteTemplate(context.Background(), args[0]); err != nil {
+			output.Error(fmt.Sprintf("Failed to delete template: %v", err), plaintext, jsonOut)
+			os.Exit(1)
+		}
+
+		output.Success("Deleted template", plaintext, jsonOut)
+	},
+}
+
 func init() {
 	rootCmd.AddCommand(templateCmd)
 	templateCmd.AddCommand(templateListCmd)
 	templateCmd.AddCommand(templateGetCmd)
 	templateCmd.AddCommand(templateSearchCmd)
+	templateCmd.AddCommand(templateCreateCmd)
+	templateCmd.AddCommand(templateUpdateCmd)
+	templateCmd.AddCommand(templateDeleteCmd)
 
 	templateListCmd.Flags().IntP("limit", "l", 50, "Maximum number of templates to return")
 	templateSearchCmd.Flags().IntP("limit", "l", 50, "Maximum number of templates to return")
+
+	// Create flags
+	templateCreateCmd.Flags().StringP("name", "n", "", "Template name (required)")
+	templateCreateCmd.Flags().String("type", "", "Template type: issue or project (required)")
+	templateCreateCmd.Flags().String("team-id", "", "Team ID (omit for a workspace-wide template)")
+	templateCreateCmd.Flags().StringP("description", "d", "", "Template description")
+	templateCreateCmd.Flags().String("template-data", "", "Template data as JSON (defaults to {})")
+	templateCreateCmd.Flags().String("input-json", "", "Additional TemplateCreateInput fields as a JSON object")
+	_ = templateCreateCmd.MarkFlagRequired("name")
+	_ = templateCreateCmd.MarkFlagRequired("type")
+
+	// Update flags
+	templateUpdateCmd.Flags().StringP("name", "n", "", "New template name")
+	templateUpdateCmd.Flags().StringP("description", "d", "", "New description")
+	templateUpdateCmd.Flags().String("team-id", "", "New team ID")
+	templateUpdateCmd.Flags().String("template-data", "", "New template data as JSON")
+	templateUpdateCmd.Flags().String("color", "", "New template icon color")
+	templateUpdateCmd.Flags().String("icon", "", "New template icon")
+	templateUpdateCmd.Flags().Float64("sort-order", 0, "New sort order")
+	templateUpdateCmd.Flags().String("input-json", "", "Additional TemplateUpdateInput fields as a JSON object")
 }

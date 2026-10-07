@@ -459,3 +459,180 @@ func (c *Client) GetAuditEntries(ctx context.Context, filter map[string]interfac
 	}
 	return &response.AuditEntries, nil
 }
+
+// ---------------------------------------------------------------------------
+// Templates (mutations)
+// ---------------------------------------------------------------------------
+
+// CreateTemplate creates a new template.
+func (c *Client) CreateTemplate(ctx context.Context, input map[string]interface{}) (*AdminTemplate, error) {
+	query := `
+		mutation TemplateCreate($input: TemplateCreateInput!) {
+			templateCreate(input: $input) {
+				success
+				template {` + adminTemplateFields + `}
+			}
+		}
+	`
+
+	var response struct {
+		TemplateCreate struct {
+			Success  bool          `json:"success"`
+			Template AdminTemplate `json:"template"`
+		} `json:"templateCreate"`
+	}
+
+	if err := c.Execute(ctx, query, map[string]interface{}{"input": input}, &response); err != nil {
+		return nil, err
+	}
+	return &response.TemplateCreate.Template, nil
+}
+
+// UpdateTemplate updates an existing template.
+func (c *Client) UpdateTemplate(ctx context.Context, id string, input map[string]interface{}) (*AdminTemplate, error) {
+	query := `
+		mutation TemplateUpdate($id: String!, $input: TemplateUpdateInput!) {
+			templateUpdate(id: $id, input: $input) {
+				success
+				template {` + adminTemplateFields + `}
+			}
+		}
+	`
+
+	var response struct {
+		TemplateUpdate struct {
+			Success  bool          `json:"success"`
+			Template AdminTemplate `json:"template"`
+		} `json:"templateUpdate"`
+	}
+
+	if err := c.Execute(ctx, query, map[string]interface{}{"id": id, "input": input}, &response); err != nil {
+		return nil, err
+	}
+	return &response.TemplateUpdate.Template, nil
+}
+
+// DeleteTemplate deletes a template.
+func (c *Client) DeleteTemplate(ctx context.Context, id string) error {
+	return c.mutationOK(ctx,
+		`mutation($id: String!) { templateDelete(id: $id) { success } }`,
+		map[string]interface{}{"id": id}, "templateDelete")
+}
+
+// ---------------------------------------------------------------------------
+// Webhooks (mutations)
+// ---------------------------------------------------------------------------
+
+// CreateWebhook creates a new webhook subscription.
+func (c *Client) CreateWebhook(ctx context.Context, input map[string]interface{}) (*Webhook, error) {
+	query := `
+		mutation WebhookCreate($input: WebhookCreateInput!) {
+			webhookCreate(input: $input) {
+				success
+				webhook {` + webhookFields + `}
+			}
+		}
+	`
+
+	var response struct {
+		WebhookCreate struct {
+			Success bool    `json:"success"`
+			Webhook Webhook `json:"webhook"`
+		} `json:"webhookCreate"`
+	}
+
+	if err := c.Execute(ctx, query, map[string]interface{}{"input": input}, &response); err != nil {
+		return nil, err
+	}
+	return &response.WebhookCreate.Webhook, nil
+}
+
+// UpdateWebhook updates an existing webhook.
+func (c *Client) UpdateWebhook(ctx context.Context, id string, input map[string]interface{}) (*Webhook, error) {
+	query := `
+		mutation WebhookUpdate($id: String!, $input: WebhookUpdateInput!) {
+			webhookUpdate(id: $id, input: $input) {
+				success
+				webhook {` + webhookFields + `}
+			}
+		}
+	`
+
+	var response struct {
+		WebhookUpdate struct {
+			Success bool    `json:"success"`
+			Webhook Webhook `json:"webhook"`
+		} `json:"webhookUpdate"`
+	}
+
+	if err := c.Execute(ctx, query, map[string]interface{}{"id": id, "input": input}, &response); err != nil {
+		return nil, err
+	}
+	return &response.WebhookUpdate.Webhook, nil
+}
+
+// DeleteWebhook deletes a webhook.
+func (c *Client) DeleteWebhook(ctx context.Context, id string) error {
+	return c.mutationOK(ctx,
+		`mutation($id: String!) { webhookDelete(id: $id) { success } }`,
+		map[string]interface{}{"id": id}, "webhookDelete")
+}
+
+// ---------------------------------------------------------------------------
+// Time schedules (mutations)
+// ---------------------------------------------------------------------------
+
+// CreateTimeSchedule creates a new time schedule.
+func (c *Client) CreateTimeSchedule(ctx context.Context, input map[string]interface{}) (*TimeSchedule, error) {
+	query := `
+		mutation TimeScheduleCreate($input: TimeScheduleCreateInput!) {
+			timeScheduleCreate(input: $input) {
+				success
+				timeSchedule {` + timeScheduleFields + `}
+			}
+		}
+	`
+
+	var response struct {
+		TimeScheduleCreate struct {
+			Success      bool         `json:"success"`
+			TimeSchedule TimeSchedule `json:"timeSchedule"`
+		} `json:"timeScheduleCreate"`
+	}
+
+	if err := c.Execute(ctx, query, map[string]interface{}{"input": input}, &response); err != nil {
+		return nil, err
+	}
+	return &response.TimeScheduleCreate.TimeSchedule, nil
+}
+
+// UpdateTimeSchedule updates an existing time schedule.
+func (c *Client) UpdateTimeSchedule(ctx context.Context, id string, input map[string]interface{}) (*TimeSchedule, error) {
+	query := `
+		mutation TimeScheduleUpdate($id: String!, $input: TimeScheduleUpdateInput!) {
+			timeScheduleUpdate(id: $id, input: $input) {
+				success
+				timeSchedule {` + timeScheduleFields + `}
+			}
+		}
+	`
+
+	var response struct {
+		TimeScheduleUpdate struct {
+			Success      bool         `json:"success"`
+			TimeSchedule TimeSchedule `json:"timeSchedule"`
+		} `json:"timeScheduleUpdate"`
+	}
+
+	if err := c.Execute(ctx, query, map[string]interface{}{"id": id, "input": input}, &response); err != nil {
+		return nil, err
+	}
+	return &response.TimeScheduleUpdate.TimeSchedule, nil
+}
+
+// DeleteTimeSchedule deletes a time schedule.
+func (c *Client) DeleteTimeSchedule(ctx context.Context, id string) error {
+	return c.mutationOK(ctx,
+		`mutation($id: String!) { timeScheduleDelete(id: $id) { success } }`,
+		map[string]interface{}{"id": id}, "timeScheduleDelete")
+}

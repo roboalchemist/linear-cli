@@ -382,3 +382,167 @@ func (c *Client) GetCustomerTiers(ctx context.Context, first int, after string) 
 
 	return &response.CustomerTiers, nil
 }
+
+// CreateCustomer creates a new customer.
+func (c *Client) CreateCustomer(ctx context.Context, input map[string]interface{}) (*Customer, error) {
+	query := `
+		mutation CustomerCreate($input: CustomerCreateInput!) {
+			customerCreate(input: $input) {
+				success
+				customer {` + customerFields + `}
+			}
+		}
+	`
+
+	var response struct {
+		CustomerCreate struct {
+			Success  bool     `json:"success"`
+			Customer Customer `json:"customer"`
+		} `json:"customerCreate"`
+	}
+
+	if err := c.Execute(ctx, query, map[string]interface{}{"input": input}, &response); err != nil {
+		return nil, err
+	}
+	return &response.CustomerCreate.Customer, nil
+}
+
+// UpdateCustomer updates an existing customer.
+func (c *Client) UpdateCustomer(ctx context.Context, id string, input map[string]interface{}) (*Customer, error) {
+	query := `
+		mutation CustomerUpdate($id: String!, $input: CustomerUpdateInput!) {
+			customerUpdate(id: $id, input: $input) {
+				success
+				customer {` + customerFields + `}
+			}
+		}
+	`
+
+	var response struct {
+		CustomerUpdate struct {
+			Success  bool     `json:"success"`
+			Customer Customer `json:"customer"`
+		} `json:"customerUpdate"`
+	}
+
+	if err := c.Execute(ctx, query, map[string]interface{}{"id": id, "input": input}, &response); err != nil {
+		return nil, err
+	}
+	return &response.CustomerUpdate.Customer, nil
+}
+
+// DeleteCustomer deletes a customer.
+func (c *Client) DeleteCustomer(ctx context.Context, id string) error {
+	return c.mutationOK(ctx,
+		`mutation($id: String!) { customerDelete(id: $id) { success } }`,
+		map[string]interface{}{"id": id}, "customerDelete")
+}
+
+// MergeCustomer merges the source customer into the target customer, moving all
+// needs to the target and archiving the source.
+func (c *Client) MergeCustomer(ctx context.Context, sourceID, targetID string) (*Customer, error) {
+	query := `
+		mutation CustomerMerge($source: String!, $target: String!) {
+			customerMerge(sourceCustomerId: $source, targetCustomerId: $target) {
+				success
+				customer {` + customerFields + `}
+			}
+		}
+	`
+
+	var response struct {
+		CustomerMerge struct {
+			Success  bool     `json:"success"`
+			Customer Customer `json:"customer"`
+		} `json:"customerMerge"`
+	}
+
+	variables := map[string]interface{}{"source": sourceID, "target": targetID}
+	if err := c.Execute(ctx, query, variables, &response); err != nil {
+		return nil, err
+	}
+	return &response.CustomerMerge.Customer, nil
+}
+
+// CreateCustomerStatus creates a new customer status.
+func (c *Client) CreateCustomerStatus(ctx context.Context, input map[string]interface{}) (*CustomerStatus, error) {
+	query := `
+		mutation CustomerStatusCreate($input: CustomerStatusCreateInput!) {
+			customerStatusCreate(input: $input) {
+				success
+				status {
+					id
+					name
+					displayName
+					color
+					description
+					type
+					position
+					createdAt
+					updatedAt
+					archivedAt
+				}
+			}
+		}
+	`
+
+	var response struct {
+		CustomerStatusCreate struct {
+			Success bool           `json:"success"`
+			Status  CustomerStatus `json:"status"`
+		} `json:"customerStatusCreate"`
+	}
+
+	if err := c.Execute(ctx, query, map[string]interface{}{"input": input}, &response); err != nil {
+		return nil, err
+	}
+	return &response.CustomerStatusCreate.Status, nil
+}
+
+// DeleteCustomerStatus deletes a customer status.
+func (c *Client) DeleteCustomerStatus(ctx context.Context, id string) error {
+	return c.mutationOK(ctx,
+		`mutation($id: String!) { customerStatusDelete(id: $id) { success } }`,
+		map[string]interface{}{"id": id}, "customerStatusDelete")
+}
+
+// CreateCustomerTier creates a new customer tier.
+func (c *Client) CreateCustomerTier(ctx context.Context, input map[string]interface{}) (*CustomerTier, error) {
+	query := `
+		mutation CustomerTierCreate($input: CustomerTierCreateInput!) {
+			customerTierCreate(input: $input) {
+				success
+				tier {
+					id
+					name
+					displayName
+					color
+					description
+					position
+					createdAt
+					updatedAt
+					archivedAt
+				}
+			}
+		}
+	`
+
+	var response struct {
+		CustomerTierCreate struct {
+			Success bool         `json:"success"`
+			Tier    CustomerTier `json:"tier"`
+		} `json:"customerTierCreate"`
+	}
+
+	if err := c.Execute(ctx, query, map[string]interface{}{"input": input}, &response); err != nil {
+		return nil, err
+	}
+	return &response.CustomerTierCreate.Tier, nil
+}
+
+// DeleteCustomerTier deletes a customer tier.
+func (c *Client) DeleteCustomerTier(ctx context.Context, id string) error {
+	return c.mutationOK(ctx,
+		`mutation($id: String!) { customerTierDelete(id: $id) { success } }`,
+		map[string]interface{}{"id": id}, "customerTierDelete")
+}

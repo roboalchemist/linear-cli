@@ -388,3 +388,91 @@ func (c *Client) GetReleaseStages(ctx context.Context, filter map[string]interfa
 
 	return &response.ReleaseStages, nil
 }
+
+// CreateRelease creates a new release in a pipeline.
+func (c *Client) CreateRelease(ctx context.Context, input map[string]interface{}) (*ReleaseDetail, error) {
+	query := `
+		mutation ReleaseCreate($input: ReleaseCreateInput!) {
+			releaseCreate(input: $input) {
+				success
+				release {` + releaseFields + `}
+			}
+		}
+	`
+
+	var response struct {
+		ReleaseCreate struct {
+			Success bool          `json:"success"`
+			Release ReleaseDetail `json:"release"`
+		} `json:"releaseCreate"`
+	}
+
+	if err := c.Execute(ctx, query, map[string]interface{}{"input": input}, &response); err != nil {
+		return nil, err
+	}
+	return &response.ReleaseCreate.Release, nil
+}
+
+// UpdateRelease updates an existing release by ID.
+func (c *Client) UpdateRelease(ctx context.Context, id string, input map[string]interface{}) (*ReleaseDetail, error) {
+	query := `
+		mutation ReleaseUpdate($id: String!, $input: ReleaseUpdateInput!) {
+			releaseUpdate(id: $id, input: $input) {
+				success
+				release {` + releaseFields + `}
+			}
+		}
+	`
+
+	var response struct {
+		ReleaseUpdate struct {
+			Success bool          `json:"success"`
+			Release ReleaseDetail `json:"release"`
+		} `json:"releaseUpdate"`
+	}
+
+	if err := c.Execute(ctx, query, map[string]interface{}{"id": id, "input": input}, &response); err != nil {
+		return nil, err
+	}
+	return &response.ReleaseUpdate.Release, nil
+}
+
+// ArchiveRelease archives a release.
+func (c *Client) ArchiveRelease(ctx context.Context, id string) error {
+	return c.mutationOK(ctx,
+		`mutation($id: String!) { releaseArchive(id: $id) { success } }`,
+		map[string]interface{}{"id": id}, "releaseArchive")
+}
+
+// DeleteRelease moves a release to the trash bin.
+func (c *Client) DeleteRelease(ctx context.Context, id string) error {
+	return c.mutationOK(ctx,
+		`mutation($id: String!) { releaseDelete(id: $id) { success } }`,
+		map[string]interface{}{"id": id}, "releaseDelete")
+}
+
+// CompleteRelease marks a release as completed. The input's pipelineId is
+// required; version optionally selects which release in the pipeline to
+// complete.
+func (c *Client) CompleteRelease(ctx context.Context, input map[string]interface{}) (*ReleaseDetail, error) {
+	query := `
+		mutation ReleaseComplete($input: ReleaseCompleteInput!) {
+			releaseComplete(input: $input) {
+				success
+				release {` + releaseFields + `}
+			}
+		}
+	`
+
+	var response struct {
+		ReleaseComplete struct {
+			Success bool          `json:"success"`
+			Release ReleaseDetail `json:"release"`
+		} `json:"releaseComplete"`
+	}
+
+	if err := c.Execute(ctx, query, map[string]interface{}{"input": input}, &response); err != nil {
+		return nil, err
+	}
+	return &response.ReleaseComplete.Release, nil
+}
