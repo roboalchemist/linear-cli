@@ -17,7 +17,8 @@ search commands for: customers (+ needs/statuses/tiers), releases (+ notes/
 pipelines/stages), roadmaps, project & initiative labels, project & initiative
 relations, templates, webhooks, time schedules, triage responsibilities, emojis,
 audit log, agent sessions/skills, integrations, external users, notification
-subscriptions, organization, initiative updates, and unified search
+subscriptions, organization (+ invites), OAuth applications, team memberships,
+audit entry types, initiative updates, and unified search
 (`search issues|projects|semantic`).
 
 **Closed — lifecycle operations.** Unarchive (issue/project/initiative/document),
@@ -30,7 +31,7 @@ shift-all, and bulk inbox actions (mark-all-read/unread, snooze-all,
 unsnooze-all, archive-all).
 
 **Verified live (read-only).** `live_read_test.sh` runs every read/list command
-against the real API: **63 pass, 4 skip (workspace feature gates), 0 fail**.
+against the real API: **65 pass, 6 skip (workspace feature/scope gates), 0 fail**.
 Automated via `make test-live-read` and the *Live read-only tests* workflow.
 
 **Still open (write-side, not live-testable here).** Integration connect flows

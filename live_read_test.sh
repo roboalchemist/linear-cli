@@ -82,7 +82,7 @@ is_transient() {
 
 # is_unavailable <output>  (legitimately not usable with this workspace/key)
 is_unavailable() {
-  echo "$1" | grep -qiE 'not available in this workspace|owner or admin required|access denied|Invalid role'
+  echo "$1" | grep -qiE 'not available in this workspace|owner or admin required|access denied|Invalid role|invalid scope|forbidden'
 }
 
 # record <label> <status> <detail>
@@ -256,6 +256,7 @@ check "triage responsibility list"  "$BIN" triage responsibility list -l 3
 check "emoji list"                  "$BIN" emoji list -l 3
 check "template list"               "$BIN" template list -l 3
 check "template search"             "$BIN" template search bug -l 3
+check "audit types"                 "$BIN" audit types
 check "webhook list"                "$BIN" webhook list -l 3
 check "audit log list"              "$BIN" audit log list -l 3
 
@@ -265,6 +266,9 @@ check "agent skill list"    "$BIN" agent skill list -l 3
 check "integration list"    "$BIN" integration list -l 3
 check "external user list"  "$BIN" external user list -l 3
 check "organization get"    "$BIN" organization get
+check "org invite list"     "$BIN" organization invite list -l 3
+check "oauth app list"      "$BIN" oauth app list
+check "team membership list" "$BIN" team membership list -l 3
 check "subscription list"   "$BIN" subscription list -l 3
 
 section "Search"
