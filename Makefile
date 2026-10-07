@@ -1,6 +1,6 @@
 # linear-cli Makefile
 
-.PHONY: build clean test test-verbose test-crud test-crud-verbose install lint fmt deps help
+.PHONY: build clean test test-verbose test-crud test-crud-verbose install lint fmt deps scrape-docs help
 
 # Build variables
 BINARY_NAME=linear-cli
@@ -48,6 +48,11 @@ deps:
 	@echo "📦 Installing dependencies..."
 	go mod download
 	go mod tidy
+
+# Scrape Linear's live docs into docs/linear-source-docs (Python 3, stdlib only)
+scrape-docs:
+	@echo "📚 Scraping Linear docs..."
+	@python3 docs/scrape_linear_docs.py
 
 # Format code
 fmt:
@@ -101,6 +106,7 @@ help:
 	@echo "  test-crud        - Run CRUD integration tests (live API)"
 	@echo "  test-crud-verbose - Run CRUD tests with log file"
 	@echo "  deps             - Install dependencies"
+	@echo "  scrape-docs      - Scrape Linear docs into docs/linear-source-docs"
 	@echo "  fmt              - Format code"
 	@echo "  lint             - Lint code"
 	@echo "  install          - Install binary to system"

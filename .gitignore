@@ -50,3 +50,7 @@ crud_test.log
 .env.test
 coverage.out
 coverage.html
+
+# Python
+__pycache__/
+*.py[cod]

@@ -1,0 +1,1401 @@
+{
+  "index_url": "https://linear.app/llms.txt",
+  "generated_at": "2026-10-07T20:10:39.298282+00:00",
+  "counts": {
+    "ok": 139,
+    "failed": 0,
+    "total": 139
+  },
+  "documents": [
+    {
+      "url": "https://linear.app/developers/advanced-usage.md",
+      "title": "Advanced usage",
+      "section": "TypeScript SDK",
+      "local_path": "developers/advanced-usage.md",
+      "status": "ok",
+      "bytes": 2597,
+      "sha256": "4360874a76b54d939f1b1a5638067b147ae554ec7685b64354c2f226792f3c41",
+      "error": ""
+    },
+    {
+      "url": "https://linear.app/developers/agent-best-practices.md",
+      "title": "Interaction Best Practices",
+      "section": "Agents",
+      "local_path": "developers/agent-best-practices.md",
+      "status": "ok",
+      "bytes": 7458,
+      "sha256": "06834ad23c90bf35cf81251a32228822ed05cce6e850f0db10eea4ff54acf377",
+      "error": ""
+    },
+    {
+      "url": "https://linear.app/developers/agent-interaction.md",
+      "title": "Developing the Agent Interaction",
+      "section": "Agents",
+      "local_path": "developers/agent-interaction.md",
+      "status": "ok",
+      "bytes": 14827,
+      "sha256": "ffc125bfc6c356cf32e12049c032c29842853b3643a862ed6262546921bff8b5",
+      "error": ""
+    },
+    {
+      "url": "https://linear.app/developers/agent-signals.md",
+      "title": "Signals",
+      "section": "Agents",
+      "local_path": "developers/agent-signals.md",
+      "status": "ok",
+      "bytes": 5296,
+      "sha256": "06dfab3bab6a3a8e19f4d7c7c3794306fbac0ede7530198fd1d3ff44192c8358",
+      "error": ""
+    },
+    {
+      "url": "https://linear.app/developers/agents-externalurls-migration.md",
+      "title": "",
+      "section": "Discovered",
+      "local_path": "developers/agents-externalurls-migration.md",
+      "status": "ok",
+      "bytes": 2488,
+      "sha256": "084ef53b3b2758d7f0e06917e47da6c4ab2ba143ee0d9a544f5d6bcecaac6465",
+      "error": ""
+    },
+    {
+      "url": "https://linear.app/developers/agents.md",
+      "title": "Getting Started",
+      "section": "Agents",
+      "local_path": "developers/agents.md",
+      "status": "ok",
+      "bytes": 6199,
+      "sha256": "ce75eb2c0bcffe86e8202362a9cfa9943fb167dc62e28df631dc95740285224f",
+      "error": ""
+    },
+    {
+      "url": "https://linear.app/developers/aig.md",
+      "title": "Agent Interaction Guidelines (AIG)",
+      "section": "Agents",
+      "local_path": "developers/aig.md",
+      "status": "ok",
+      "bytes": 4123,
+      "sha256": "ae3f5f7432e0a14d3e674a03dac5170b5ba86b9171b2125a6f72d9aa50b9d520",
+      "error": ""
+    },
+    {
+      "url": "https://linear.app/developers/attachments.md",
+      "title": "Attachments",
+      "section": "GraphQL API",
+      "local_path": "developers/attachments.md",
+      "status": "ok",
+      "bytes": 4860,
+      "sha256": "109708a78751b7ac9b4586b0fd06077aaabb856ad13a61fcaed910d691fcaf35",
+      "error": ""
+    },
+    {
+      "url": "https://linear.app/developers/create-issues-using-linear-new.md",
+      "title": "Create issues using linear.new",
+      "section": "Guides",
+      "local_path": "developers/create-issues-using-linear-new.md",
+      "status": "ok",
+      "bytes": 4390,
+      "sha256": "a4c290f673f4c7980bb7785cad82695e23cdd4b6fdc76dd0382133bc47f403a8",
+      "error": ""
+    },
+    {
+      "url": "https://linear.app/developers/deprecations.md",
+      "title": "Deprecations",
+      "section": "GraphQL API",
+      "local_path": "developers/deprecations.md",
+      "status": "ok",
+      "bytes": 848,
+      "sha256": "7f3922fe0c08c7b5856e3323f34cd58d0e38f2ab306d15148b3d2403aa6b248b",
+      "error": ""
+    },
+    {
+      "url": "https://linear.app/developers/file-storage-authentication.md",
+      "title": "File storage authentication",
+      "section": "Authentication",
+      "local_path": "developers/file-storage-authentication.md",
+      "status": "ok",
+      "bytes": 1431,
+      "sha256": "ad181047791b78d016ccf791c3ad88c06917302cf13e433ea949299b0a883c09",
+      "error": ""
+    },
+    {
+      "url": "https://linear.app/developers/filtering.md",
+      "title": "Filtering",
+      "section": "GraphQL API",
+      "local_path": "developers/filtering.md",
+      "status": "ok",
+      "bytes": 6234,
+      "sha256": "124bc84261bc52421888df932821046e4fcc2f91db6e994c6b053160e4bf4208",
+      "error": ""
+    },
+    {
+      "url": "https://linear.app/developers/graphql.md",
+      "title": "Getting started",
+      "section": "GraphQL API",
+      "local_path": "developers/graphql.md",
+      "status": "ok",
+      "bytes": 9805,
+      "sha256": "9b796ed7a3b442e5047735ceac15f5be1e3779410eb29f68218118989f91d5a6",
+      "error": ""
+    },
+    {
+      "url": "https://linear.app/developers/how-to-upload-a-file-to-linear.md",
+      "title": "How to upload a file to Linear",
+      "section": "Guides",
+      "local_path": "developers/how-to-upload-a-file-to-linear.md",
+      "status": "ok",
+      "bytes": 4496,
+      "sha256": "eaa01f0c0d3dfa7d4be6eed568679015bd0483cc07f2250aa9db198166398244",
+      "error": ""
+    },
+    {
+      "url": "https://linear.app/developers/integration-directory.md",
+      "title": "Integration Directory",
+      "section": "Guides",
+      "local_path": "developers/integration-directory.md",
+      "status": "ok",
+      "bytes": 4189,
+      "sha256": "533960b1b85426cbe7c406659883eb412926bd4a7aee53bb407a01b0bd3d97b7",
+      "error": ""
+    },
+    {
+      "url": "https://linear.app/developers/managing-customers.md",
+      "title": "Managing Customers",
+      "section": "GraphQL API",
+      "local_path": "developers/managing-customers.md",
+      "status": "ok",
+      "bytes": 8380,
+      "sha256": "b4c56197ebacb471b07dd102a6b13f26767f7d7dc172f8e8794dbe7ac0065c79",
+      "error": ""
+    },
+    {
+      "url": "https://linear.app/developers/migrating-from-1-x-to-2-x.md",
+      "title": "Migrating from 1.x to 2.x",
+      "section": "TypeScript SDK",
+      "local_path": "developers/migrating-from-1-x-to-2-x.md",
+      "status": "ok",
+      "bytes": 643,
+      "sha256": "1dbd26fd4361a9bfccb370828dd0a36c16a2e9b4528a7fbc2884db7893afccf9",
+      "error": ""
+    },
+    {
+      "url": "https://linear.app/developers/oauth-2-0-authentication.md",
+      "title": "OAuth 2.0 authentication",
+      "section": "Authentication",
+      "local_path": "developers/oauth-2-0-authentication.md",
+      "status": "ok",
+      "bytes": 13712,
+      "sha256": "947b5ec500bb500f25e1e526aec4d187829027b2a50d00ab255f5b2312ef78dc",
+      "error": ""
+    },
+    {
+      "url": "https://linear.app/developers/oauth-actor-authorization.md",
+      "title": "OAuth actor authorization",
+      "section": "Authentication",
+      "local_path": "developers/oauth-actor-authorization.md",
+      "status": "ok",
+      "bytes": 1965,
+      "sha256": "09caf0c28055e556c336be8069adb6db6b645d108f6341e634de4108efc9c37e",
+      "error": ""
+    },
+    {
+      "url": "https://linear.app/developers/oauth-app-manifests.md",
+      "title": "OAuth application manifests",
+      "section": "Authentication",
+      "local_path": "developers/oauth-app-manifests.md",
+      "status": "ok",
+      "bytes": 9243,
+      "sha256": "5050c94cbc1b64306e43bb1240affb45300424410cac456f0cc5db694f5f3558",
+      "error": ""
+    },
+    {
+      "url": "https://linear.app/developers/pagination.md",
+      "title": "Pagination",
+      "section": "GraphQL API",
+      "local_path": "developers/pagination.md",
+      "status": "ok",
+      "bytes": 1275,
+      "sha256": "73c7f3de42d4fabf1fe9fc757959bbedce8fafee328bcde00f4ef4e10e7d3af4",
+      "error": ""
+    },
+    {
+      "url": "https://linear.app/developers/rate-limiting.md",
+      "title": "Rate limiting",
+      "section": "GraphQL API",
+      "local_path": "developers/rate-limiting.md",
+      "status": "ok",
+      "bytes": 7996,
+      "sha256": "115302d39549487a814097a0d4f2dce1ad2d2c0b3d090ee3aa7a59a20397155b",
+      "error": ""
+    },
+    {
+      "url": "https://linear.app/developers/sdk-errors.md",
+      "title": "Errors",
+      "section": "TypeScript SDK",
+      "local_path": "developers/sdk-errors.md",
+      "status": "ok",
+      "bytes": 2821,
+      "sha256": "271e97eafae7b8cba33d4e3a5627ac497698d594b9ab1e15a5b21a94066351f7",
+      "error": ""
+    },
+    {
+      "url": "https://linear.app/developers/sdk-fetching-and-modifying-data.md",
+      "title": "Fetching & modifying data",
+      "section": "TypeScript SDK",
+      "local_path": "developers/sdk-fetching-and-modifying-data.md",
+      "status": "ok",
+      "bytes": 3447,
+      "sha256": "081261991e84df0823ee11d23afcdb1089099027b7bac36ae54ce83870e6eebd",
+      "error": ""
+    },
+    {
+      "url": "https://linear.app/developers/sdk-webhooks.md",
+      "title": "Webhooks",
+      "section": "TypeScript SDK",
+      "local_path": "developers/sdk-webhooks.md",
+      "status": "ok",
+      "bytes": 1791,
+      "sha256": "f117d6b98a3ef22007368326bb2f595fe243f9ec4a83b88d94cfeb2ce58f1b3c",
+      "error": ""
+    },
+    {
+      "url": "https://linear.app/developers/sdk.md",
+      "title": "Getting started",
+      "section": "TypeScript SDK",
+      "local_path": "developers/sdk.md",
+      "status": "ok",
+      "bytes": 2210,
+      "sha256": "edd8dfeebdd5ebbbbf6836e6700dd555dd671042f8f9f1c3f2f20ec192a63db8",
+      "error": ""
+    },
+    {
+      "url": "https://linear.app/developers/webhooks.md",
+      "title": "Webhooks",
+      "section": "GraphQL API",
+      "local_path": "developers/webhooks.md",
+      "status": "ok",
+      "bytes": 14635,
+      "sha256": "f399ab631e10bc009d23e7e29ccc0d89f732a77e8ba7e76a770a54cfead9dedb",
+      "error": ""
+    },
+    {
+      "url": "https://linear.app/docs/account-preferences.md",
+      "title": "Preferences",
+      "section": "Working in Linear",
+      "local_path": "docs/account-preferences.md",
+      "status": "ok",
+      "bytes": 3265,
+      "sha256": "86aefdd12ea6cbd57a575ff3003013d1babc873925a15a5c1a9ce65b3348a877",
+      "error": ""
+    },
+    {
+      "url": "https://linear.app/docs/agents-in-linear.md",
+      "title": "AI Agents",
+      "section": "Agents and automation",
+      "local_path": "docs/agents-in-linear.md",
+      "status": "ok",
+      "bytes": 5886,
+      "sha256": "58625554a1bba5bf7d140816c49ab4984f26f080a2a166040913d8a2b6164b83",
+      "error": ""
+    },
+    {
+      "url": "https://linear.app/docs/ai-credits.md",
+      "title": "AI Credits",
+      "section": "Administration",
+      "local_path": "docs/ai-credits.md",
+      "status": "ok",
+      "bytes": 7271,
+      "sha256": "7257f5452b472c300aa8ffe849dc1699b9bccd36a2402fd63529a777836f7fc6",
+      "error": ""
+    },
+    {
+      "url": "https://linear.app/docs/airbyte.md",
+      "title": "Airbyte",
+      "section": "Integrations",
+      "local_path": "docs/airbyte.md",
+      "status": "ok",
+      "bytes": 4867,
+      "sha256": "8b92878435ce628f0103f3561bfeb8437e75956a8e551371f1022d0d9bd917b5",
+      "error": ""
+    },
+    {
+      "url": "https://linear.app/docs/api-and-webhooks.md",
+      "title": "API and Webhooks",
+      "section": "Administration",
+      "local_path": "docs/api-and-webhooks.md",
+      "status": "ok",
+      "bytes": 3338,
+      "sha256": "502f94bcea11d1e56059db7727cb542b10a1f31d5abd537c90d8331c3693473b",
+      "error": ""
+    },
+    {
+      "url": "https://linear.app/docs/asana-to-linear.md",
+      "title": "Asana",
+      "section": "Imports and Exports",
+      "local_path": "docs/asana-to-linear.md",
+      "status": "ok",
+      "bytes": 1328,
+      "sha256": "bbebba254d176cb04c41aceb8ff1f368ea52b7f35723c5ed5ecfbd18f9331186",
+      "error": ""
+    },
+    {
+      "url": "https://linear.app/docs/assigning-issues.md",
+      "title": "Assign and delegate issues",
+      "section": "Issues and cycles",
+      "local_path": "docs/assigning-issues.md",
+      "status": "ok",
+      "bytes": 9572,
+      "sha256": "9c8230db8ca4deb46d0f481c2e55727b5fa177f77a4b3c1eac4032f9a5de76a7",
+      "error": ""
+    },
+    {
+      "url": "https://linear.app/docs/audit-log.md",
+      "title": "Audit log",
+      "section": "Administration",
+      "local_path": "docs/audit-log.md",
+      "status": "ok",
+      "bytes": 5108,
+      "sha256": "2684b26d5ef80612f05ad758be05ad99c148e66747d4060e161dee8af21606c0",
+      "error": ""
+    },
+    {
+      "url": "https://linear.app/docs/billing-and-plans.md",
+      "title": "Billing and plans",
+      "section": "Administration",
+      "local_path": "docs/billing-and-plans.md",
+      "status": "ok",
+      "bytes": 8765,
+      "sha256": "5f7d839666efafb601e02689de6f9719914f68862b83de693c355e309c5f45d0",
+      "error": ""
+    },
+    {
+      "url": "https://linear.app/docs/board-layout.md",
+      "title": "Board layout",
+      "section": "Working in Linear",
+      "local_path": "docs/board-layout.md",
+      "status": "ok",
+      "bytes": 5188,
+      "sha256": "e441635d8fe7a480d63fbd01b51239b381e2fcc72a4b3cccbbe55e07b0c22901",
+      "error": ""
+    },
+    {
+      "url": "https://linear.app/docs/changes-to-user-roles-when-upgrading-to-enterprise.md",
+      "title": "",
+      "section": "Discovered",
+      "local_path": "docs/changes-to-user-roles-when-upgrading-to-enterprise.md",
+      "status": "ok",
+      "bytes": 2513,
+      "sha256": "5896c0b387c6bad39de41cef92798eb3ea55085b98cd4ca39c3089cba66b0525",
+      "error": ""
+    },
+    {
+      "url": "https://linear.app/docs/cli-importer.md",
+      "title": "CLI Importer",
+      "section": "Imports and Exports",
+      "local_path": "docs/cli-importer.md",
+      "status": "ok",
+      "bytes": 1778,
+      "sha256": "f089a0cea0c36246687de4a38bb1c721e9283c7349187f9215dfe181b8a6d826",
+      "error": ""
+    },
+    {
+      "url": "https://linear.app/docs/code-and-reviews.md",
+      "title": "Coding settings",
+      "section": "Coding and review",
+      "local_path": "docs/code-and-reviews.md",
+      "status": "ok",
+      "bytes": 5640,
+      "sha256": "cd24035ee7d438d2c5762173b76a5769179e90705d62333080cdec60d9e7b97e",
+      "error": ""
+    },
+    {
+      "url": "https://linear.app/docs/code-intelligence.md",
+      "title": "Code Intelligence",
+      "section": "Agents and automation",
+      "local_path": "docs/code-intelligence.md",
+      "status": "ok",
+      "bytes": 3827,
+      "sha256": "d2cf6beaa4b976302b526e4ffd21088739cffbbbe20b34629c1eef378ef5bd3c",
+      "error": ""
+    },
+    {
+      "url": "https://linear.app/docs/coding-sessions.md",
+      "title": "Coding sessions",
+      "section": "Coding and review",
+      "local_path": "docs/coding-sessions.md",
+      "status": "ok",
+      "bytes": 10637,
+      "sha256": "ab8733cb0351ee8e7f572bf3cfb97bb82732c2b4caf07c2a2e945619c651f92c",
+      "error": ""
+    },
+    {
+      "url": "https://linear.app/docs/comment-on-issues.md",
+      "title": "Comments and reactions",
+      "section": "Issues and cycles",
+      "local_path": "docs/comment-on-issues.md",
+      "status": "ok",
+      "bytes": 4223,
+      "sha256": "47f1c468391ed5514a12e647746ac23275659fdc1ce3baebb6813ac04673c27d",
+      "error": ""
+    },
+    {
+      "url": "https://linear.app/docs/conceptual-model.md",
+      "title": "Concepts",
+      "section": "Getting started",
+      "local_path": "docs/conceptual-model.md",
+      "status": "ok",
+      "bytes": 6337,
+      "sha256": "73da3517d121261b78863ef66674469b9a6bce49b17f58b449cea0c9c6dc506b",
+      "error": ""
+    },
+    {
+      "url": "https://linear.app/docs/connect-mcp-servers.md",
+      "title": "",
+      "section": "Discovered",
+      "local_path": "docs/connect-mcp-servers.md",
+      "status": "ok",
+      "bytes": 4674,
+      "sha256": "e6c2877a5b1ac7b719f9692793ccda08e83e3310be294de24b58fc856850c99c",
+      "error": ""
+    },
+    {
+      "url": "https://linear.app/docs/creating-issues.md",
+      "title": "Issues",
+      "section": "Issues and cycles",
+      "local_path": "docs/creating-issues.md",
+      "status": "ok",
+      "bytes": 11282,
+      "sha256": "908e28282247a8e1683432f5f7a39719cf2ccc2f7a1b005f01053aa3004bffb0",
+      "error": ""
+    },
+    {
+      "url": "https://linear.app/docs/custom-views.md",
+      "title": "Custom Views",
+      "section": "Working in Linear",
+      "local_path": "docs/custom-views.md",
+      "status": "ok",
+      "bytes": 9605,
+      "sha256": "ec00538b5388e6851c8e72e58862039c430f904ba2949e783e4234b2009eabe1",
+      "error": ""
+    },
+    {
+      "url": "https://linear.app/docs/customer-requests.md",
+      "title": "Customer Requests",
+      "section": "Intake",
+      "local_path": "docs/customer-requests.md",
+      "status": "ok",
+      "bytes": 18011,
+      "sha256": "0ff25149177c51b41d3a7b432bf3c508d28ff8f8e229cbb8b64383ec5a8bdb2e",
+      "error": ""
+    },
+    {
+      "url": "https://linear.app/docs/cycle-graph.md",
+      "title": "Cycle graph",
+      "section": "Insights and outcomes",
+      "local_path": "docs/cycle-graph.md",
+      "status": "ok",
+      "bytes": 2445,
+      "sha256": "41d42f40d5e95a2a1a647b29908cf40b79ba362f5aa0c60e9865e72e72db9c55",
+      "error": ""
+    },
+    {
+      "url": "https://linear.app/docs/dashboards.md",
+      "title": "Dashboards",
+      "section": "Insights and outcomes",
+      "local_path": "docs/dashboards.md",
+      "status": "ok",
+      "bytes": 4557,
+      "sha256": "4de2d846d1c72727451e42d87d8de8b2d346b3ff294a6560b72675331229d548",
+      "error": ""
+    },
+    {
+      "url": "https://linear.app/docs/default-team-pages.md",
+      "title": "Team pages",
+      "section": "Administration",
+      "local_path": "docs/default-team-pages.md",
+      "status": "ok",
+      "bytes": 4661,
+      "sha256": "82ef2f27f0eb21e80e3f16947d3c5eb153f90a8cb1516d19a802469943375616",
+      "error": ""
+    },
+    {
+      "url": "https://linear.app/docs/delete-archive-issues.md",
+      "title": "Delete and archive issues",
+      "section": "Issues and cycles",
+      "local_path": "docs/delete-archive-issues.md",
+      "status": "ok",
+      "bytes": 4257,
+      "sha256": "ef0577d940f37639ca04a1cc2cabe2d0ea052ef343468d8929eb06642a23c36b",
+      "error": ""
+    },
+    {
+      "url": "https://linear.app/docs/diffs.md",
+      "title": "Reviews",
+      "section": "Coding and review",
+      "local_path": "docs/diffs.md",
+      "status": "ok",
+      "bytes": 19981,
+      "sha256": "a3c91095bb0c3f10a893cc9758bcf33a3b284b83c7d93658f81e6533e67bf498",
+      "error": ""
+    },
+    {
+      "url": "https://linear.app/docs/discord.md",
+      "title": "Discord",
+      "section": "Integrations",
+      "local_path": "docs/discord.md",
+      "status": "ok",
+      "bytes": 3189,
+      "sha256": "ba949d6de88fec7079ffc6af557798d32e18e6d749a0f2628cfa9886ed2f607a",
+      "error": ""
+    },
+    {
+      "url": "https://linear.app/docs/display-options.md",
+      "title": "Display options",
+      "section": "Working in Linear",
+      "local_path": "docs/display-options.md",
+      "status": "ok",
+      "bytes": 6697,
+      "sha256": "b042d41ca189c0ab7e1c6ca68dcd999e376f54a06e8f2569e3ef594eba181415",
+      "error": ""
+    },
+    {
+      "url": "https://linear.app/docs/documents.md",
+      "title": "Documents",
+      "section": "Working in Linear",
+      "local_path": "docs/documents.md",
+      "status": "ok",
+      "bytes": 6109,
+      "sha256": "f161397d9f588cf9e60ceebe18c2cdafa3e54c1d07531ad3111cad5d5bb201c1",
+      "error": ""
+    },
+    {
+      "url": "https://linear.app/docs/editor.md",
+      "title": "Editor",
+      "section": "Working in Linear",
+      "local_path": "docs/editor.md",
+      "status": "ok",
+      "bytes": 3502,
+      "sha256": "fbe670743139ffbdfdb5a74058d3c98be1ec86f51d5570d2890f97446cbf1dd3",
+      "error": ""
+    },
+    {
+      "url": "https://linear.app/docs/exporting-data.md",
+      "title": "Exporting Data",
+      "section": "Imports and Exports",
+      "local_path": "docs/exporting-data.md",
+      "status": "ok",
+      "bytes": 6196,
+      "sha256": "9c60ddc4040989cbd8ae7fd63699175ae44db112a2287e7529c38376cfacb0fb",
+      "error": ""
+    },
+    {
+      "url": "https://linear.app/docs/favorites.md",
+      "title": "Favorites",
+      "section": "Working in Linear",
+      "local_path": "docs/favorites.md",
+      "status": "ok",
+      "bytes": 2674,
+      "sha256": "9cbd22d555fa5ada9c1b151f54368cc54bc2cc5da2301c9b1b2363400fa61b9a",
+      "error": ""
+    },
+    {
+      "url": "https://linear.app/docs/figma.md",
+      "title": "Figma",
+      "section": "Integrations",
+      "local_path": "docs/figma.md",
+      "status": "ok",
+      "bytes": 7955,
+      "sha256": "904caf19cb25cdcc1a5d39d1ce2c5d2452043a243a89cbb73a74fe71782d95fd",
+      "error": ""
+    },
+    {
+      "url": "https://linear.app/docs/filters.md",
+      "title": "Filters",
+      "section": "Working in Linear",
+      "local_path": "docs/filters.md",
+      "status": "ok",
+      "bytes": 5258,
+      "sha256": "22efb7145535c898fe230fa4140cd8ed62cafdbb6d2753257bef58ccfd3f652b",
+      "error": ""
+    },
+    {
+      "url": "https://linear.app/docs/front.md",
+      "title": "Front",
+      "section": "Integrations",
+      "local_path": "docs/front.md",
+      "status": "ok",
+      "bytes": 5434,
+      "sha256": "e329aa4f9082264a612e1e9e65208764352653a2c6e53c60b42db6c3ea10eed9",
+      "error": ""
+    },
+    {
+      "url": "https://linear.app/docs/get-the-app.md",
+      "title": "Download Linear",
+      "section": "Getting started",
+      "local_path": "docs/get-the-app.md",
+      "status": "ok",
+      "bytes": 7608,
+      "sha256": "08b777b38ef18766fc15a3be027befb6eafa09f4341d22b446ee954b7f6cb7e7",
+      "error": ""
+    },
+    {
+      "url": "https://linear.app/docs/github-integration.md",
+      "title": "GitHub",
+      "section": "Integrations",
+      "local_path": "docs/github-integration.md",
+      "status": "ok",
+      "bytes": 10,
+      "sha256": "04b44aeeaf819fd44eff7feb06d61a8af3467c7622447db367779506f65229cb",
+      "error": ""
+    },
+    {
+      "url": "https://linear.app/docs/github-to-linear.md",
+      "title": "GitHub Issues",
+      "section": "Imports and Exports",
+      "local_path": "docs/github-to-linear.md",
+      "status": "ok",
+      "bytes": 11233,
+      "sha256": "2c28b3bcd40f5c0c0466f6cd16983815e4acd5fcb2a0aaaabd8d9c4f96b31d7b",
+      "error": ""
+    },
+    {
+      "url": "https://linear.app/docs/github.md",
+      "title": "",
+      "section": "Discovered",
+      "local_path": "docs/github.md",
+      "status": "ok",
+      "bytes": 27303,
+      "sha256": "3b2f5cb078c194558850ec298c71b0e56e8976776cbb1bf279e218ded302a034",
+      "error": ""
+    },
+    {
+      "url": "https://linear.app/docs/gitlab.md",
+      "title": "GitLab",
+      "section": "Integrations",
+      "local_path": "docs/gitlab.md",
+      "status": "ok",
+      "bytes": 11442,
+      "sha256": "a2371e0c16e1077966ad7c0ea7379b1b07cc86ea6d934fbca3d5dba148e379fe",
+      "error": ""
+    },
+    {
+      "url": "https://linear.app/docs/gong.md",
+      "title": "Gong",
+      "section": "Integrations",
+      "local_path": "docs/gong.md",
+      "status": "ok",
+      "bytes": 3480,
+      "sha256": "66b0769cae9ff38d7a3dd4a18e5b725c338d21532b4ca7217fdacbeb7c550b96",
+      "error": ""
+    },
+    {
+      "url": "https://linear.app/docs/google-sheets.md",
+      "title": "Google Sheets",
+      "section": "Integrations",
+      "local_path": "docs/google-sheets.md",
+      "status": "ok",
+      "bytes": 5077,
+      "sha256": "2c1f1af495796360e7eb9967c7e741bd3e6b6e3f143308410eb727ef7d851821",
+      "error": ""
+    },
+    {
+      "url": "https://linear.app/docs/how-to-use-linear-large-scaling-companies.md",
+      "title": "",
+      "section": "Discovered",
+      "local_path": "docs/how-to-use-linear-large-scaling-companies.md",
+      "status": "ok",
+      "bytes": 19737,
+      "sha256": "a8304eaa2eae82d7df93c7b526305e38591508a97a8aa2e6293e78b914da080a",
+      "error": ""
+    },
+    {
+      "url": "https://linear.app/docs/how-to-use-linear-small-teams.md",
+      "title": "",
+      "section": "Discovered",
+      "local_path": "docs/how-to-use-linear-small-teams.md",
+      "status": "ok",
+      "bytes": 11948,
+      "sha256": "b79e9269c22a496a2c7c9a01cb3a3852a93ed9e27a6ca011ff7039e3cf7f08bc",
+      "error": ""
+    },
+    {
+      "url": "https://linear.app/docs/how-to-use-linear-startups-mid-size-companies.md",
+      "title": "",
+      "section": "Discovered",
+      "local_path": "docs/how-to-use-linear-startups-mid-size-companies.md",
+      "status": "ok",
+      "bytes": 14809,
+      "sha256": "7c1e64b40635999ec88dcf4f9dc2acb538a7cedf6da0d7992b78080760998004",
+      "error": ""
+    },
+    {
+      "url": "https://linear.app/docs/import-issues.md",
+      "title": "Import Guide",
+      "section": "Imports and Exports",
+      "local_path": "docs/import-issues.md",
+      "status": "ok",
+      "bytes": 5056,
+      "sha256": "79afecf3bfa9c8712d4f7c719c337f5d0ce561a8d59b972d0eb5647c3b1535bd",
+      "error": ""
+    },
+    {
+      "url": "https://linear.app/docs/inbox.md",
+      "title": "Inbox",
+      "section": "Working in Linear",
+      "local_path": "docs/inbox.md",
+      "status": "ok",
+      "bytes": 5693,
+      "sha256": "9638028340764b60c194209abb94cc0d5a15200f4ac405710eb94168e5d3afd4",
+      "error": ""
+    },
+    {
+      "url": "https://linear.app/docs/initiative-and-project-updates.md",
+      "title": "Initiative and project updates",
+      "section": "Projects and initiatives",
+      "local_path": "docs/initiative-and-project-updates.md",
+      "status": "ok",
+      "bytes": 12303,
+      "sha256": "5db54760ce26ae9369d9acfc251674a014e31042a54d304bd703c0cd15bf025c",
+      "error": ""
+    },
+    {
+      "url": "https://linear.app/docs/initiatives.md",
+      "title": "Initiatives",
+      "section": "Projects and initiatives",
+      "local_path": "docs/initiatives.md",
+      "status": "ok",
+      "bytes": 8309,
+      "sha256": "5b9b8e83d60f1c338d3ee73ab5c351e071991d238c0ad9f9dc3b5d7320d0d83e",
+      "error": ""
+    },
+    {
+      "url": "https://linear.app/docs/insights.md",
+      "title": "Insights",
+      "section": "Insights and outcomes",
+      "local_path": "docs/insights.md",
+      "status": "ok",
+      "bytes": 5519,
+      "sha256": "dc6282efe0c2ec520bd0bf016441d3df9baa29a711ef7d66743978ec86185ebb",
+      "error": ""
+    },
+    {
+      "url": "https://linear.app/docs/integration-directory.md",
+      "title": "Integration Directory",
+      "section": "Integrations",
+      "local_path": "docs/integration-directory.md",
+      "status": "ok",
+      "bytes": 4189,
+      "sha256": "533960b1b85426cbe7c406659883eb412926bd4a7aee53bb407a01b0bd3d97b7",
+      "error": ""
+    },
+    {
+      "url": "https://linear.app/docs/intercom.md",
+      "title": "Intercom",
+      "section": "Integrations",
+      "local_path": "docs/intercom.md",
+      "status": "ok",
+      "bytes": 7043,
+      "sha256": "e2e3dfe650ece509baee8b887b11e99656702265b1f27b8b55a08d39c350f342",
+      "error": ""
+    },
+    {
+      "url": "https://linear.app/docs/invite-members.md",
+      "title": "Invite members",
+      "section": "Administration",
+      "local_path": "docs/invite-members.md",
+      "status": "ok",
+      "bytes": 4929,
+      "sha256": "3fffe3b02ad749cd9d1487bc26fe1973a04ae5cbe32fbcef7f1a13eed440d88b",
+      "error": ""
+    },
+    {
+      "url": "https://linear.app/docs/issue-properties-home.md",
+      "title": "Issue properties",
+      "section": "Issues and cycles",
+      "local_path": "docs/issue-properties-home.md",
+      "status": "ok",
+      "bytes": 20,
+      "sha256": "73cfb782a797ac8573c89f85d13023a97e984c3d255447d4bf3430577933fb50",
+      "error": ""
+    },
+    {
+      "url": "https://linear.app/docs/issue-templates.md",
+      "title": "Issue templates",
+      "section": "Issues and cycles",
+      "local_path": "docs/issue-templates.md",
+      "status": "ok",
+      "bytes": 7587,
+      "sha256": "d47fa9a1b1848964da6d8c898151b0739e7b34534d79b7b545985e269adf1e19",
+      "error": ""
+    },
+    {
+      "url": "https://linear.app/docs/jira-to-linear.md",
+      "title": "Jira",
+      "section": "Imports and Exports",
+      "local_path": "docs/jira-to-linear.md",
+      "status": "ok",
+      "bytes": 8374,
+      "sha256": "4d1eec33a641dd5ba8c1c9a246c183c082f4d74d7efd945e60b54a4edf71fd9f",
+      "error": ""
+    },
+    {
+      "url": "https://linear.app/docs/jira.md",
+      "title": "Jira",
+      "section": "Integrations",
+      "local_path": "docs/jira.md",
+      "status": "ok",
+      "bytes": 16425,
+      "sha256": "18a8cbd4be2ebdd0b74d5638a8b1360b0dbc56c5e6fae93a9689b2620b7bd154",
+      "error": ""
+    },
+    {
+      "url": "https://linear.app/docs/joining-your-team-on-linear.md",
+      "title": "",
+      "section": "Discovered",
+      "local_path": "docs/joining-your-team-on-linear.md",
+      "status": "ok",
+      "bytes": 6351,
+      "sha256": "a69d7aa0f7ba304eada61a56f5bf1b9ea71d3e3728ae8d6e1ddb8f1ef56c851d",
+      "error": ""
+    },
+    {
+      "url": "https://linear.app/docs/linear-agent.md",
+      "title": "Linear Agent",
+      "section": "Agents and automation",
+      "local_path": "docs/linear-agent.md",
+      "status": "ok",
+      "bytes": 16787,
+      "sha256": "5671ed57df2b405be83b4adff7d43eff4e810387458dc4bccfddeb8ea52b4f9c",
+      "error": ""
+    },
+    {
+      "url": "https://linear.app/docs/linear-asks-email.md",
+      "title": "Asks with Email",
+      "section": "Intake",
+      "local_path": "docs/linear-asks-email.md",
+      "status": "ok",
+      "bytes": 9254,
+      "sha256": "730b85d52ff39b3944d62c9f6dc98f59ca5fbbe5f91a03d5f96cd43bc23b5458",
+      "error": ""
+    },
+    {
+      "url": "https://linear.app/docs/linear-asks-slack.md",
+      "title": "Asks with Slack",
+      "section": "Intake",
+      "local_path": "docs/linear-asks-slack.md",
+      "status": "ok",
+      "bytes": 16724,
+      "sha256": "205fde126b3531db9e91192a198baf0ec5d6778cebe47c64aaab412b1afcd4e8",
+      "error": ""
+    },
+    {
+      "url": "https://linear.app/docs/linear-asks-web-forms.md",
+      "title": "Asks Web Forms",
+      "section": "Intake",
+      "local_path": "docs/linear-asks-web-forms.md",
+      "status": "ok",
+      "bytes": 8955,
+      "sha256": "28084feaaee713e8f5cdbfc8f51632bfd17a3644d3948a354227f18c98c50be4",
+      "error": ""
+    },
+    {
+      "url": "https://linear.app/docs/linear-asks.md",
+      "title": "Linear Asks",
+      "section": "Intake",
+      "local_path": "docs/linear-asks.md",
+      "status": "ok",
+      "bytes": 4910,
+      "sha256": "2c8711122ec08c96f670d596d5a0efe11c9adf2e9d7d4c73831d2f63b9b6d24c",
+      "error": ""
+    },
+    {
+      "url": "https://linear.app/docs/linear-to-linear.md",
+      "title": "Linear",
+      "section": "Imports and Exports",
+      "local_path": "docs/linear-to-linear.md",
+      "status": "ok",
+      "bytes": 2425,
+      "sha256": "d351808981520ae697ea12416deb86016d1a0639d2b1b67470d52a7df088ff5a",
+      "error": ""
+    },
+    {
+      "url": "https://linear.app/docs/login-methods.md",
+      "title": "Login methods",
+      "section": "Administration",
+      "local_path": "docs/login-methods.md",
+      "status": "ok",
+      "bytes": 4505,
+      "sha256": "2e5ccaf36d22e12433c54048b6992c11809c1709821ff1d672ca69747944ddc4",
+      "error": ""
+    },
+    {
+      "url": "https://linear.app/docs/loops.md",
+      "title": "Loops",
+      "section": "Agents and automation",
+      "local_path": "docs/loops.md",
+      "status": "ok",
+      "bytes": 20239,
+      "sha256": "724b3e3345cd7684918468940f81ebe4152c716dbd880a74d178d0a346c0e46f",
+      "error": ""
+    },
+    {
+      "url": "https://linear.app/docs/mcp.md",
+      "title": "MCP server",
+      "section": "Agents and automation",
+      "local_path": "docs/mcp.md",
+      "status": "ok",
+      "bytes": 16642,
+      "sha256": "0189fbb63dc70e38ba973bad66ccb3e9b42f25ecacab398198becf8fcee13f45",
+      "error": ""
+    },
+    {
+      "url": "https://linear.app/docs/members-roles.md",
+      "title": "Members and roles",
+      "section": "Administration",
+      "local_path": "docs/members-roles.md",
+      "status": "ok",
+      "bytes": 8130,
+      "sha256": "c6c8b159121843b25dce683fe1ca02eee511b3262aeb6108267bb7b49ffd90b7",
+      "error": ""
+    },
+    {
+      "url": "https://linear.app/docs/microsoft-teams.md",
+      "title": "Microsoft Teams",
+      "section": "Integrations",
+      "local_path": "docs/microsoft-teams.md",
+      "status": "ok",
+      "bytes": 5255,
+      "sha256": "1a46c3942e9f845e5cc6a0d4034a7f46cbad3c2018f24d6f66fb534edda7f607",
+      "error": ""
+    },
+    {
+      "url": "https://linear.app/docs/my-issues.md",
+      "title": "My issues",
+      "section": "Working in Linear",
+      "local_path": "docs/my-issues.md",
+      "status": "ok",
+      "bytes": 2295,
+      "sha256": "c972442fa5c58ca8fa0f31f3455596d8726fab9572367e21032895c46ba30957",
+      "error": ""
+    },
+    {
+      "url": "https://linear.app/docs/notifications.md",
+      "title": "Notifications",
+      "section": "Working in Linear",
+      "local_path": "docs/notifications.md",
+      "status": "ok",
+      "bytes": 5029,
+      "sha256": "7529c71bab2eee813fc955bf45162877e2230af1c3a89fd9de8fe5df30479ab9",
+      "error": ""
+    },
+    {
+      "url": "https://linear.app/docs/notion.md",
+      "title": "Notion",
+      "section": "Integrations",
+      "local_path": "docs/notion.md",
+      "status": "ok",
+      "bytes": 1510,
+      "sha256": "301fe609c684978e6e0dcbf23a50ef9af1a5dfaf296ba5f903784fb092b9725f",
+      "error": ""
+    },
+    {
+      "url": "https://linear.app/docs/open-issues-with-custom-scripts.md",
+      "title": "",
+      "section": "Discovered",
+      "local_path": "docs/open-issues-with-custom-scripts.md",
+      "status": "ok",
+      "bytes": 2581,
+      "sha256": "13a6feaa5666dfb621fceaf6b280d5b6cf9b27fcf5a4be2d04b0f70a1e48abf2",
+      "error": ""
+    },
+    {
+      "url": "https://linear.app/docs/parent-and-sub-issues.md",
+      "title": "Parent and sub-issues",
+      "section": "Issues and cycles",
+      "local_path": "docs/parent-and-sub-issues.md",
+      "status": "ok",
+      "bytes": 5108,
+      "sha256": "7425d6f6933ee8bff579174633b53c97d8a41034a8526b0ba0a757ecd3d1e1de",
+      "error": ""
+    },
+    {
+      "url": "https://linear.app/docs/peek.md",
+      "title": "Peek preview",
+      "section": "Working in Linear",
+      "local_path": "docs/peek.md",
+      "status": "ok",
+      "bytes": 1662,
+      "sha256": "4bea503ba466ff5a53b7c54cc55b59a0b944eea8bb6d1de5e359b9289860b522",
+      "error": ""
+    },
+    {
+      "url": "https://linear.app/docs/private-teams.md",
+      "title": "Private teams",
+      "section": "Administration",
+      "local_path": "docs/private-teams.md",
+      "status": "ok",
+      "bytes": 8617,
+      "sha256": "74e4f67347f9de8b1c65ffad23b3d760401455cac35580a0ebf515ebcfb857c6",
+      "error": ""
+    },
+    {
+      "url": "https://linear.app/docs/profile.md",
+      "title": "Profile",
+      "section": "Working in Linear",
+      "local_path": "docs/profile.md",
+      "status": "ok",
+      "bytes": 3475,
+      "sha256": "859d74d532b0565f31dbaa8516aa2d2c79fe17342b4bbcbe644a22fe6df76330",
+      "error": ""
+    },
+    {
+      "url": "https://linear.app/docs/project-dependencies.md",
+      "title": "Project dependencies",
+      "section": "Projects and initiatives",
+      "local_path": "docs/project-dependencies.md",
+      "status": "ok",
+      "bytes": 2689,
+      "sha256": "af578ad8fc138c7f6c6178a01177beca07071a869c16e8afbd6b49438780776d",
+      "error": ""
+    },
+    {
+      "url": "https://linear.app/docs/project-graph.md",
+      "title": "Project graph",
+      "section": "Insights and outcomes",
+      "local_path": "docs/project-graph.md",
+      "status": "ok",
+      "bytes": 3545,
+      "sha256": "394e3d747148e6fa01edf3b1cc7d4d07ca7d791a9b80944e441ca7e5383bea9c",
+      "error": ""
+    },
+    {
+      "url": "https://linear.app/docs/project-labels.md",
+      "title": "Project labels",
+      "section": "Projects and initiatives",
+      "local_path": "docs/project-labels.md",
+      "status": "ok",
+      "bytes": 3863,
+      "sha256": "f2c48eb95c3b4ca6a34e00973bcb6e9cd773b3f95ad70812a4136b85d81166ff",
+      "error": ""
+    },
+    {
+      "url": "https://linear.app/docs/project-milestones.md",
+      "title": "Project milestones",
+      "section": "Projects and initiatives",
+      "local_path": "docs/project-milestones.md",
+      "status": "ok",
+      "bytes": 7718,
+      "sha256": "4cd6229ecb96b347e4d66977b65af14b1875e74a6ec489495d7e8d52bb4bc3c9",
+      "error": ""
+    },
+    {
+      "url": "https://linear.app/docs/project-notifications.md",
+      "title": "Project notifications",
+      "section": "Projects and initiatives",
+      "local_path": "docs/project-notifications.md",
+      "status": "ok",
+      "bytes": 2520,
+      "sha256": "35c4dcd74cef5d69486dd7762da0e0c79c765256f8bb59c0e9a40888a0ee2b0f",
+      "error": ""
+    },
+    {
+      "url": "https://linear.app/docs/project-priority.md",
+      "title": "Project priority",
+      "section": "Projects and initiatives",
+      "local_path": "docs/project-priority.md",
+      "status": "ok",
+      "bytes": 1200,
+      "sha256": "de2069f8d6eb04b76e9675261773750055daeda5a8ac043e41fef8bc88772930",
+      "error": ""
+    },
+    {
+      "url": "https://linear.app/docs/project-status.md",
+      "title": "Project status",
+      "section": "Projects and initiatives",
+      "local_path": "docs/project-status.md",
+      "status": "ok",
+      "bytes": 1821,
+      "sha256": "21d0f8d9e16d6795e63c079ceb63c3b6bbba2c08ab28f276dddfa86ea0d5e645",
+      "error": ""
+    },
+    {
+      "url": "https://linear.app/docs/project-templates.md",
+      "title": "Project templates",
+      "section": "Projects and initiatives",
+      "local_path": "docs/project-templates.md",
+      "status": "ok",
+      "bytes": 3076,
+      "sha256": "fd8aab438cc230cf71a78fe9561e251fec34bc969c916408455ac4052607999c",
+      "error": ""
+    },
+    {
+      "url": "https://linear.app/docs/projects.md",
+      "title": "Projects",
+      "section": "Projects and initiatives",
+      "local_path": "docs/projects.md",
+      "status": "ok",
+      "bytes": 9949,
+      "sha256": "3914cf2b463c32735afbcf85801d1f100c11cffa12b9fc311bde2fb09daa52fd",
+      "error": ""
+    },
+    {
+      "url": "https://linear.app/docs/pulse.md",
+      "title": "Pulse",
+      "section": "Working in Linear",
+      "local_path": "docs/pulse.md",
+      "status": "ok",
+      "bytes": 3352,
+      "sha256": "b2781beb8b9a6110951d9f6a1cc506a0bcdaccbc378820c164ef50d2072a95b5",
+      "error": ""
+    },
+    {
+      "url": "https://linear.app/docs/releases.md",
+      "title": "Releases",
+      "section": "Coding and review",
+      "local_path": "docs/releases.md",
+      "status": "ok",
+      "bytes": 10683,
+      "sha256": "509551ece37a23ce9ea52faf3ef49e8dade8b9185cb549cf30835d4071b880f0",
+      "error": ""
+    },
+    {
+      "url": "https://linear.app/docs/salesforce.md",
+      "title": "Salesforce",
+      "section": "Integrations",
+      "local_path": "docs/salesforce.md",
+      "status": "ok",
+      "bytes": 8819,
+      "sha256": "3f46ec622dc52f33f9022598ac19003373b27cd8ae6de9ee6ce846aaceeef699",
+      "error": ""
+    },
+    {
+      "url": "https://linear.app/docs/saml-and-access-control.md",
+      "title": "SAML",
+      "section": "Administration",
+      "local_path": "docs/saml-and-access-control.md",
+      "status": "ok",
+      "bytes": 9040,
+      "sha256": "d87e6f9caf667be61e372f747a23644614213282e21657df143b24dcaf1160ce",
+      "error": ""
+    },
+    {
+      "url": "https://linear.app/docs/scim.md",
+      "title": "SCIM",
+      "section": "Administration",
+      "local_path": "docs/scim.md",
+      "status": "ok",
+      "bytes": 10140,
+      "sha256": "624724ccdc88d2a4f629199a924ec94028f6ff10129e1cbe243a244a9dd81e88",
+      "error": ""
+    },
+    {
+      "url": "https://linear.app/docs/search.md",
+      "title": "Search",
+      "section": "Working in Linear",
+      "local_path": "docs/search.md",
+      "status": "ok",
+      "bytes": 4796,
+      "sha256": "cc5d770e82971d754d254800ccdfff6addc09a2ee3f576fe19d9b53be6fc901c",
+      "error": ""
+    },
+    {
+      "url": "https://linear.app/docs/security-and-access.md",
+      "title": "Security & Access",
+      "section": "Working in Linear",
+      "local_path": "docs/security-and-access.md",
+      "status": "ok",
+      "bytes": 1693,
+      "sha256": "073e3cac8d86cbf943bf407fc0fa766cadae96ef001f8177154662d4649399a4",
+      "error": ""
+    },
+    {
+      "url": "https://linear.app/docs/security.md",
+      "title": "Security",
+      "section": "Administration",
+      "local_path": "docs/security.md",
+      "status": "ok",
+      "bytes": 4731,
+      "sha256": "0798ee840b6cd686eeaab318359c247a5d0789cb94dc0f11d40118930b22d2d8",
+      "error": ""
+    },
+    {
+      "url": "https://linear.app/docs/select-issues.md",
+      "title": "Select issues",
+      "section": "Issues and cycles",
+      "local_path": "docs/select-issues.md",
+      "status": "ok",
+      "bytes": 2770,
+      "sha256": "6b839eba6af558e6c4f678a7ea319ff62aaa941dac32d6107c09605bf43233db",
+      "error": ""
+    },
+    {
+      "url": "https://linear.app/docs/sentry.md",
+      "title": "Sentry",
+      "section": "Integrations",
+      "local_path": "docs/sentry.md",
+      "status": "ok",
+      "bytes": 3290,
+      "sha256": "3e63f8854a02d9a83c9acd52244108ef9b52ff76392042c2a70d42b770a1bb8d",
+      "error": ""
+    },
+    {
+      "url": "https://linear.app/docs/shortcut-to-linear.md",
+      "title": "Shortcut",
+      "section": "Imports and Exports",
+      "local_path": "docs/shortcut-to-linear.md",
+      "status": "ok",
+      "bytes": 806,
+      "sha256": "3d81d7789e86ae737658c7277b5fedb73fcd28006f6705dff3af7bc37b02b731",
+      "error": ""
+    },
+    {
+      "url": "https://linear.app/docs/slack.md",
+      "title": "Slack",
+      "section": "Integrations",
+      "local_path": "docs/slack.md",
+      "status": "ok",
+      "bytes": 17754,
+      "sha256": "61602d6b8d67e040b57a9e21a1e7192e96c4a987137fec28ce69a4e6176f281c",
+      "error": ""
+    },
+    {
+      "url": "https://linear.app/docs/start-guide.md",
+      "title": "Start Guide",
+      "section": "Getting started",
+      "local_path": "docs/start-guide.md",
+      "status": "ok",
+      "bytes": 1975,
+      "sha256": "a876af9af09dac7e46239a636373ee31690de06636f33e65bba1ba987601d013",
+      "error": ""
+    },
+    {
+      "url": "https://linear.app/docs/sub-initiatives.md",
+      "title": "Sub-initiatives",
+      "section": "Projects and initiatives",
+      "local_path": "docs/sub-initiatives.md",
+      "status": "ok",
+      "bytes": 3790,
+      "sha256": "69e3beaddbd3499d100676509d178a8f1d3ae2525412f961f84649eb0e6af665",
+      "error": ""
+    },
+    {
+      "url": "https://linear.app/docs/sub-teams.md",
+      "title": "Sub-teams",
+      "section": "Administration",
+      "local_path": "docs/sub-teams.md",
+      "status": "ok",
+      "bytes": 6547,
+      "sha256": "effca9f12a32d54f9245adaccfc03e09891866c607a26d5e62ff3e45a425b3c6",
+      "error": ""
+    },
+    {
+      "url": "https://linear.app/docs/teams.md",
+      "title": "Teams",
+      "section": "Administration",
+      "local_path": "docs/teams.md",
+      "status": "ok",
+      "bytes": 10986,
+      "sha256": "b687b564dd3dcc7eff41eb73c1bdba8245f8b66bd6c09626a473898740331793",
+      "error": ""
+    },
+    {
+      "url": "https://linear.app/docs/third-party-application-approvals.md",
+      "title": "Third-Party App Approvals",
+      "section": "Administration",
+      "local_path": "docs/third-party-application-approvals.md",
+      "status": "ok",
+      "bytes": 1937,
+      "sha256": "1a7326e1edbaaa177287c73a1beccaf29573f393fb27a779a2e641b754db3290",
+      "error": ""
+    },
+    {
+      "url": "https://linear.app/docs/timeline.md",
+      "title": "Timeline",
+      "section": "Working in Linear",
+      "local_path": "docs/timeline.md",
+      "status": "ok",
+      "bytes": 2552,
+      "sha256": "bd4a777def2bc85e843de38fd183a60ae736c9176a39f98748517d3228e1016f",
+      "error": ""
+    },
+    {
+      "url": "https://linear.app/docs/triage-intelligence.md",
+      "title": "Triage Intelligence",
+      "section": "Intake",
+      "local_path": "docs/triage-intelligence.md",
+      "status": "ok",
+      "bytes": 6213,
+      "sha256": "df380746c9fa8fd801779a472dbaf3ec50c8861f61ad5e405b7e0e2a9226e5f6",
+      "error": ""
+    },
+    {
+      "url": "https://linear.app/docs/triage.md",
+      "title": "Triage",
+      "section": "Intake",
+      "local_path": "docs/triage.md",
+      "status": "ok",
+      "bytes": 6799,
+      "sha256": "bfd66a8cd6d2ab1d6707d1ad0a46bf509ff95a3faa5fcb706f4c7ef09eb55f28",
+      "error": ""
+    },
+    {
+      "url": "https://linear.app/docs/usage-and-limits.md",
+      "title": "",
+      "section": "Discovered",
+      "local_path": "docs/usage-and-limits.md",
+      "status": "ok",
+      "bytes": 8981,
+      "sha256": "038c902cdfabd30aec44cd5c7459d9bca1ccc671e0374f2c30e52895c33b64bf",
+      "error": ""
+    },
+    {
+      "url": "https://linear.app/docs/use-cycles.md",
+      "title": "Cycles",
+      "section": "Issues and cycles",
+      "local_path": "docs/use-cycles.md",
+      "status": "ok",
+      "bytes": 8461,
+      "sha256": "4c3d70b46b2982937d38f5e4152b09e35ef434378b0823fd8abca9dde930cdbb",
+      "error": ""
+    },
+    {
+      "url": "https://linear.app/docs/workspaces.md",
+      "title": "Workspaces",
+      "section": "Administration",
+      "local_path": "docs/workspaces.md",
+      "status": "ok",
+      "bytes": 3846,
+      "sha256": "e2c034407978d19ec0e1a28db2370a6031e10e718bc48f2d165cecaa50b4fc1d",
+      "error": ""
+    },
+    {
+      "url": "https://linear.app/docs/zapier.md",
+      "title": "Zapier",
+      "section": "Integrations",
+      "local_path": "docs/zapier.md",
+      "status": "ok",
+      "bytes": 3381,
+      "sha256": "53d2b2285d5da166a491060303400a6f9bdfb5bd5ae6d6be6894860d6b914dd3",
+      "error": ""
+    },
+    {
+      "url": "https://linear.app/docs/zendesk.md",
+      "title": "Zendesk",
+      "section": "Integrations",
+      "local_path": "docs/zendesk.md",
+      "status": "ok",
+      "bytes": 7427,
+      "sha256": "e04dcb5dc409a5c4491ce925fd7da3dd2e1aab93b1e81e3d8f8f455add364edf",
+      "error": ""
+    },
+    {
+      "url": "https://raw.githubusercontent.com/linear/linear/master/packages/sdk/src/schema.graphql",
+      "title": "",
+      "section": "Discovered",
+      "local_path": "external/raw.githubusercontent.com/linear/linear/master/packages/sdk/src/schema.graphql",
+      "status": "ok",
+      "bytes": 1341169,
+      "sha256": "d09d9ddf47cd05f0d9a98c032e65f68abc3fed12d6e1d2228fe8f4dc9290859c",
+      "error": ""
+    }
+  ]
+}
