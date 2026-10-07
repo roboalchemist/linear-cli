@@ -1,6 +1,6 @@
 # linear-cli Makefile
 
-.PHONY: build clean test test-verbose test-crud test-crud-verbose install lint fmt deps scrape-docs help
+.PHONY: build clean test test-verbose test-crud test-crud-verbose test-live-read install lint fmt deps scrape-docs help
 
 # Build variables
 BINARY_NAME=linear-cli
@@ -42,6 +42,11 @@ test-crud:
 test-crud-verbose:
 	@echo "Running CRUD integration tests (verbose, with log)..."
 	@go test -v -run TestCRUD -count=1 -timeout 10m . 2>&1 | tee crud_test.log
+
+# Run the automated LIVE read-only test suite (no write operations)
+test-live-read:
+	@echo "Running live read-only tests..."
+	@./live_read_test.sh --report live_read_report.json
 
 # Install dependencies
 deps:
@@ -105,6 +110,7 @@ help:
 	@echo "  test-verbose     - Run smoke tests with verbose output"
 	@echo "  test-crud        - Run CRUD integration tests (live API)"
 	@echo "  test-crud-verbose - Run CRUD tests with log file"
+	@echo "  test-live-read   - Run automated live read-only tests"
 	@echo "  deps             - Install dependencies"
 	@echo "  scrape-docs      - Scrape Linear docs into docs/linear-source-docs"
 	@echo "  fmt              - Format code"

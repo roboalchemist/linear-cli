@@ -10,6 +10,39 @@ shipping, so the CLI is roughly **seven months behind** the product and the API.
 
 ---
 
+## Implementation status (update)
+
+**Closed — read/list parity for every first-class entity.** Added read/list/get/
+search commands for: customers (+ needs/statuses/tiers), releases (+ notes/
+pipelines/stages), roadmaps, project & initiative labels, project & initiative
+relations, templates, webhooks, time schedules, triage responsibilities, emojis,
+audit log, agent sessions/skills, integrations, external users, notification
+subscriptions, organization, initiative updates, and unified search
+(`search issues|projects|semantic`).
+
+**Closed — lifecycle operations.** Unarchive (issue/project/initiative/document),
+issue delete (trash/permanent), issue label add/remove, comment resolve/
+unresolve, issue subscribe/unsubscribe/share/unshare/reminder, issue batch
+create/update, project label add/remove, project status archive/unarchive/purge,
+project reassign-status, initiative archive/unarchive + label add/remove,
+workflow-state CRUD (`team state create/update/archive`), cycle start-today/
+shift-all, and bulk inbox actions (mark-all-read/unread, snooze-all,
+unsnooze-all, archive-all).
+
+**Verified live (read-only).** `live_read_test.sh` runs every read/list command
+against the real API: **63 pass, 4 skip (workspace feature gates), 0 fail**.
+Automated via `make test-live-read` and the *Live read-only tests* workflow.
+
+**Still open (write-side, not live-testable here).** Integration connect flows
+(~68 mutations), OAuth applications, email intake addresses, organization/user
+admin (invites, domains, role changes, session revocation), agent session
+creation, project milestone move, provider-specific attachment links, push
+subscriptions, view preferences, git automation, package/webhook rotation
+extras, and import (`issueImport*`) flows. The `graphql` command remains the
+escape hatch for these.
+
+---
+
 ## 1. Method
 
 1. Scrape Linear's live docs + GraphQL SDL into `docs/linear-source-docs/`

@@ -1,0 +1,57 @@
+name: Live read-only tests
+
+# Automated live verification of every read/list command against the real
+# Linear API. Write commands are never invoked. Skips gracefully when the
+# LINEAR_API_KEY secret is not configured (e.g. forks).
+
+on:
+  workflow_dispatch:
+  schedule:
+    # Weekdays at 15:00 UTC (08:00 PT)
+    - cron: "0 15 * * 1-5"
+  push:
+    branches: [master]
+
+permissions:
+  contents: read
+
+jobs:
+  live-read:
+    runs-on: ubuntu-latest
+    env:
+      LINEAR_API_KEY: ${{ secrets.LINEAR_API_KEY }}
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+
+      - name: Build
+        run: |
+          go build ./...
+          go vet ./...
+
+      - name: Decide whether to run live tests
+        id: gate
+        run: |
+          if [ -z "${LINEAR_API_KEY:-}" ]; then
+            echo "run=false" >> "$GITHUB_OUTPUT"
+            echo "LINEAR_API_KEY secret not set — skipping live tests."
+          else
+            echo "run=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Run live read-only suite
+        if: steps.gate.outputs.run == 'true'
+        run: ./live_read_test.sh --report live_read_report.json
+
+      - name: Upload report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: live-read-report
+          path: live_read_report.json
+          if-no-files-found: ignore

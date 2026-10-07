@@ -31,7 +31,11 @@ Thumbs.db
 # Build output
 /linear-cli
 /linctl
+/linear-cli-livetest
 dist/
+
+# Live test artifacts
+live_read_report.json
 
 # Config files (may contain sensitive data)
 .linear-cli.yaml

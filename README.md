@@ -4,7 +4,10 @@ A command-line interface for the [Linear API](https://developers.linear.app/), b
 
 ## Features
 
-- **12 entity types** with full CRUDL: issues, projects, cycles, labels, documents, initiatives, views, milestones, status updates, relations, attachments, comments
+- **12 core entity types** with full CRUDL: issues, projects, cycles, labels, documents, initiatives, views, milestones, status updates, relations, attachments, comments
+- **Extended coverage** (read + lifecycle ops): customers, releases, roadmaps, project/initiative labels & relations, templates, webhooks, time schedules, triage responsibilities, emojis, agent sessions/skills, integrations, external users, notification subscriptions, audit log, organization
+- **Lifecycle ops**: unarchive (issue/project/initiative/document), issue label add/remove, comment resolve/unresolve, issue subscribe/share/reminder, bulk issue & notification actions, workflow-state CRUD, cycle shift/start-today
+- **Unified search**: `search issues`, `search projects`, `search semantic`
 - **Quick actions**: `issue start` (In Progress + assign), `issue done`, `issue triage`, `issue archive`
 - **Hierarchy navigation**: `initiative projects`, `project issues`
 - **Raw GraphQL**: `graphql` command for arbitrary API queries
@@ -252,6 +255,86 @@ export LINCTL_API_KEY="lin_api_..."         # Legacy alias
 # Precedence: LINEAR_API_KEY > LINCTL_API_KEY > config file
 ```
 
+### Extended entities
+
+```bash
+# Customers (Customer Requests)
+linear-cli customer list [--include-archived]
+linear-cli customer get CUSTOMER-ID
+linear-cli customer need list [--customer ID]
+linear-cli customer status list
+linear-cli customer tier list
+
+# Releases
+linear-cli release list | get RELEASE-ID
+linear-cli release note list
+linear-cli release pipeline list
+linear-cli release stage list
+
+# Roadmaps
+linear-cli roadmap list | get ROADMAP-ID
+
+# Project & initiative labels / relations
+linear-cli project label list
+linear-cli project label add PROJECT-ID LABEL-ID...
+linear-cli project label remove PROJECT-ID LABEL-ID...
+linear-cli initiative label list
+linear-cli initiative label add INITIATIVE-ID LABEL-ID...
+linear-cli project relation list [--project ID]
+linear-cli initiative relation list [--initiative ID]
+
+# Templates / webhooks / schedules / triage / emojis / audit
+linear-cli template list | get TEMPLATE-ID | search TERM
+linear-cli webhook list | get WEBHOOK-ID
+linear-cli schedule list | get SCHEDULE-ID
+linear-cli triage responsibility list | get ID
+linear-cli emoji list
+linear-cli audit log list [--actor USER-ID]
+
+# Platform
+linear-cli agent session list | get ID
+linear-cli agent skill list
+linear-cli integration list
+linear-cli external user list
+linear-cli organization get
+linear-cli subscription list
+
+# Search
+linear-cli search issues TERM
+linear-cli search projects TERM
+linear-cli search semantic TERM
+```
+
+### Lifecycle operations
+
+```bash
+linear-cli issue unarchive ISSUE-ID
+linear-cli issue delete ISSUE-ID [--permanent]
+linear-cli issue label add ISSUE-ID LABEL-ID...
+linear-cli issue label remove ISSUE-ID LABEL-ID...
+linear-cli issue subscribe ISSUE-ID [--email EMAIL]
+linear-cli issue unsubscribe ISSUE-ID
+linear-cli issue share ISSUE-ID --user USER-ID
+linear-cli issue unshare ISSUE-ID --user USER-ID
+linear-cli issue reminder add ISSUE-ID --at RFC3339
+linear-cli issue reminder remove ISSUE-ID
+linear-cli issue batch create --file issues.json
+linear-cli issue batch update ISSUE-ID... --state-id ID
+linear-cli issue comment resolve COMMENT-ID [--resolving-comment ID]
+linear-cli issue comment unresolve COMMENT-ID
+linear-cli project unarchive PROJECT-ID
+linear-cli project status archive|unarchive|purge UPDATE-ID
+linear-cli project reassign-status --new STATUS-ID --original STATUS-ID
+linear-cli initiative archive|unarchive INITIATIVE-ID
+linear-cli document unarchive DOC-ID
+linear-cli cycle start-today CYCLE-ID
+linear-cli cycle shift-all CYCLE-ID --days N
+linear-cli team state create --team-id ID --name NAME --color HEX --type TYPE
+linear-cli team state update STATE-ID [--name N] [--color HEX]
+linear-cli team state archive STATE-ID
+linear-cli inbox mark-all-read | mark-all-unread | snooze-all --until RFC3339 | unsnooze-all | archive-all
+```
+
 ## Global Flags
 
 ```
@@ -286,11 +369,25 @@ For CI/CD, set `LINEAR_API_KEY` environment variable instead.
 ## Testing
 
 ```bash
-make test           # Run smoke tests (requires valid auth)
-make test-verbose   # With bash tracing
+make test             # Smoke tests (requires valid auth)
+make test-verbose     # Smoke tests with bash tracing
+make test-live-read   # Automated LIVE read-only suite (JSON report)
+make test-crud        # Live CRUD integration tests (writes)
 ```
 
-Smoke tests exercise all read-only commands across all 3 output formats. Write operations are tested manually against a test workspace.
+`live_read_test.sh` (via `make test-live-read`) is the automated verification
+suite: it exercises every read/list/get/search command against the live Linear
+API, validates JSON output, and is rate-limit aware (small limits, a delay
+between calls, and retries on transient errors). It never invokes write
+commands. Commands that are unavailable to the current workspace/key
+(feature-gated customers, admin-only webhooks/audit log) are reported as SKIP.
+
+It runs automatically on `master` pushes, on a weekday schedule, and on demand
+via the **Live read-only tests** GitHub Actions workflow (set the
+`LINEAR_API_KEY` repository secret to enable it).
+
+Smoke tests exercise all read-only commands across all 3 output formats. Write
+operations are tested manually against a test workspace.
 
 ## Development
 
